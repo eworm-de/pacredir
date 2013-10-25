@@ -78,7 +78,7 @@ static void resolve_callback(AvahiServiceResolver *r, AVAHI_GCC_UNUSED AvahiIfIn
 			}
 			printf("Adding host: %s, port %d\n", host, port);
 			tmphosts->host = strdup(host);
-			tmphosts->port = 15678;
+			tmphosts->port = port;
 			tmphosts->next = realloc(tmphosts->next, sizeof(struct hosts));
 			tmphosts = tmphosts->next;
 			tmphosts->host = NULL;
