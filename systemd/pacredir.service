@@ -1,5 +1,5 @@
 [Unit]
-Description=Darkhttpd to serve pacman cache
+Description=Redirect pacman requests via avahi service
 After=avahi-daemon.service
 
 [Service]
