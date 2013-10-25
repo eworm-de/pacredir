@@ -28,9 +28,9 @@ install: install-bin install-doc
 
 install-bin: pacredir
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)/usr/bin/pacredir
-	$(INSTALL) -D -m0755 avahi/pacserve.service $(DESTDIR)/etc/avahi/services/pacserve.service
-	$(INSTALL) -D -m0755 systemd/pacserve.service $(DESTDIR)/usr/lib/systemd/system/pacserve.service
-	$(INSTALL) -D -m0755 systemd/pacredir.service $(DESTDIR)/usr/lib/systemd/system/pacredir.service
+	$(INSTALL) -D -m0644 avahi/pacserve.service $(DESTDIR)/etc/avahi/services/pacserve.service
+	$(INSTALL) -D -m0644 systemd/pacserve.service $(DESTDIR)/usr/lib/systemd/system/pacserve.service
+	$(INSTALL) -D -m0644 systemd/pacredir.service $(DESTDIR)/usr/lib/systemd/system/pacredir.service
 
 install-doc: README.html
 	$(INSTALL) -D -m0644 README.md $(DESTDIR)/usr/share/doc/pacserve/README.md
