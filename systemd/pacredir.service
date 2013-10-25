@@ -1,6 +1,6 @@
 [Unit]
 Description=Redirect pacman requests via avahi service
-After=avahi-daemon.service
+Requires=avahi-daemon.service
 
 [Service]
 ExecStart=/usr/bin/pacredir
