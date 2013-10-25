@@ -1,0 +1,9 @@
+[Unit]
+Description=Darkhttpd to serve pacman cache
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/darkhttpd /var/cache/pacman/pkg/ --port 7078
+
+[Install]
+WantedBy=multi-user.target

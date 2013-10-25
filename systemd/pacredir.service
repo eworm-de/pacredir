@@ -1,0 +1,9 @@
+[Unit]
+Description=Darkhttpd to serve pacman cache
+After=avahi-daemon.service
+
+[Service]
+ExecStart=/usr/bin/pacredir
+
+[Install]
+WantedBy=multi-user.target
