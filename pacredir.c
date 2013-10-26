@@ -7,14 +7,11 @@
  * This is an example code skeleton provided by vim-skeleton.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <time.h>
 
 #include <avahi-client/client.h>
@@ -33,11 +30,19 @@
 		"</head><body>404 Not Found: %s</body></html>"
 #define PORT	7077
 #define SERVICE	"_pacserve._tcp"
+#define BADTIME	60 * 10
 
-/* is there any other way than storing things in global struct? */
+/* hosts */
 struct hosts {
+	/* host name */
 	char * host;
+	/* http port */
 	uint16_t port;
+	/* unix timestamp of last bad request */
+	__time_t bad;
+	/* true if host is offline */
+	uint8_t offline;
+	/* pointer to next struct element */
 	struct hosts * next;
 };
 
@@ -45,15 +50,15 @@ struct hosts {
 struct hosts * hosts = NULL;
 static AvahiSimplePoll *simple_poll = NULL;
 
-static void resolve_callback(AvahiServiceResolver *r, AVAHI_GCC_UNUSED AvahiIfIndex interface, AVAHI_GCC_UNUSED AvahiProtocol protocol,
+/*** resolve_callback_new ***
+ * Called whenever a service has been resolved successfully or timed out */
+static void resolve_callback_new(AvahiServiceResolver *r, AVAHI_GCC_UNUSED AvahiIfIndex interface, AVAHI_GCC_UNUSED AvahiProtocol protocol,
 		AvahiResolverEvent event, const char *name, const char *type, const char *domain, const char *host, const AvahiAddress *address,
 		AVAHI_GCC_UNUSED uint16_t port, AVAHI_GCC_UNUSED AvahiStringList *txt, AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
 		AVAHI_GCC_UNUSED void* userdata) {
 	struct hosts * tmphosts = hosts;
 
 	assert(r);
-
-	/* Called whenever a service has been resolved successfully or timed out */
 
 	switch (event) {
 		case AVAHI_RESOLVER_FAILURE:
@@ -62,16 +67,12 @@ static void resolve_callback(AvahiServiceResolver *r, AVAHI_GCC_UNUSED AvahiIfIn
 			break;
 
 		case AVAHI_RESOLVER_FOUND: {
-			// char a[AVAHI_ADDRESS_STR_MAX];
-
-			// avahi_address_snprint(a, sizeof(a), address);
-			// fprintf(stderr, "%s %s\n", host, a);
-
 			while (tmphosts->host != NULL) {
 				if (strcmp(tmphosts->host, host) == 0) {
 #					if defined DEBUG
 					printf("Host is already in the list: %s\n", host);
 #					endif
+					tmphosts->offline = 0;
 					goto out;
 				}
 				tmphosts = tmphosts->next;
@@ -79,10 +80,14 @@ static void resolve_callback(AvahiServiceResolver *r, AVAHI_GCC_UNUSED AvahiIfIn
 			printf("Adding host: %s, port %d\n", host, port);
 			tmphosts->host = strdup(host);
 			tmphosts->port = port;
+			tmphosts->bad = 0;
+			tmphosts->offline = 0;
 			tmphosts->next = realloc(tmphosts->next, sizeof(struct hosts));
 			tmphosts = tmphosts->next;
 			tmphosts->host = NULL;
 			tmphosts->next = NULL;
+
+			break;
 		}
 	}
 
@@ -90,13 +95,46 @@ out:
 	avahi_service_resolver_free(r);
 }
 
+/*** resolve_callback_remove ***
+ * Called whenever a service has been resolved successfully or timed out */
+static void resolve_callback_remove(AvahiServiceResolver *r, AVAHI_GCC_UNUSED AvahiIfIndex interface, AVAHI_GCC_UNUSED AvahiProtocol protocol,
+		AvahiResolverEvent event, const char *name, const char *type, const char *domain, const char *host, const AvahiAddress *address,
+		AVAHI_GCC_UNUSED uint16_t port, AVAHI_GCC_UNUSED AvahiStringList *txt, AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
+		AVAHI_GCC_UNUSED void* userdata) {
+	struct hosts * tmphosts = hosts;
+
+	assert(r);
+
+	switch (event) {
+		case AVAHI_RESOLVER_FAILURE:
+			fprintf(stderr, "(Resolver) Failed to resolve service '%s' of type '%s' in domain '%s': %s\n",
+				name, type, domain, avahi_strerror(avahi_client_errno(avahi_service_resolver_get_client(r))));
+			break;
+
+		case AVAHI_RESOLVER_FOUND: {
+			while (tmphosts->host != NULL) {
+				if (strcmp(tmphosts->host, host) == 0) {
+					printf("Marking host offline: %s\n", host);
+					tmphosts->offline = 1;
+					goto out;
+				}
+				tmphosts = tmphosts->next;
+			}
+			break;
+		}
+	}
+
+out:
+	avahi_service_resolver_free(r);
+}
+
+/*** browse_callback ***
+ * Called whenever a new services becomes available on the LAN or is removed from the LAN */
 static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
 		const char *type, const char *domain, AVAHI_GCC_UNUSED AvahiLookupResultFlags flags, void* userdata) {
 	AvahiClient *c = userdata;
 
 	assert(b);
-
-	/* Called whenever a new services becomes available on the LAN or is removed from the LAN */
 
 	switch (event) {
 		case AVAHI_BROWSER_FAILURE:
@@ -106,38 +144,39 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			return;
 
 		case AVAHI_BROWSER_NEW:
-			// fprintf(stderr, "(Browser) NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
+#			if defined DEBUG
+			fprintf(stderr, "(Browser) NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
+#			endif
 
 			/* We ignore the returned resolver object. In the callback
 			 * function we free it. If the server is terminated before
 			 * the callback function is called the server will free
 			 * the resolver for us. */
 
-			if (!(avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, 0, resolve_callback, c)))
+			if (avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, 0, resolve_callback_new, c) == NULL)
 				fprintf(stderr, "Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno(c)));
 
 			break;
 
 		case AVAHI_BROWSER_REMOVE:
-			// fprintf(stderr, "(Browser) REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
+#			if defined DEBUG
+			fprintf(stderr, "(Browser) REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
+#			endif
 
-			/* TODO: remove host */
-			// if (!(avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, 0, resolve_callback, c)))
-			//	fprintf(stderr, "Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno(c)));
+			if (avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, 0, resolve_callback_remove, c) == NULL)
+				fprintf(stderr, "Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno(c)));
 
 			break;
 
 		case AVAHI_BROWSER_ALL_FOR_NOW:
 		case AVAHI_BROWSER_CACHE_EXHAUSTED:
-			// fprintf(stderr, "(Browser) %s\n", event == AVAHI_BROWSER_CACHE_EXHAUSTED ? "CACHE_EXHAUSTED" : "ALL_FOR_NOW");
 			break;
 	}
 }
 
+/*** client_callback ***/
 static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED void * userdata) {
 	assert(c);
-
-	/* Called whenever the client or server state changes */
 
 	if (state == AVAHI_CLIENT_FAILURE) {
 		fprintf(stderr, "Server connection failure: %s\n", avahi_strerror(avahi_client_errno(c)));
@@ -145,7 +184,8 @@ static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UN
 	}
 }
 
-int get_content(const char * host, const uint16_t port, const char * url) {
+/*** get_http_code ***/
+int get_http_code(const char * host, const uint16_t port, const char * url) {
 	CURL *curl;
 	CURLcode res;
 	unsigned int http_code;
@@ -164,7 +204,6 @@ int get_content(const char * host, const uint16_t port, const char * url) {
 		/* get it! */
 		if (curl_easy_perform(curl) != CURLE_OK) {
 			fprintf(stderr, "Could not connect to server %s on port %d.\n", host, port);
-			/* TODO remove or disable */
 			return -1;
 		}
 
@@ -172,8 +211,6 @@ int get_content(const char * host, const uint16_t port, const char * url) {
 			fprintf(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
 			return -1;
 		}
-
-		// printf("%s: %d\n", url, http_code);
 
 		/* always cleanup */ 
 		curl_easy_cleanup(curl);
@@ -185,6 +222,8 @@ int get_content(const char * host, const uint16_t port, const char * url) {
 	return http_code;
 }
 
+/*** ahc_echo ***
+ * called whenever a http request is received */
 static int ahc_echo(void * cls, struct MHD_Connection * connection, const char * uri, const char * method,
 		const char * version, const char * upload_data, size_t * upload_data_size, void ** ptr) {
 	static int dummy;
@@ -195,6 +234,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	char * url = NULL, * page;
 	const char * basename;
 	int http_code = 0;
+	struct timeval tv;
 
 	/* we want to filename, not the path */
 	basename = uri;
@@ -215,13 +255,22 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 	/* try to find a server */
 	while (tmphosts->host != NULL) {
+		gettimeofday(&tv, NULL);
+
+		/* skip host if offline or had a bad request within last BADTIME seconds */
+		if (tmphosts->offline == 1 || tmphosts->bad + BADTIME > tv.tv_sec) {
+			tmphosts = tmphosts->next;
+			continue;
+		}
+
 		url = malloc(10 + strlen(tmphosts->host) + 5 + strlen(basename));
 		sprintf(url, "http://%s:%d/%s", tmphosts->host, tmphosts->port, basename);
 
 		printf("Trying %s\n", url);
-		if ((http_code = get_content(tmphosts->host, tmphosts->port, url)) == MHD_HTTP_OK) {
+		if ((http_code = get_http_code(tmphosts->host, tmphosts->port, url)) == MHD_HTTP_OK)
 			break;
-		}
+		else if (http_code == -1)
+			tmphosts->bad = tv.tv_sec;
 
 		tmphosts = tmphosts->next;
 	}
@@ -235,7 +284,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		ret =  MHD_add_response_header(response, "Location", url);
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 	} else {
-		printf("File %s Not found, giving up.\n", basename);
+		printf("File %s not found, giving up.\n", basename);
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename);
 		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
@@ -250,12 +299,31 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	return ret;
 }
 
+/*** sigterm_callback ***/
+void sigterm_callback(int signal) {
+	avahi_simple_poll_quit(simple_poll);
+}
+
+/*** sighup_callback ***/
+void sighup_callback(int signal) {
+	struct hosts * tmphosts = hosts;
+	
+	printf("Received SIGHUP, marking all hosts offline.\n");
+
+	while (tmphosts->host != NULL) {
+		tmphosts->offline = 1;
+		tmphosts = tmphosts->next;
+	}
+}
+
+/*** main ***/
 int main(int argc, char ** argv) {
 	AvahiClient *client = NULL;
 	AvahiServiceBrowser *sb = NULL;
 	int error;
 	int ret = 1;
 	struct MHD_Daemon * mhd;
+	struct hosts * tmphosts;
 
 	printf("Starting pacredir/" VERSION "\n");
 
@@ -263,24 +331,26 @@ int main(int argc, char ** argv) {
 	hosts = malloc(sizeof(struct hosts));
 	hosts->host = NULL;
 	hosts->port = 0;
+	hosts->bad = 0;
+	hosts->offline = 0;
 	hosts->next = NULL;
 
-	/* Allocate main loop object */
+	/* allocate main loop object */
 	if (!(simple_poll = avahi_simple_poll_new())) {
 		fprintf(stderr, "Failed to create simple poll object.\n");
 		goto fail;
 	}
 
-	/* Allocate a new client */
+	/* allocate a new client */
 	client = avahi_client_new(avahi_simple_poll_get(simple_poll), 0, client_callback, NULL, &error);
 
-	/* Check wether creating the client object succeeded */
+	/* check wether creating the client object succeeded */
 	if (!client) {
 		fprintf(stderr, "Failed to create client: %s\n", avahi_strerror(error));
 		goto fail;
 	}
 
-	/* Create the service browser */
+	/* create the service browser */
 	if (!(sb = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, SERVICE, NULL, 0, browse_callback, client))) {
 		fprintf(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
@@ -290,8 +360,12 @@ int main(int argc, char ** argv) {
 		fprintf(stderr, "Could not start daemon on port %d.\n", PORT);
 		return EXIT_FAILURE;
 	}
+
+	/* register signal callbacks */
+	signal(SIGTERM, sigterm_callback);
+	signal(SIGHUP, sighup_callback);
 	
-	/* Run the main loop */
+	/* run the main loop */
 	avahi_simple_poll_loop(simple_poll);
 
 	MHD_stop_daemon(mhd);
@@ -301,6 +375,13 @@ int main(int argc, char ** argv) {
 fail:
 
 	/* Cleanup things */
+	while(hosts->host != NULL) {
+		free(hosts->host);
+		tmphosts = hosts->next;
+		free(hosts);
+		hosts = tmphosts;
+	}
+
 	if (sb)
 		avahi_service_browser_free(sb);
 
