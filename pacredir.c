@@ -200,6 +200,9 @@ int get_http_code(const char * host, const uint16_t port, const char * url) {
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "pacredir/" VERSION);
 		/* do not receive body */
 		curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
+		/* set connection timeout to 2 seconds
+		 * if the host needs longer we do not want to use it anyway ;) */
+		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2);
 
 		/* get it! */
 		if (curl_easy_perform(curl) != CURLE_OK) {
