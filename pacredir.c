@@ -47,6 +47,8 @@
 struct services {
 	/* http port */
 	uint16_t port;
+	/* true if host/service is online */
+	uint8_t online;
 	/* unix timestamp of last bad request */
 	__time_t bad;
 };
@@ -58,8 +60,6 @@ struct hosts {
 	/* port and bad time for services */
 	struct services pacserve;
 	struct services pacdbserve;
-	/* true if host is offline */
-	uint8_t offline;
 	/* pointer to next struct element */
 	struct hosts * next;
 };
@@ -93,7 +93,6 @@ static void resolve_callback_new(AvahiServiceResolver *r, AVAHI_GCC_UNUSED Avahi
 			while (tmphosts->host != NULL) {
 				if (strcmp(tmphosts->host, host) == 0) {
 					printf("Updating service: %s, %s on port %d\n", host, type, port);
-					tmphosts->offline = 0;
 					goto out;
 				}
 				tmphosts = tmphosts->next;
@@ -105,12 +104,13 @@ static void resolve_callback_new(AvahiServiceResolver *r, AVAHI_GCC_UNUSED Avahi
 			tmphosts->next->next = NULL;
 
 out:
-			tmphosts->offline = 0;
 			if (strcmp(type, PACSERVE) == 0) {
 				tmphosts->pacserve.port = port;
+				tmphosts->pacserve.online = 1;
 				tmphosts->pacserve.bad = 0;
 			} else {
 				tmphosts->pacdbserve.port = port;
+				tmphosts->pacdbserve.online = 1;
 				tmphosts->pacdbserve.bad = 0;
 			}
 
@@ -140,8 +140,12 @@ static void resolve_callback_remove(AvahiServiceResolver *r, AVAHI_GCC_UNUSED Av
 		case AVAHI_RESOLVER_FOUND: {
 			while (tmphosts->host != NULL) {
 				if (strcmp(tmphosts->host, host) == 0) {
-					printf("Marking host offline: %s\n", host);
-					tmphosts->offline = 1;
+					printf("Marking service %s on host %s offline\n", type, host);
+					if (strcmp(type, PACSERVE) == 0) {
+						tmphosts->pacserve.online = 0;
+					} else {
+						tmphosts->pacdbserve.online = 0;
+					}
 					goto out;
 				}
 				tmphosts = tmphosts->next;
@@ -320,7 +324,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 			gettimeofday(&tv, NULL);
 
 			/* skip host if offline or had a bad request within last BADTIME seconds */
-			if (tmphosts->offline == 1 || tmphosts->pacdbserve.bad + BADTIME > tv.tv_sec) {
+			if (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.bad + BADTIME > tv.tv_sec) {
 				tmphosts = tmphosts->next;
 				continue;
 			}
@@ -358,7 +362,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 			gettimeofday(&tv, NULL);
 
 			/* skip host if offline or had a bad request within last BADTIME seconds */
-			if (tmphosts->offline == 1 || tmphosts->pacserve.bad + BADTIME > tv.tv_sec) {
+			if (tmphosts->pacserve.online == 0 || tmphosts->pacserve.bad + BADTIME > tv.tv_sec) {
 				tmphosts = tmphosts->next;
 				continue;
 			}
@@ -412,7 +416,8 @@ void sighup_callback(int signal) {
 	printf("Received SIGHUP, marking all hosts offline.\n");
 
 	while (tmphosts->host != NULL) {
-		tmphosts->offline = 1;
+		tmphosts->pacserve.online = 0;
+		tmphosts->pacdbserve.online = 0;
 		tmphosts = tmphosts->next;
 	}
 }
@@ -441,10 +446,11 @@ int main(int argc, char ** argv) {
 	hosts = malloc(sizeof(struct hosts));
 	hosts->host = NULL;
 	hosts->pacserve.port = 0;
+	hosts->pacserve.online = 0;
 	hosts->pacserve.bad = 0;
 	hosts->pacdbserve.port = 0;
+	hosts->pacdbserve.online = 0;
 	hosts->pacdbserve.bad = 0;
-	hosts->offline = 0;
 	hosts->next = NULL;
 
 	/* allocate main loop object */
