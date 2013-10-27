@@ -254,28 +254,38 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	}
 	if (*upload_data_size != 0)
 		return MHD_NO; /* upload data in a GET!? */
-	*ptr = NULL; /* clear context pointer */
 
-	/* try to find a server */
-	while (tmphosts->host != NULL) {
-		gettimeofday(&tv, NULL);
+	/* clear context pointer */
+	*ptr = NULL;
 
-		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if (tmphosts->offline == 1 || tmphosts->bad + BADTIME > tv.tv_sec) {
+	/* do not process db requests */
+	/* TODO: do some timestamp magic to find suitable db files */
+	if (strcmp(basename + strlen(basename) - 3, ".db") == 0) {
+#		if defined DEBUG
+		printf("Not precessing db file request for %s\n", basename);
+#		endif
+	} else {
+		/* try to find a server */
+		while (tmphosts->host != NULL) {
+			gettimeofday(&tv, NULL);
+
+			/* skip host if offline or had a bad request within last BADTIME seconds */
+			if (tmphosts->offline == 1 || tmphosts->bad + BADTIME > tv.tv_sec) {
+				tmphosts = tmphosts->next;
+				continue;
+			}
+
+			url = malloc(10 + strlen(tmphosts->host) + 5 + strlen(basename));
+			sprintf(url, "http://%s:%d/%s", tmphosts->host, tmphosts->port, basename);
+
+			printf("Trying %s\n", url);
+			if ((http_code = get_http_code(tmphosts->host, tmphosts->port, url)) == MHD_HTTP_OK)
+				break;
+			else if (http_code == -1)
+				tmphosts->bad = tv.tv_sec;
+
 			tmphosts = tmphosts->next;
-			continue;
 		}
-
-		url = malloc(10 + strlen(tmphosts->host) + 5 + strlen(basename));
-		sprintf(url, "http://%s:%d/%s", tmphosts->host, tmphosts->port, basename);
-
-		printf("Trying %s\n", url);
-		if ((http_code = get_http_code(tmphosts->host, tmphosts->port, url)) == MHD_HTTP_OK)
-			break;
-		else if (http_code == -1)
-			tmphosts->bad = tv.tv_sec;
-
-		tmphosts = tmphosts->next;
 	}
 
 	/* give response */
