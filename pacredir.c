@@ -32,14 +32,27 @@
 #define SERVICE	"_pacserve._tcp"
 #define BADTIME	60 * 10
 
-/* hosts */
-struct hosts {
-	/* host name */
-	char * host;
+/* services */
+struct services {
 	/* http port */
 	uint16_t port;
 	/* unix timestamp of last bad request */
 	__time_t bad;
+};
+
+/* hosts */
+struct hosts {
+	/* host name */
+	char * host;
+#if 0
+	/* http port */
+	uint16_t port;
+	/* unix timestamp of last bad request */
+	__time_t bad;
+#endif
+	/* port and bad time for services */
+	struct services pacserve;
+	struct services pacdbserve;
 	/* true if host is offline */
 	uint8_t offline;
 	/* pointer to next struct element */
@@ -49,6 +62,7 @@ struct hosts {
 /* global variables */
 struct hosts * hosts = NULL;
 static AvahiSimplePoll *simple_poll = NULL;
+char * localname = NULL;
 
 /*** resolve_callback_new ***
  * Called whenever a service has been resolved successfully or timed out */
@@ -67,6 +81,10 @@ static void resolve_callback_new(AvahiServiceResolver *r, AVAHI_GCC_UNUSED Avahi
 			break;
 
 		case AVAHI_RESOLVER_FOUND: {
+			/* ignore self */
+			if (strcmp(host, localname) == 0)
+				goto out;
+
 			while (tmphosts->host != NULL) {
 				if (strcmp(tmphosts->host, host) == 0) {
 #					if defined DEBUG
@@ -79,8 +97,8 @@ static void resolve_callback_new(AvahiServiceResolver *r, AVAHI_GCC_UNUSED Avahi
 			}
 			printf("Adding host: %s, port %d\n", host, port);
 			tmphosts->host = strdup(host);
-			tmphosts->port = port;
-			tmphosts->bad = 0;
+			tmphosts->pacserve.port = port;
+			tmphosts->pacserve.bad = 0;
 			tmphosts->offline = 0;
 			tmphosts->next = realloc(tmphosts->next, sizeof(struct hosts));
 			tmphosts = tmphosts->next;
@@ -270,19 +288,19 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 			gettimeofday(&tv, NULL);
 
 			/* skip host if offline or had a bad request within last BADTIME seconds */
-			if (tmphosts->offline == 1 || tmphosts->bad + BADTIME > tv.tv_sec) {
+			if (tmphosts->offline == 1 || tmphosts->pacserve.bad + BADTIME > tv.tv_sec) {
 				tmphosts = tmphosts->next;
 				continue;
 			}
 
 			url = malloc(10 + strlen(tmphosts->host) + 5 + strlen(basename));
-			sprintf(url, "http://%s:%d/%s", tmphosts->host, tmphosts->port, basename);
+			sprintf(url, "http://%s:%d/%s", tmphosts->host, tmphosts->pacserve.port, basename);
 
 			printf("Trying %s\n", url);
-			if ((http_code = get_http_code(tmphosts->host, tmphosts->port, url)) == MHD_HTTP_OK)
+			if ((http_code = get_http_code(tmphosts->host, tmphosts->pacserve.port, url)) == MHD_HTTP_OK)
 				break;
 			else if (http_code == -1)
-				tmphosts->bad = tv.tv_sec;
+				tmphosts->pacserve.bad = tv.tv_sec;
 
 			tmphosts = tmphosts->next;
 		}
@@ -329,6 +347,15 @@ void sighup_callback(int signal) {
 	}
 }
 
+/*** get_localname ***/
+char * get_localname(const char * hostname, const char * domainname) {
+	char * name;
+
+	name = malloc(strlen(hostname) + strlen(domainname) + 2 /* '.' and null char */);
+	sprintf(name, "%s.%s", hostname, domainname);
+	return name;
+}
+
 /*** main ***/
 int main(int argc, char ** argv) {
 	AvahiClient *client = NULL;
@@ -343,8 +370,8 @@ int main(int argc, char ** argv) {
 	/* allocate first struct element as dummy */
 	hosts = malloc(sizeof(struct hosts));
 	hosts->host = NULL;
-	hosts->port = 0;
-	hosts->bad = 0;
+	hosts->pacserve.port = 0;
+	hosts->pacserve.bad = 0;
 	hosts->offline = 0;
 	hosts->next = NULL;
 
@@ -369,6 +396,10 @@ int main(int argc, char ** argv) {
 		goto fail;
 	}
 
+	/* get the local hostname used by avahi */
+	localname = get_localname(avahi_client_get_host_name(client), avahi_client_get_domain_name(client));
+
+	/* start http server */
 	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT, NULL, NULL, &ahc_echo, NULL, MHD_OPTION_END)) == NULL) {
 		fprintf(stderr, "Could not start daemon on port %d.\n", PORT);
 		return EXIT_FAILURE;
@@ -394,6 +425,9 @@ fail:
 		free(hosts);
 		hosts = tmphosts;
 	}
+
+	if (localname)
+		free(localname);
 
 	if (sb)
 		avahi_service_browser_free(sb);
