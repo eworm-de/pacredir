@@ -24,6 +24,14 @@
 #include <curl/curl.h>
 #include <microhttpd.h>
 
+#if defined __x86_64__
+#	define ARCH	"x86_64"
+#elif defined __i386__
+#	define ARCH	"i686"
+#else
+#	error Unknown architecture!
+#endif
+
 #define PAGE307 "<html><head><title>307 temporary redirect</title>" \
 		"</head><body>307 temporary redirect: " \
 		"<a href=\"%s\">%s</a></body></html>"
@@ -31,7 +39,7 @@
 		"</head><body>404 Not Found: %s</body></html>"
 #define PORT	7077
 #define PACSERVE	"_pacserve._tcp"
-#define PACDBSERVE	"_pacdbserve._tcp"
+#define PACDBSERVE	"_pacdbserve_" ARCH "._tcp"
 #define SYNCPATH	"/var/lib/pacman/sync"
 #define BADTIME	60 * 10
 

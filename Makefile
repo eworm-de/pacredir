@@ -4,22 +4,27 @@ CC	:= gcc
 MD	:= markdown
 INSTALL	:= install
 RM	:= rm
+SED	:= sed
 CFLAGS	+= -O2 -Wall -Werror
 CFLAGS	+= $(shell pkg-config --libs --cflags libcurl)
 CFLAGS	+= $(shell pkg-config --libs --cflags avahi-client)
 CFLAGS	+= $(shell pkg-config --libs --cflags libmicrohttpd)
 VERSION := $(shell git describe --tags --long 2>/dev/null)
+ARCH	:= $(shell uname -m)
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
 ifeq ($(VERSION),)
 VERSION := 0.0.1
 endif
 
-all: pacredir README.html
+all: pacredir pacdbserve README.html
 
 pacredir: pacredir.c
 	$(CC) $(CFLAGS) -o pacredir pacredir.c \
 		-DVERSION="\"$(VERSION)\""
+
+pacdbserve: avahi/pacdbserve.service.in
+	$(SED) 's/%ARCH%/$(ARCH)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
 
 README.html: README.md
 	$(MD) README.md > README.html

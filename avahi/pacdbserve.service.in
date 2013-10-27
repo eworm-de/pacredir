@@ -8,7 +8,7 @@
   <name replace-wildcards="yes">%h</name>
 
   <service>
-    <type>_pacdbserve._tcp</type>
+    <type>_pacdbserve_%ARCH%._tcp</type>
     <port>7079</port>
   </service>
 

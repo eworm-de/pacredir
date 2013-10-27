@@ -1,4 +1,5 @@
 *~
 *.o
 pacredir
+avahi/pacdbserve.service
 README.html
