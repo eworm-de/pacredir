@@ -8,10 +8,11 @@
  */
 
 #include <assert.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
+#include <sys/stat.h>
 #include <time.h>
 
 #include <avahi-client/client.h>
@@ -29,7 +30,9 @@
 #define PAGE404 "<html><head><title>404 Not Found</title>" \
 		"</head><body>404 Not Found: %s</body></html>"
 #define PORT	7077
-#define SERVICE	"_pacserve._tcp"
+#define PACSERVE	"_pacserve._tcp"
+#define PACDBSERVE	"_pacdbserve._tcp"
+#define SYNCPATH	"/var/lib/pacman/sync"
 #define BADTIME	60 * 10
 
 /* services */
@@ -44,12 +47,6 @@ struct services {
 struct hosts {
 	/* host name */
 	char * host;
-#if 0
-	/* http port */
-	uint16_t port;
-	/* unix timestamp of last bad request */
-	__time_t bad;
-#endif
 	/* port and bad time for services */
 	struct services pacserve;
 	struct services pacdbserve;
@@ -87,29 +84,32 @@ static void resolve_callback_new(AvahiServiceResolver *r, AVAHI_GCC_UNUSED Avahi
 
 			while (tmphosts->host != NULL) {
 				if (strcmp(tmphosts->host, host) == 0) {
-#					if defined DEBUG
-					printf("Host is already in the list: %s\n", host);
-#					endif
+					printf("Updating service: %s, %s on port %d\n", host, type, port);
 					tmphosts->offline = 0;
 					goto out;
 				}
 				tmphosts = tmphosts->next;
 			}
-			printf("Adding host: %s, port %d\n", host, port);
+			printf("Adding host: %s, %s on port %d\n", host, type, port);
 			tmphosts->host = strdup(host);
-			tmphosts->pacserve.port = port;
-			tmphosts->pacserve.bad = 0;
-			tmphosts->offline = 0;
 			tmphosts->next = realloc(tmphosts->next, sizeof(struct hosts));
-			tmphosts = tmphosts->next;
-			tmphosts->host = NULL;
-			tmphosts->next = NULL;
+			tmphosts->next->host = NULL;
+			tmphosts->next->next = NULL;
+
+out:
+			tmphosts->offline = 0;
+			if (strcmp(type, PACSERVE) == 0) {
+				tmphosts->pacserve.port = port;
+				tmphosts->pacserve.bad = 0;
+			} else {
+				tmphosts->pacdbserve.port = port;
+				tmphosts->pacdbserve.bad = 0;
+			}
 
 			break;
 		}
 	}
 
-out:
 	avahi_service_resolver_free(r);
 }
 
@@ -203,10 +203,9 @@ static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UN
 }
 
 /*** get_http_code ***/
-int get_http_code(const char * host, const uint16_t port, const char * url) {
+int get_http_code(const char * host, const uint16_t port, const char * url, int * http_code, int * last_modified) {
 	CURL *curl;
 	CURLcode res;
-	unsigned int http_code;
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
@@ -218,20 +217,34 @@ int get_http_code(const char * host, const uint16_t port, const char * url) {
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "pacredir/" VERSION);
 		/* do not receive body */
 		curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
+		/* ask for filetime */
+		curl_easy_setopt(curl, CURLOPT_FILETIME, 1);
 		/* set connection timeout to 2 seconds
 		 * if the host needs longer we do not want to use it anyway ;) */
 		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2);
 
-		/* get it! */
+		/* perform the request */
 		if (curl_easy_perform(curl) != CURLE_OK) {
 			fprintf(stderr, "Could not connect to server %s on port %d.\n", host, port);
-			return -1;
+			*http_code = 0;
+			*last_modified = 0;
+			return EXIT_FAILURE;
 		}
 
-		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code)) != CURLE_OK) {
+		/* get http code */
+		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, http_code)) != CURLE_OK) {
 			fprintf(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
-			return -1;
+			return EXIT_FAILURE;
 		}
+
+		/* get last modified time */
+		if (*http_code == MHD_HTTP_OK) {
+			if ((res = curl_easy_getinfo(curl, CURLINFO_FILETIME, last_modified)) != CURLE_OK) {
+				fprintf(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
+				return EXIT_FAILURE;
+			}
+		} else
+			*last_modified = 0;
 
 		/* always cleanup */ 
 		curl_easy_cleanup(curl);
@@ -240,7 +253,7 @@ int get_http_code(const char * host, const uint16_t port, const char * url) {
 	/* we're done with libcurl, so clean it up */
 	curl_global_cleanup();
 
-	return http_code;
+	return EXIT_SUCCESS;
 }
 
 /*** ahc_echo ***
@@ -252,10 +265,14 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	int ret;
 	struct hosts * tmphosts = hosts;
 
-	char * url = NULL, * page;
+	char * url = NULL, * url_recent = NULL, * page;
 	const char * basename;
-	int http_code = 0;
 	struct timeval tv;
+
+	struct stat fst;
+	char * filename;
+	int http_code, recent = 0;
+	int last_modified, last_modified_recent = 0;
 
 	/* we want to filename, not the path */
 	basename = uri;
@@ -276,12 +293,57 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	/* clear context pointer */
 	*ptr = NULL;
 
-	/* do not process db requests */
-	/* TODO: do some timestamp magic to find suitable db files */
-	if (strcmp(basename + strlen(basename) - 3, ".db") == 0) {
-#		if defined DEBUG
-		printf("Not precessing db file request for %s\n", basename);
-#		endif
+	/* process db file request */
+	if (strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) {
+		/* get timestamp of local file */
+		filename = malloc(strlen(SYNCPATH) + strlen(basename) + 2);
+		sprintf(filename, SYNCPATH "/%s", basename);
+	
+		bzero(&fst, sizeof(fst));
+		if (stat(filename, &fst) != 0)
+			printf("stat() failed\n");
+		else
+			last_modified_recent = fst.st_mtime;
+
+		free(filename);
+
+		/* try to find a server with most recent file */
+		while (tmphosts->host != NULL) {
+			gettimeofday(&tv, NULL);
+
+			/* skip host if offline or had a bad request within last BADTIME seconds */
+			if (tmphosts->offline == 1 || tmphosts->pacdbserve.bad + BADTIME > tv.tv_sec) {
+				tmphosts = tmphosts->next;
+				continue;
+			}
+
+			url = realloc(url, 10 + strlen(tmphosts->host) + 5 + strlen(basename));
+			sprintf(url, "http://%s:%d/%s", tmphosts->host, tmphosts->pacdbserve.port, basename);
+
+			printf("Trying %s\n", url);
+			if (get_http_code(tmphosts->host, tmphosts->pacdbserve.port, url, &http_code, &last_modified) == EXIT_FAILURE)
+				tmphosts->pacdbserve.bad = tv.tv_sec;
+			else if (http_code == MHD_HTTP_OK && last_modified > last_modified_recent) {
+				if (recent > 0)
+					free(url_recent);
+				last_modified_recent = last_modified;
+				url_recent = url;
+				url = NULL;
+				recent++;
+			}
+
+			tmphosts = tmphosts->next;
+		}
+		if (url != NULL) {
+			free(url);
+			url = NULL;
+		}
+		if (recent > 0) {
+			http_code = MHD_HTTP_OK;
+			url = url_recent;
+		} else
+			http_code = 0;
+	/* process package file request */
 	} else {
 		/* try to find a server */
 		while (tmphosts->host != NULL) {
@@ -293,14 +355,14 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 				continue;
 			}
 
-			url = malloc(10 + strlen(tmphosts->host) + 5 + strlen(basename));
+			url = realloc(url, 10 + strlen(tmphosts->host) + 5 + strlen(basename));
 			sprintf(url, "http://%s:%d/%s", tmphosts->host, tmphosts->pacserve.port, basename);
 
 			printf("Trying %s\n", url);
-			if ((http_code = get_http_code(tmphosts->host, tmphosts->pacserve.port, url)) == MHD_HTTP_OK)
-				break;
-			else if (http_code == -1)
+			if (get_http_code(tmphosts->host, tmphosts->pacserve.port, url, &http_code, &last_modified) == EXIT_FAILURE)
 				tmphosts->pacserve.bad = tv.tv_sec;
+			else if (http_code == MHD_HTTP_OK)
+				break;
 
 			tmphosts = tmphosts->next;
 		}
@@ -310,14 +372,14 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	if (http_code == MHD_HTTP_OK) {
 		printf("Redirecting to %s\n", url);
 		page = malloc(strlen(PAGE307) + strlen(url) + strlen(basename) + 1);
-		sprintf(page, PAGE307, url, basename);
-		response = MHD_create_response_from_data(strlen(url), (void*) url, MHD_NO, MHD_NO);
-		ret =  MHD_add_response_header(response, "Location", url);
+		sprintf(page, PAGE307, url, basename + 1);
+		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
+		ret = MHD_add_response_header(response, "Location", url);
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 	} else {
 		printf("File %s not found, giving up.\n", basename);
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
-		sprintf(page, PAGE404, basename);
+		sprintf(page, PAGE404, basename + 1);
 		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
 		ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
 	}
@@ -359,7 +421,7 @@ char * get_localname(const char * hostname, const char * domainname) {
 /*** main ***/
 int main(int argc, char ** argv) {
 	AvahiClient *client = NULL;
-	AvahiServiceBrowser *sb = NULL;
+	AvahiServiceBrowser *pacserve = NULL, *pacdbserve = NULL;
 	int error;
 	int ret = 1;
 	struct MHD_Daemon * mhd;
@@ -372,6 +434,8 @@ int main(int argc, char ** argv) {
 	hosts->host = NULL;
 	hosts->pacserve.port = 0;
 	hosts->pacserve.bad = 0;
+	hosts->pacdbserve.port = 0;
+	hosts->pacdbserve.bad = 0;
 	hosts->offline = 0;
 	hosts->next = NULL;
 
@@ -390,8 +454,14 @@ int main(int argc, char ** argv) {
 		goto fail;
 	}
 
-	/* create the service browser */
-	if (!(sb = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, SERVICE, NULL, 0, browse_callback, client))) {
+	/* create the service browser for PACSERVE */
+	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
+		fprintf(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
+		goto fail;
+	}
+
+	/* create the service browser for PACDBSERVE */
+	if ((pacdbserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, PACDBSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		fprintf(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
@@ -429,8 +499,11 @@ fail:
 	if (localname)
 		free(localname);
 
-	if (sb)
-		avahi_service_browser_free(sb);
+	if (pacdbserve)
+		avahi_service_browser_free(pacdbserve);
+
+	if (pacserve)
+		avahi_service_browser_free(pacdbserve);
 
 	if (client)
 		avahi_client_free(client);
