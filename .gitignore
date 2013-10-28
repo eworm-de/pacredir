@@ -1,5 +1,6 @@
 *~
 *.o
 pacredir
+config.h
 avahi/pacdbserve.service
 README.html

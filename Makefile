@@ -3,6 +3,7 @@
 CC	:= gcc
 MD	:= markdown
 INSTALL	:= install
+CP	:= cp
 RM	:= rm
 SED	:= sed
 CFLAGS	+= -O2 -Wall -Werror
@@ -19,9 +20,12 @@ endif
 
 all: pacredir pacdbserve README.html
 
-pacredir: pacredir.c
+pacredir: pacredir.c config.h
 	$(CC) $(CFLAGS) -o pacredir pacredir.c \
 		-DVERSION="\"$(VERSION)\""
+
+config.h:
+	$(CP) config.def.h config.h
 
 pacdbserve: avahi/pacdbserve.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
