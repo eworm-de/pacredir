@@ -24,8 +24,10 @@
 #define PAGE404 "<html><head><title>404 Not Found</title>" \
 		"</head><body>404 Not Found: %s</body></html>"
 
-/* the port pacredir listens to */
-#define PORT	7077
+/* the port pacredir, pacserve and pacdbserve listen to */
+#define PORT_PACREDIR	7077
+#define PORT_PACSERVE	7078
+#define PORT_PACDBSERVE	7079
 
 /* avahi service names */
 #define PACSERVE	"_pacserve._tcp"
