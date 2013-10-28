@@ -81,14 +81,6 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			fprintf(stderr, "NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
-			/* We ignore the returned resolver object. In the callback
-			 * function we free it. If the server is terminated before
-			 * the callback function is called the server will free
-			 * the resolver for us. */
-
-			/*if (avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, 0, resolve_callback_new, c) == NULL)
-				fprintf(stderr, "Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno(c))); */
-
 			if (strcmp(host, localname) == 0)
 				goto out;
 
@@ -132,8 +124,6 @@ out:
 			fprintf(stderr, "REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
-			/*if (avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, 0, resolve_callback_remove, c) == NULL)
-				fprintf(stderr, "Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno(c))); */
 			while (tmphosts->host != NULL) {
 				if (strcmp(tmphosts->host, host) == 0) {
 					printf("Marking service %s on host %s offline\n", type, host);
