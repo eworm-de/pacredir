@@ -15,7 +15,7 @@ ARCH	:= $(shell uname -m)
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
 ifeq ($(VERSION),)
-VERSION := 0.0.1
+VERSION := 0.0.2
 endif
 
 all: pacredir pacdbserve README.html
