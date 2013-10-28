@@ -99,6 +99,12 @@ static void resolve_callback_new(AvahiServiceResolver *r, AVAHI_GCC_UNUSED Avahi
 			}
 			printf("Adding host: %s, %s on port %d\n", host, type, port);
 			tmphosts->host = strdup(host);
+			tmphosts->pacserve.port = 0;
+			tmphosts->pacserve.online = 0;
+			tmphosts->pacserve.bad = 0;
+			tmphosts->pacdbserve.port = 0;
+			tmphosts->pacdbserve.online = 0;
+			tmphosts->pacdbserve.bad = 0;
 			tmphosts->next = realloc(tmphosts->next, sizeof(struct hosts));
 			tmphosts->next->host = NULL;
 			tmphosts->next->next = NULL;
