@@ -409,8 +409,8 @@ void sighup_callback(int signal) {
 	}
 }
 
-/*** get_localname ***/
-char * get_localname(const char * hostname, const char * domainname) {
+/*** get_fqdn ***/
+char * get_fqdn(const char * hostname, const char * domainname) {
 	char * name;
 
 	name = malloc(strlen(hostname) + strlen(domainname) + 2 /* '.' and null char */);
@@ -468,7 +468,7 @@ int main(int argc, char ** argv) {
 	}
 
 	/* get the local hostname used by avahi */
-	localname = get_localname(avahi_client_get_host_name(client), avahi_client_get_domain_name(client));
+	localname = get_fqdn(avahi_client_get_host_name(client), avahi_client_get_domain_name(client));
 
 	/* start http server */
 	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT, NULL, NULL, &ahc_echo, NULL, MHD_OPTION_END)) == NULL) {
