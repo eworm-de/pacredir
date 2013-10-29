@@ -1,4 +1,4 @@
-# pacserve - serve pacman cache and redirect via avahi service
+# paccache - serve pacman cache and redirect via avahi service
 
 CC	:= gcc
 MD	:= markdown
@@ -37,7 +37,7 @@ install: install-bin install-doc
 
 install-bin: pacredir
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)/usr/bin/pacredir
-	$(INSTALL) -D -m0644 pacman/pacserve $(DESTDIR)/etc/pacman.d/pacserve
+	$(INSTALL) -D -m0644 pacman/paccache $(DESTDIR)/etc/pacman.d/paccache
 	$(INSTALL) -D -m0644 avahi/pacserve.service $(DESTDIR)/etc/avahi/services/pacserve.service
 	$(INSTALL) -D -m0644 avahi/pacdbserve.service $(DESTDIR)/etc/avahi/services/pacdbserve.service
 	$(INSTALL) -D -m0644 systemd/pacserve.service $(DESTDIR)/usr/lib/systemd/system/pacserve.service
@@ -45,8 +45,8 @@ install-bin: pacredir
 	$(INSTALL) -D -m0644 systemd/pacredir.service $(DESTDIR)/usr/lib/systemd/system/pacredir.service
 
 install-doc: README.html
-	$(INSTALL) -D -m0644 README.md $(DESTDIR)/usr/share/doc/pacserve/README.md
-	$(INSTALL) -D -m0644 README.html $(DESTDIR)/usr/share/doc/pacserve/README.html
+	$(INSTALL) -D -m0644 README.md $(DESTDIR)/usr/share/doc/paccache/README.md
+	$(INSTALL) -D -m0644 README.html $(DESTDIR)/usr/share/doc/paccache/README.html
 
 clean:
 	$(RM) -f *.o *~ README.html pacredir
