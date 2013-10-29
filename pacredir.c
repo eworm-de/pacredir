@@ -47,7 +47,6 @@ struct hosts {
 /* global variables */
 struct hosts * hosts = NULL;
 static AvahiSimplePoll *simple_poll = NULL;
-char * localname = NULL;
 
 /*** get_fqdn ***/
 char * get_fqdn(const char * hostname, const char * domainname) {
@@ -81,7 +80,7 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			fprintf(stderr, "NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
-			if (strcmp(host, localname) == 0)
+			if (flags & AVAHI_LOOKUP_RESULT_LOCAL)
 				goto out;
 
 			while (tmphosts->host != NULL) {
@@ -400,9 +399,6 @@ int main(int argc, char ** argv) {
 		goto fail;
 	}
 
-	/* get the local hostname used by avahi */
-	localname = get_fqdn(avahi_client_get_host_name(client), avahi_client_get_domain_name(client));
-
 	/* create the service browser for PACSERVE */
 	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		fprintf(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
@@ -441,9 +437,6 @@ fail:
 		free(hosts);
 		hosts = tmphosts;
 	}
-
-	if (localname)
-		free(localname);
 
 	if (pacdbserve)
 		avahi_service_browser_free(pacdbserve);
