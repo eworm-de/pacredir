@@ -18,7 +18,7 @@ ifeq ($(VERSION),)
 VERSION := 0.0.4
 endif
 
-all: pacredir pacdbserve README.html
+all: pacredir avahi/pacdbserve.service README.html
 
 pacredir: pacredir.c config.h
 	$(CC) $(CFLAGS) -o pacredir pacredir.c \
@@ -27,7 +27,7 @@ pacredir: pacredir.c config.h
 config.h:
 	$(CP) config.def.h config.h
 
-pacdbserve: avahi/pacdbserve.service.in
+avahi/pacdbserve.service: avahi/pacdbserve.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
 
 README.html: README.md
@@ -49,4 +49,4 @@ install-doc: README.html
 	$(INSTALL) -D -m0644 README.html $(DESTDIR)/usr/share/doc/paccache/README.html
 
 clean:
-	$(RM) -f *.o *~ README.html pacredir
+	$(RM) -f *.o *~ pacredir avahi/pacdbserve.service README.html
