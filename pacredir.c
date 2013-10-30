@@ -50,6 +50,17 @@ struct hosts {
 struct hosts * hosts = NULL;
 static AvahiSimplePoll *simple_poll = NULL;
 
+/*** write_log ***/
+int write_log(FILE *stream, const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+
+	vfprintf(stream, format, args);
+	fflush(stream);
+
+	return EXIT_SUCCESS;
+}
+
 /*** get_fqdn ***/
 char * get_fqdn(const char * hostname, const char * domainname) {
 	char * name;
@@ -71,7 +82,7 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 	switch (event) {
 		case AVAHI_BROWSER_FAILURE:
 
-			fprintf(stderr, "%s\n", avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b))));
+			write_log(stderr, "%s\n", avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b))));
 			avahi_simple_poll_quit(simple_poll);
 			return;
 
@@ -79,7 +90,7 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			host = get_fqdn(name, domain);
 
 #			if defined DEBUG
-			printf("NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
+			write_log(stdout, "NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
 			if (flags & AVAHI_LOOKUP_RESULT_LOCAL)
@@ -88,13 +99,13 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			while (tmphosts->host != NULL) {
 				if (strcmp(tmphosts->host, host) == 0) {
 					/* host already exists */
-					printf("Updating service %s on %s\n", type, host);
+					write_log(stdout, "Updating service %s on %s\n", type, host);
 					goto update;
 				}
 				tmphosts = tmphosts->next;
 			}
 			/* host not found, adding a new one */
-			printf("Adding host %s with service %s\n", host, type);
+			write_log(stdout, "Adding host %s with service %s\n", host, type);
 			tmphosts->host = strdup(host);
 			tmphosts->pacserve.online = 0;
 			tmphosts->pacserve.bad = 0;
@@ -122,12 +133,12 @@ out:
 			host = get_fqdn(name, domain);
 
 #			if defined DEBUG
-			printf("REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
+			write_log(stdout, "REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
 			while (tmphosts->host != NULL) {
 				if (strcmp(tmphosts->host, host) == 0) {
-					printf("Marking service %s on host %s offline\n", type, host);
+					write_log(stdout, "Marking service %s on host %s offline\n", type, host);
 					if (strcmp(type, PACSERVE) == 0) {
 						tmphosts->pacserve.online = 0;
 					} else if (strcmp(type, PACDBSERVE) == 0) {
@@ -153,7 +164,7 @@ static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UN
 	assert(c);
 
 	if (state == AVAHI_CLIENT_FAILURE) {
-		fprintf(stderr, "Server connection failure: %s\n", avahi_strerror(avahi_client_errno(c)));
+		write_log(stderr, "Server connection failure: %s\n", avahi_strerror(avahi_client_errno(c)));
 		avahi_simple_poll_quit(simple_poll);
 	}
 }
@@ -181,7 +192,7 @@ int get_http_code(const char * host, const uint16_t port, const char * url, int 
 
 		/* perform the request */
 		if (curl_easy_perform(curl) != CURLE_OK) {
-			fprintf(stderr, "Could not connect to server %s on port %d.\n", host, port);
+			write_log(stderr, "Could not connect to server %s on port %d.\n", host, port);
 			*http_code = 0;
 			*last_modified = 0;
 			return EXIT_FAILURE;
@@ -189,14 +200,14 @@ int get_http_code(const char * host, const uint16_t port, const char * url, int 
 
 		/* get http code */
 		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, http_code)) != CURLE_OK) {
-			fprintf(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
+			write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
 			return EXIT_FAILURE;
 		}
 
 		/* get last modified time */
 		if (*http_code == MHD_HTTP_OK) {
 			if ((res = curl_easy_getinfo(curl, CURLINFO_FILETIME, last_modified)) != CURLE_OK) {
-				fprintf(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
+				write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
 				return EXIT_FAILURE;
 			}
 		} else
@@ -257,7 +268,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	
 		bzero(&fst, sizeof(fst));
 		if (stat(filename, &fst) != 0)
-			fprintf(stderr, "stat() failed, you do not have a local copy of %s\n", basename);
+			write_log(stderr, "stat() failed, you do not have a local copy of %s\n", basename);
 		else
 			last_modified_recent = fst.st_mtime;
 
@@ -276,7 +287,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 			url = realloc(url, 10 + strlen(tmphosts->host) + (log10(PORT_PACDBSERVE)+1) + strlen(basename));
 			sprintf(url, "http://%s:%d/%s", tmphosts->host, PORT_PACDBSERVE, basename);
 
-			printf("Trying %s\n", url);
+			write_log(stdout, "Trying %s\n", url);
 			if (get_http_code(tmphosts->host, PORT_PACDBSERVE, url, &http_code, &last_modified) == EXIT_FAILURE)
 				tmphosts->pacdbserve.bad = tv.tv_sec;
 			else if (http_code == MHD_HTTP_OK && last_modified > last_modified_recent) {
@@ -314,7 +325,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 			url = realloc(url, 10 + strlen(tmphosts->host) + (log10(PORT_PACSERVE)+1) + strlen(basename));
 			sprintf(url, "http://%s:%d/%s", tmphosts->host, PORT_PACSERVE, basename);
 
-			printf("Trying %s\n", url);
+			write_log(stdout, "Trying %s\n", url);
 			if (get_http_code(tmphosts->host, PORT_PACSERVE, url, &http_code, &last_modified) == EXIT_FAILURE)
 				tmphosts->pacserve.bad = tv.tv_sec;
 			else if (http_code == MHD_HTTP_OK)
@@ -326,14 +337,14 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 	/* give response */
 	if (http_code == MHD_HTTP_OK) {
-		printf("Redirecting to %s\n", url);
+		write_log(stdout, "Redirecting to %s\n", url);
 		page = malloc(strlen(PAGE307) + strlen(url) + strlen(basename) + 1);
 		sprintf(page, PAGE307, url, basename + 1);
 		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
 		ret = MHD_add_response_header(response, "Location", url);
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 	} else {
-		printf("File %s not found, giving up.\n", basename);
+		write_log(stdout, "File %s not found, giving up.\n", basename);
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename + 1);
 		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
@@ -357,7 +368,7 @@ void sigterm_callback(int signal) {
 void sighup_callback(int signal) {
 	struct hosts * tmphosts = hosts;
 	
-	printf("Received SIGHUP, marking all hosts offline.\n");
+	write_log(stdout, "Received SIGHUP, marking all hosts offline.\n");
 
 	while (tmphosts->host != NULL) {
 		tmphosts->pacserve.online = 0;
@@ -376,7 +387,7 @@ int main(int argc, char ** argv) {
 	struct hosts * tmphosts;
 	struct sockaddr_in address;
 
-	printf("Starting pacredir/" VERSION "\n");
+	write_log(stdout, "Starting pacredir/" VERSION "\n");
 
 	/* allocate first struct element as dummy */
 	hosts = malloc(sizeof(struct hosts));
@@ -389,7 +400,7 @@ int main(int argc, char ** argv) {
 
 	/* allocate main loop object */
 	if (!(simple_poll = avahi_simple_poll_new())) {
-		fprintf(stderr, "Failed to create simple poll object.\n");
+		write_log(stderr, "Failed to create simple poll object.\n");
 		goto fail;
 	}
 
@@ -398,19 +409,19 @@ int main(int argc, char ** argv) {
 
 	/* check wether creating the client object succeeded */
 	if (!client) {
-		fprintf(stderr, "Failed to create client: %s\n", avahi_strerror(error));
+		write_log(stderr, "Failed to create client: %s\n", avahi_strerror(error));
 		goto fail;
 	}
 
 	/* create the service browser for PACSERVE */
 	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
-		fprintf(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
+		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
 
 	/* create the service browser for PACDBSERVE */
 	if ((pacdbserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, PACDBSERVE, NULL, 0, browse_callback, client)) == NULL) {
-		fprintf(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
+		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
 
@@ -421,7 +432,7 @@ int main(int argc, char ** argv) {
 
 	/* start http server */
 	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT_PACREDIR, NULL, NULL, &ahc_echo, NULL, MHD_OPTION_SOCK_ADDR, &address, MHD_OPTION_END)) == NULL) {
-		fprintf(stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
+		write_log(stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
 		return EXIT_FAILURE;
 	}
 
