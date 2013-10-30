@@ -19,7 +19,7 @@
 #	if defined __VFP_FP__
 #		define ARCH	"armv6h"
 #	else
-#		define ARCH	"armv6l"
+#		define ARCH	"arm"
 #	endif
 #else
 #	error Unknown architecture!

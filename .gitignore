@@ -1,5 +1,6 @@
 *~
 *.o
+arch
 pacredir
 config.h
 avahi/pacdbserve.service
