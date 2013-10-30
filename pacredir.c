@@ -368,11 +368,11 @@ void sigterm_callback(int signal) {
 void sighup_callback(int signal) {
 	struct hosts * tmphosts = hosts;
 	
-	write_log(stdout, "Received SIGHUP, marking all hosts offline.\n");
+	write_log(stdout, "Received SIGHUP, resetting bad status for hosts.\n");
 
 	while (tmphosts->host != NULL) {
-		tmphosts->pacserve.online = 0;
-		tmphosts->pacdbserve.online = 0;
+		tmphosts->pacserve.bad = 0;
+		tmphosts->pacdbserve.bad = 0;
 		tmphosts = tmphosts->next;
 	}
 }
