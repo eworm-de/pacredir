@@ -238,8 +238,8 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 	struct stat fst;
 	char * filename;
-	long http_code, recent = 0;
-	long last_modified, last_modified_recent = 0;
+	unsigned int recent = 0;
+	long http_code, last_modified, last_modified_recent = 0;
 
 	/* we want to filename, not the path */
 	basename = uri;
