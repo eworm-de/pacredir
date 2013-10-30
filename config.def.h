@@ -13,6 +13,14 @@
 #	define ARCH	"x86_64"
 #elif defined __i386__
 #	define ARCH	"i686"
+#elif defined __ARM_ARCH_7__
+#	define ARCH	"armv7h"
+#elif defined __ARM_ARCH_6__
+#	if defined __VFP_FP__
+#		define ARCH	"armv6h"
+#	else
+#		define ARCH	"armv6l"
+#	endif
 #else
 #	error Unknown architecture!
 #endif
