@@ -170,7 +170,7 @@ static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UN
 }
 
 /*** get_http_code ***/
-int get_http_code(const char * host, const uint16_t port, const char * url, int * http_code, int * last_modified) {
+int get_http_code(const char * host, const uint16_t port, const char * url, long * http_code, long * last_modified) {
 	CURL *curl;
 	CURLcode res;
 
@@ -238,8 +238,8 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 	struct stat fst;
 	char * filename;
-	int http_code, recent = 0;
-	int last_modified, last_modified_recent = 0;
+	long http_code, recent = 0;
+	long last_modified, last_modified_recent = 0;
 
 	/* we want to filename, not the path */
 	basename = uri;
