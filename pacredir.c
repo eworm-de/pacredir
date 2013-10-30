@@ -387,7 +387,7 @@ int main(int argc, char ** argv) {
 	struct hosts * tmphosts;
 	struct sockaddr_in address;
 
-	write_log(stdout, "Starting pacredir/" VERSION "\n");
+	write_log(stdout, "Starting pacredir/" VERSION " (compiled: " __DATE__ ", " __TIME__ " for " ARCH ")\n");
 
 	/* allocate first struct element as dummy */
 	hosts = malloc(sizeof(struct hosts));
