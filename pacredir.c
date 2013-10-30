@@ -5,12 +5,14 @@
  * of the GNU General Public License, incorporated herein by reference.
  */
 
+#include <arpa/inet.h>
 #include <assert.h>
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
 
@@ -372,6 +374,7 @@ int main(int argc, char ** argv) {
 	int ret = 1;
 	struct MHD_Daemon * mhd;
 	struct hosts * tmphosts;
+	struct sockaddr_in address;
 
 	printf("Starting pacredir/" VERSION "\n");
 
@@ -411,8 +414,13 @@ int main(int argc, char ** argv) {
 		goto fail;
 	}
 
+	/* prepare struct to make microhttpd listen on localhost only */
+	address.sin_family = AF_INET;
+	address.sin_port = htons(PORT_PACREDIR);
+	inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
+
 	/* start http server */
-	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT_PACREDIR, NULL, NULL, &ahc_echo, NULL, MHD_OPTION_END)) == NULL) {
+	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT_PACREDIR, NULL, NULL, &ahc_echo, NULL, MHD_OPTION_SOCK_ADDR, &address, MHD_OPTION_END)) == NULL) {
 		fprintf(stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
 		return EXIT_FAILURE;
 	}
