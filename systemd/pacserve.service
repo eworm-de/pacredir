@@ -3,6 +3,8 @@ Description=Darkhttpd to serve pacman cache
 After=network.target
 
 [Service]
+User=nobody
+Group=nobody
 ExecStart=/usr/bin/darkhttpd /var/cache/pacman/pkg/ --port 7078
 
 [Install]

@@ -3,6 +3,8 @@ Description=Redirect pacman requests via avahi service
 Requires=avahi-daemon.service
 
 [Service]
+User=nobody
+Group=nobody
 ExecStart=/usr/bin/pacredir
 
 [Install]
