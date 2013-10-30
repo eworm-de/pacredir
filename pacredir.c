@@ -79,7 +79,7 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			host = get_fqdn(name, domain);
 
 #			if defined DEBUG
-			fprintf(stderr, "NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
+			printf("NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
 			if (flags & AVAHI_LOOKUP_RESULT_LOCAL)
@@ -122,7 +122,7 @@ out:
 			host = get_fqdn(name, domain);
 
 #			if defined DEBUG
-			fprintf(stderr, "REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
+			printf("REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
 			while (tmphosts->host != NULL) {
@@ -257,7 +257,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	
 		bzero(&fst, sizeof(fst));
 		if (stat(filename, &fst) != 0)
-			printf("stat() failed\n");
+			fprintf(stderr, "stat() failed, you do not have a local copy of %s\n", basename);
 		else
 			last_modified_recent = fst.st_mtime;
 
