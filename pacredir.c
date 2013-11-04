@@ -70,11 +70,65 @@ char * get_fqdn(const char * hostname, const char * domainname) {
 	return name;
 }
 
+/*** add_host ***/
+int add_host(const char * host, const char * type) {
+	struct hosts * tmphosts = hosts;
+
+	while (tmphosts->host != NULL) {
+		if (strcmp(tmphosts->host, host) == 0) {
+			/* host already exists */
+			write_log(stdout, "Updating service %s on %s\n", type, host);
+			goto update;
+		}
+		tmphosts = tmphosts->next;
+	}
+	/* host not found, adding a new one */
+	write_log(stdout, "Adding host %s with service %s\n", host, type);
+	tmphosts->host = strdup(host);
+	tmphosts->pacserve.online = 0;
+	tmphosts->pacserve.bad = 0;
+	tmphosts->pacdbserve.online = 0;
+	tmphosts->pacdbserve.bad = 0;
+	tmphosts->next = realloc(tmphosts->next, sizeof(struct hosts));
+	tmphosts->next->host = NULL;
+	tmphosts->next->next = NULL;
+
+update:
+	if (strcmp(type, PACSERVE) == 0) {
+		tmphosts->pacserve.online = 1;
+		tmphosts->pacserve.bad = 0;
+	} else if (strcmp(type, PACDBSERVE) == 0)  {
+		tmphosts->pacdbserve.online = 1;
+		tmphosts->pacdbserve.bad = 0;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+/*** remove_host ***/
+int remove_host(const char * host, const char * type) {
+	struct hosts * tmphosts = hosts;
+
+	while (tmphosts->host != NULL) {
+		if (strcmp(tmphosts->host, host) == 0) {
+			write_log(stdout, "Marking service %s on host %s offline\n", type, host);
+			if (strcmp(type, PACSERVE) == 0) {
+				tmphosts->pacserve.online = 0;
+			} else if (strcmp(type, PACDBSERVE) == 0) {
+				tmphosts->pacdbserve.online = 0;
+			}
+			break;
+		}
+		tmphosts = tmphosts->next;
+	}
+
+	return EXIT_SUCCESS;
+}
+
 /*** browse_callback ***
  * Called whenever a new services becomes available on the LAN or is removed from the LAN */
 static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
 		const char *type, const char *domain, AVAHI_GCC_UNUSED AvahiLookupResultFlags flags, void* userdata) {
-	struct hosts * tmphosts = hosts;
 	char * host;
 
 	assert(b);
@@ -96,34 +150,7 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			if (flags & AVAHI_LOOKUP_RESULT_LOCAL)
 				goto out;
 
-			while (tmphosts->host != NULL) {
-				if (strcmp(tmphosts->host, host) == 0) {
-					/* host already exists */
-					write_log(stdout, "Updating service %s on %s\n", type, host);
-					goto update;
-				}
-				tmphosts = tmphosts->next;
-			}
-			/* host not found, adding a new one */
-			write_log(stdout, "Adding host %s with service %s\n", host, type);
-			tmphosts->host = strdup(host);
-			tmphosts->pacserve.online = 0;
-			tmphosts->pacserve.bad = 0;
-			tmphosts->pacdbserve.online = 0;
-			tmphosts->pacdbserve.bad = 0;
-			tmphosts->next = realloc(tmphosts->next, sizeof(struct hosts));
-			tmphosts->next->host = NULL;
-			tmphosts->next->next = NULL;
-
-update:
-			if (strcmp(type, PACSERVE) == 0) {
-				tmphosts->pacserve.online = 1;
-				tmphosts->pacserve.bad = 0;
-			} else if (strcmp(type, PACDBSERVE) == 0)  {
-				tmphosts->pacdbserve.online = 1;
-				tmphosts->pacdbserve.bad = 0;
-			}
-
+			add_host(host, type);
 out:
 			free(host);
 
@@ -136,18 +163,7 @@ out:
 			write_log(stdout, "REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
-			while (tmphosts->host != NULL) {
-				if (strcmp(tmphosts->host, host) == 0) {
-					write_log(stdout, "Marking service %s on host %s offline\n", type, host);
-					if (strcmp(type, PACSERVE) == 0) {
-						tmphosts->pacserve.online = 0;
-					} else if (strcmp(type, PACDBSERVE) == 0) {
-						tmphosts->pacdbserve.online = 0;
-					}
-					break;
-				}
-				tmphosts = tmphosts->next;
-			}
+			remove_host(host, type);
 
 			free(host);
 
