@@ -47,6 +47,8 @@ install-bin: pacredir
 	$(INSTALL) -D -m0644 systemd/pacserve.service $(DESTDIR)/usr/lib/systemd/system/pacserve.service
 	$(INSTALL) -D -m0644 systemd/pacdbserve.service $(DESTDIR)/usr/lib/systemd/system/pacdbserve.service
 	$(INSTALL) -D -m0644 systemd/pacredir.service $(DESTDIR)/usr/lib/systemd/system/pacredir.service
+	$(INSTALL) -D -m0644 initcpio/hook/paccache $(DESTDIR)/usr/lib/initcpio/hooks/paccache
+	$(INSTALL) -D -m0644 initcpio/install/paccache $(DESTDIR)/usr/lib/initcpio/install/paccache
 	$(INSTALL) -D -m0755 dhcpcd/80-pacredir $(DESTDIR)/usr/lib/dhcpcd/dhcpcd-hooks/80-pacredir
 
 install-doc: README.html

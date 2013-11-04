@@ -1,0 +1,9 @@
+#!/bin/sh
+
+build() {
+	add_runscript
+}
+
+help() {
+	echo "This hook adds Server to pacredir.conf from inside initramfs."
+}

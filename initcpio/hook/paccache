@@ -1,0 +1,11 @@
+#!/bin/sh
+
+run_latehook() {
+	local newroot="/new_root/"
+	
+	if [[ -n "${paccache}" ]]; then
+		msg ":: Adding paccache host '${paccache}' to pacredir.conf..."
+		echo "pacserve hosts = ${paccache}" >> ${newroot}/etc/pacredir.conf
+		echo "pacdbserve hosts = ${paccache}" >> ${newroot}/etc/pacredir.conf
+	fi
+}
