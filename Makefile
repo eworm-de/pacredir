@@ -10,6 +10,7 @@ CFLAGS	+= -O2 -Wall -Werror
 CFLAGS	+= $(shell pkg-config --libs --cflags libcurl)
 CFLAGS	+= $(shell pkg-config --libs --cflags avahi-client)
 CFLAGS	+= $(shell pkg-config --libs --cflags libmicrohttpd)
+CFLAGS	+= -liniparser
 VERSION := $(shell git describe --tags --long 2>/dev/null)
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
@@ -39,6 +40,7 @@ install: install-bin install-doc
 
 install-bin: pacredir
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)/usr/bin/pacredir
+	$(INSTALL) -D -m0644 pacredir.conf $(DESTDIR)/etc/pacredir.conf
 	$(INSTALL) -D -m0644 pacman/paccache $(DESTDIR)/etc/pacman.d/paccache
 	$(INSTALL) -D -m0644 avahi/pacserve.service $(DESTDIR)/etc/avahi/services/pacserve.service
 	$(INSTALL) -D -m0644 avahi/pacdbserve.service $(DESTDIR)/etc/avahi/services/pacdbserve.service

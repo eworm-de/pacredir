@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <net/if.h>
 
 #include <avahi-client/client.h>
 #include <avahi-client/lookup.h>
@@ -22,6 +23,7 @@
 #include <avahi-common/malloc.h>
 #include <avahi-common/error.h>
 
+#include <iniparser.h>
 #include <curl/curl.h>
 #include <microhttpd.h>
 
@@ -46,8 +48,17 @@ struct hosts {
 	struct hosts * next;
 };
 
+/* ignore interfaces */
+struct ignore_interfaces {
+	/* interface name */
+	char * interface;
+	/* pointer to next struct element */
+	struct ignore_interfaces * next;
+};
+
 /* global variables */
 struct hosts * hosts = NULL;
+struct ignore_interfaces * ignore_interfaces = NULL;
 static AvahiSimplePoll *simple_poll = NULL;
 
 /*** write_log ***/
@@ -130,6 +141,8 @@ int remove_host(const char * host, const char * type) {
 static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
 		const char *type, const char *domain, AVAHI_GCC_UNUSED AvahiLookupResultFlags flags, void* userdata) {
 	char * host;
+	char intname[IFNAMSIZ];
+	struct ignore_interfaces * tmp_ignore_interfaces = ignore_interfaces;
 
 	assert(b);
 			
@@ -143,12 +156,22 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 		case AVAHI_BROWSER_NEW:
 			host = get_fqdn(name, domain);
 
+			if (flags & AVAHI_LOOKUP_RESULT_LOCAL)
+				goto out;
+
+			/* check whether to ignore the interface */
+			if_indextoname(interface, intname);
+			while (tmp_ignore_interfaces->next != NULL) {
+				if (strcmp(intname, tmp_ignore_interfaces->interface) == 0) {
+						write_log(stdout, "Ignoring service '%s' of type '%s' in domain '%s' on interface '%s'\n", name, type, domain, intname);
+						goto out;
+				}
+				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
+			}
+
 #			if defined DEBUG
 			write_log(stdout, "NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
-
-			if (flags & AVAHI_LOOKUP_RESULT_LOCAL)
-				goto out;
 
 			add_host(host, type);
 out:
@@ -377,6 +400,8 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 /*** sigterm_callback ***/
 void sigterm_callback(int signal) {
+	write_log(stdout, "Received SIGTERM, quitting.\n");
+
 	avahi_simple_poll_quit(simple_poll);
 }
 
@@ -395,6 +420,9 @@ void sighup_callback(int signal) {
 
 /*** main ***/
 int main(int argc, char ** argv) {
+	dictionary * ini;
+	char * values, * value;
+	struct ignore_interfaces * tmp_ignore_interfaces;
 	AvahiClient *client = NULL;
 	AvahiServiceBrowser *pacserve = NULL, *pacdbserve = NULL;
 	int error;
@@ -413,6 +441,62 @@ int main(int argc, char ** argv) {
 	hosts->pacdbserve.online = 0;
 	hosts->pacdbserve.bad = 0;
 	hosts->next = NULL;
+
+	ignore_interfaces = malloc(sizeof(struct ignore_interfaces));
+	ignore_interfaces->interface = NULL;
+	ignore_interfaces->next = NULL;
+
+
+	/* parse config file */
+	if ((ini = iniparser_load(CONFIGFILE)) == NULL) {
+		write_log(stderr, "cannot parse file: " CONFIGFILE "\n");
+		return EXIT_FAILURE ;
+	}
+	
+	/* store interfaces to ignore */
+	if ((values = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
+#		if defined DEBUG
+		write_log(stdout, "Ignore interface: [%s]\n", values);
+#		endif
+		tmp_ignore_interfaces = ignore_interfaces;
+
+		value = strtok(values, DELIMITER);
+		while (value != NULL) {
+			tmp_ignore_interfaces->interface = strdup(value);
+			tmp_ignore_interfaces->next = malloc(sizeof(struct ignore_interfaces));
+			tmp_ignore_interfaces = tmp_ignore_interfaces->next;
+ 			value = strtok(NULL, DELIMITER);
+		}
+		tmp_ignore_interfaces->interface = NULL;
+		tmp_ignore_interfaces->next = NULL;
+	}
+	
+	/* add static pacserve hosts */
+	if ((values = iniparser_getstring(ini, "general:pacserve hosts", NULL)) != NULL) {
+#		if defined DEBUG
+		write_log(stdout, "pacserve hosts: [%s]\n", values);
+#		endif
+		value = strtok(values, DELIMITER);
+		while (value != NULL) {
+			add_host(value, PACSERVE);
+ 			value = strtok(NULL, DELIMITER);
+		}
+	}
+
+	/* add static pacdbserve hosts */
+	if ((values = iniparser_getstring(ini, "general:pacdbserve hosts", NULL)) != NULL) {
+#		if defined DEBUG
+		write_log(stdout, "pacdbserve hosts: [%s]\n", values);
+#		endif
+		value = strtok(values, DELIMITER);
+		while (value != NULL) {
+			add_host(value, PACDBSERVE);
+ 			value = strtok(NULL, DELIMITER);
+		}
+	}
+
+	/* done reading config file, free */
+	iniparser_freedict(ini);
 
 	/* allocate main loop object */
 	if (!(simple_poll = avahi_simple_poll_new())) {
@@ -471,6 +555,13 @@ fail:
 		tmphosts = hosts->next;
 		free(hosts);
 		hosts = tmphosts;
+	}
+
+	while(ignore_interfaces->interface != NULL) {
+		free(ignore_interfaces->interface);
+		tmp_ignore_interfaces = ignore_interfaces->next;
+		free(ignore_interfaces);
+		ignore_interfaces = tmp_ignore_interfaces;
 	}
 
 	if (pacdbserve)

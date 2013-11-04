@@ -41,6 +41,11 @@
 #define PACSERVE	"_pacserve._tcp"
 #define PACDBSERVE	"_pacdbserve_" ARCH "._tcp"
 
+/* path to the config file */
+#define CONFIGFILE	"/etc/pacredir.conf"
+/* these characters are used as delimiter in config file */
+#define DELIMITER	" ,;"
+
 /* this is where pacman stores its local copy of db files */
 #define SYNCPATH	"/var/lib/pacman/sync"
 
