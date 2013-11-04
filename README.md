@@ -20,6 +20,7 @@ To compile and run `paccache` you need:
 * [avahi](http://avahi.org/)
 * [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 * [curl](http://curl.haxx.se/)
+* [iniparser](http://ndevilla.free.fr/iniparser/)
 * [darkhttpd](http://dmr.ath.cx/net/darkhttpd/)
 * [nss-mdns](http://0pointer.de/lennart/projects/nss-mdns/)
 * [markdown](http://daringfireball.net/projects/markdown/) (HTML documentation)
