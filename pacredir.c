@@ -499,16 +499,13 @@ int main(int argc, char ** argv) {
 	iniparser_freedict(ini);
 
 	/* allocate main loop object */
-	if (!(simple_poll = avahi_simple_poll_new())) {
+	if ((simple_poll = avahi_simple_poll_new()) == NULL) {
 		write_log(stderr, "Failed to create simple poll object.\n");
 		goto fail;
 	}
 
 	/* allocate a new client */
-	client = avahi_client_new(avahi_simple_poll_get(simple_poll), 0, client_callback, NULL, &error);
-
-	/* check wether creating the client object succeeded */
-	if (!client) {
+	if ((client = avahi_client_new(avahi_simple_poll_get(simple_poll), 0, client_callback, NULL, &error)) == NULL) {
 		write_log(stderr, "Failed to create client: %s\n", avahi_strerror(error));
 		goto fail;
 	}
@@ -550,14 +547,14 @@ int main(int argc, char ** argv) {
 fail:
 
 	/* Cleanup things */
-	while(hosts->host != NULL) {
+	while (hosts->host != NULL) {
 		free(hosts->host);
 		tmphosts = hosts->next;
 		free(hosts);
 		hosts = tmphosts;
 	}
 
-	while(ignore_interfaces->interface != NULL) {
+	while (ignore_interfaces->interface != NULL) {
 		free(ignore_interfaces->interface);
 		tmp_ignore_interfaces = ignore_interfaces->next;
 		free(ignore_interfaces);
