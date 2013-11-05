@@ -567,7 +567,7 @@ fail:
 		avahi_service_browser_free(pacdbserve);
 
 	if (pacserve)
-		avahi_service_browser_free(pacdbserve);
+		avahi_service_browser_free(pacserve);
 
 	if (client)
 		avahi_client_free(client);
