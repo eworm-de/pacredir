@@ -399,9 +399,9 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	return ret;
 }
 
-/*** sigterm_callback ***/
-void sigterm_callback(int signal) {
-	write_log(stdout, "Received SIGTERM, quitting.\n");
+/*** sig_callback ***/
+void sig_callback(int signal) {
+	write_log(stdout, "Received signal '%s', quitting.\n", strsignal(signal));
 
 	avahi_simple_poll_quit(simple_poll);
 }
@@ -535,7 +535,8 @@ int main(int argc, char ** argv) {
 	}
 
 	/* register signal callbacks */
-	signal(SIGTERM, sigterm_callback);
+	signal(SIGTERM, sig_callback);
+	signal(SIGINT, sig_callback);
 	signal(SIGHUP, sighup_callback);
 	
 	/* run the main loop */
