@@ -3,9 +3,23 @@
 run_latehook() {
 	local newroot="/new_root/"
 	
-	if [[ -n "${paccache}" ]]; then
-		msg ":: Adding paccache host '${paccache}' to pacredir.conf..."
-		echo "pacserve hosts = ${paccache}" >> ${newroot}/etc/pacredir.conf
-		echo "pacdbserve hosts = ${paccache}" >> ${newroot}/etc/pacredir.conf
+	if [[ -n "${pacserve}" ]]; then
+		msg ":: Adding pacserve host '${pacserve}' to pacredir.conf..."
+		echo "pacserve hosts = ${pacserve}" >> ${newroot}/etc/pacredir.conf
 	fi
+
+	case $(uname -m) in
+			x86_64)
+				if [[ -n "${pacdbserve_x86_64}" ]]; then
+					msg ":: Adding pacdbserve host '${pacdbserve_x86_64}' to pacredir.conf..."
+					echo "pacdbserve hosts = ${pacdbserve_x86_64}" >> ${newroot}/etc/pacredir.conf
+				fi
+				;;
+			i686)
+				if [[ -n "${pacdbserve_i686}" ]]; then
+					msg ":: Adding pacdbserve host '${pacdbserve_i686}' to pacredir.conf..."
+					echo "pacdbserve hosts = ${pacdbserve_i686}" >> ${newroot}/etc/pacredir.conf
+				fi
+				;;
+	esac
 }
