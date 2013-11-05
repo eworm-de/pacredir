@@ -450,54 +450,54 @@ int main(int argc, char ** argv) {
 
 	/* parse config file */
 	if ((ini = iniparser_load(CONFIGFILE)) == NULL) {
-		write_log(stderr, "cannot parse file: " CONFIGFILE "\n");
-		return EXIT_FAILURE ;
-	}
+		write_log(stderr, "cannot parse file " CONFIGFILE ", continue anyway\n");
+	/* continue anyway, there is nothing essential in the config file */
+	} else {
+		/* store interfaces to ignore */
+		if ((values = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
+#			if defined DEBUG
+			write_log(stdout, "Ignore interface: [%s]\n", values);
+#			endif
+			tmp_ignore_interfaces = ignore_interfaces;
 	
-	/* store interfaces to ignore */
-	if ((values = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
-#		if defined DEBUG
-		write_log(stdout, "Ignore interface: [%s]\n", values);
-#		endif
-		tmp_ignore_interfaces = ignore_interfaces;
-
-		value = strtok(values, DELIMITER);
-		while (value != NULL) {
-			tmp_ignore_interfaces->interface = strdup(value);
-			tmp_ignore_interfaces->next = malloc(sizeof(struct ignore_interfaces));
-			tmp_ignore_interfaces = tmp_ignore_interfaces->next;
- 			value = strtok(NULL, DELIMITER);
+			value = strtok(values, DELIMITER);
+			while (value != NULL) {
+				tmp_ignore_interfaces->interface = strdup(value);
+				tmp_ignore_interfaces->next = malloc(sizeof(struct ignore_interfaces));
+				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
+				value = strtok(NULL, DELIMITER);
+			}
+			tmp_ignore_interfaces->interface = NULL;
+			tmp_ignore_interfaces->next = NULL;
 		}
-		tmp_ignore_interfaces->interface = NULL;
-		tmp_ignore_interfaces->next = NULL;
-	}
+		
+		/* add static pacserve hosts */
+		if ((values = iniparser_getstring(ini, "general:pacserve hosts", NULL)) != NULL) {
+#			if defined DEBUG
+			write_log(stdout, "pacserve hosts: [%s]\n", values);
+#			endif
+			value = strtok(values, DELIMITER);
+			while (value != NULL) {
+				add_host(value, PACSERVE);
+				value = strtok(NULL, DELIMITER);
+			}
+		}
 	
-	/* add static pacserve hosts */
-	if ((values = iniparser_getstring(ini, "general:pacserve hosts", NULL)) != NULL) {
-#		if defined DEBUG
-		write_log(stdout, "pacserve hosts: [%s]\n", values);
-#		endif
-		value = strtok(values, DELIMITER);
-		while (value != NULL) {
-			add_host(value, PACSERVE);
- 			value = strtok(NULL, DELIMITER);
+		/* add static pacdbserve hosts */
+		if ((values = iniparser_getstring(ini, "general:pacdbserve hosts", NULL)) != NULL) {
+#			if defined DEBUG
+			write_log(stdout, "pacdbserve hosts: [%s]\n", values);
+#			endif
+			value = strtok(values, DELIMITER);
+			while (value != NULL) {
+				add_host(value, PACDBSERVE);
+				value = strtok(NULL, DELIMITER);
+			}
 		}
+	
+		/* done reading config file, free */
+		iniparser_freedict(ini);
 	}
-
-	/* add static pacdbserve hosts */
-	if ((values = iniparser_getstring(ini, "general:pacdbserve hosts", NULL)) != NULL) {
-#		if defined DEBUG
-		write_log(stdout, "pacdbserve hosts: [%s]\n", values);
-#		endif
-		value = strtok(values, DELIMITER);
-		while (value != NULL) {
-			add_host(value, PACDBSERVE);
- 			value = strtok(NULL, DELIMITER);
-		}
-	}
-
-	/* done reading config file, free */
-	iniparser_freedict(ini);
 
 	/* allocate main loop object */
 	if ((simple_poll = avahi_simple_poll_new()) == NULL) {
