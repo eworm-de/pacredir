@@ -280,7 +280,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	unsigned int recent = 0;
 	long http_code, last_modified, last_modified_recent = 0;
 
-	/* we want to filename, not the path */
+	/* we want the filename, not the path */
 	basename = uri;
 	while (strstr(basename, "/") != NULL)
 		basename = strstr(basename, "/") + 1;
