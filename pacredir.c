@@ -222,12 +222,12 @@ int get_http_code(const char * host, const uint16_t port, const char * url, long
 		/* set user agent */
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "pacredir/" VERSION);
 		/* do not receive body */
-		curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
+		curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
 		/* ask for filetime */
-		curl_easy_setopt(curl, CURLOPT_FILETIME, 1);
+		curl_easy_setopt(curl, CURLOPT_FILETIME, 1L);
 		/* set connection timeout to 2 seconds
 		 * if the host needs longer we do not want to use it anyway ;) */
-		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2);
+		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2L);
 
 		/* perform the request */
 		if (curl_easy_perform(curl) != CURLE_OK) {
