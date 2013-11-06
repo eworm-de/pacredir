@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <math.h>
+#include <net/if.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,16 +16,13 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <net/if.h>
 
-#include <avahi-client/client.h>
 #include <avahi-client/lookup.h>
-#include <avahi-common/simple-watch.h>
-#include <avahi-common/malloc.h>
 #include <avahi-common/error.h>
+#include <avahi-common/simple-watch.h>
 
-#include <iniparser.h>
 #include <curl/curl.h>
+#include <iniparser.h>
 #include <microhttpd.h>
 
 #include "config.h"
