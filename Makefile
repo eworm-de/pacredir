@@ -7,6 +7,7 @@ CP	:= cp
 RM	:= rm
 SED	:= sed
 CFLAGS	+= -O2 -Wall -Werror
+CFLAGS	+= -lpthread
 CFLAGS	+= $(shell pkg-config --libs --cflags libcurl)
 CFLAGS	+= $(shell pkg-config --libs --cflags avahi-client)
 CFLAGS	+= $(shell pkg-config --libs --cflags libmicrohttpd)

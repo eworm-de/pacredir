@@ -5,6 +5,7 @@
  * of the GNU General Public License, incorporated herein by reference.
  */
 
+/* glibc headers */
 #include <arpa/inet.h>
 #include <assert.h>
 #include <math.h>
@@ -17,14 +18,18 @@
 #include <sys/stat.h>
 #include <time.h>
 
+/* Avahi headers */
 #include <avahi-client/lookup.h>
 #include <avahi-common/error.h>
 #include <avahi-common/simple-watch.h>
 
+/* various headers needing linker options */
 #include <curl/curl.h>
 #include <iniparser.h>
 #include <microhttpd.h>
+#include <pthread.h>
 
+/* compile time configuration */
 #include "config.h"
 
 /* services */
@@ -52,6 +57,22 @@ struct ignore_interfaces {
 	char * interface;
 	/* pointer to next struct element */
 	struct ignore_interfaces * next;
+};
+
+/* request */
+struct request {
+	/* host name */
+	const char * host;
+	/* port */
+	uint16_t port;
+	/* pointer to bad */
+	__time_t * bad;
+	/* url */
+	char * url;
+	/* HTTP status code */
+	long http_code;
+	/* last modified timestamp */
+	long last_modified;
 };
 
 /* global variables */
@@ -98,7 +119,7 @@ int add_host(const char * host, const char * type) {
 	tmphosts->pacserve.bad = 0;
 	tmphosts->pacdbserve.online = 0;
 	tmphosts->pacdbserve.bad = 0;
-	tmphosts->next = realloc(tmphosts->next, sizeof(struct hosts));
+	tmphosts->next = malloc(sizeof(struct hosts));
 	tmphosts->next->host = NULL;
 	tmphosts->next->next = NULL;
 
@@ -207,14 +228,16 @@ static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UN
 }
 
 /*** get_http_code ***/
-int get_http_code(const char * host, const uint16_t port, const char * url, long * http_code, long * last_modified) {
+static void * get_http_code(void * data) {
+	struct request * request = (struct request *)data;
 	CURL *curl;
 	CURLcode res;
+	struct timeval tv;
 
-	curl_global_init(CURL_GLOBAL_ALL);
+	gettimeofday(&tv, NULL);
 
 	if ((curl = curl_easy_init()) != NULL) {
-		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_URL, request->url);
 		/* example.com is redirected, so we tell libcurl to follow redirection */ 
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 		/* set user agent */
@@ -223,41 +246,43 @@ int get_http_code(const char * host, const uint16_t port, const char * url, long
 		curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
 		/* ask for filetime */
 		curl_easy_setopt(curl, CURLOPT_FILETIME, 1L);
-		/* set connection timeout to 2 seconds
+		/* set connection timeout to 5 seconds
 		 * if the host needs longer we do not want to use it anyway ;) */
-		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2L);
+		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+		/* time out if connection is established but transfer rate is low
+		 * this should make curl finish after a maximum of 8 seconds */
+		curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1L);
+		curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 3L);
 
 		/* perform the request */
 		if (curl_easy_perform(curl) != CURLE_OK) {
-			write_log(stderr, "Could not connect to server %s on port %d.\n", host, port);
-			*http_code = 0;
-			*last_modified = 0;
-			return EXIT_FAILURE;
+			write_log(stderr, "Could not connect to server %s on port %d.\n", request->host, request->port);
+			request->http_code = 0;
+			request->last_modified = 0;
+			*request->bad = tv.tv_sec;
+			return NULL;
 		}
 
-		/* get http code */
-		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, http_code)) != CURLE_OK) {
+		/* get http status code */
+		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &(request->http_code))) != CURLE_OK) {
 			write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
-			return EXIT_FAILURE;
+			return NULL;
 		}
 
 		/* get last modified time */
-		if (*http_code == MHD_HTTP_OK) {
-			if ((res = curl_easy_getinfo(curl, CURLINFO_FILETIME, last_modified)) != CURLE_OK) {
+		if (request->http_code == MHD_HTTP_OK) {
+			if ((res = curl_easy_getinfo(curl, CURLINFO_FILETIME, &(request->last_modified))) != CURLE_OK) {
 				write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
-				return EXIT_FAILURE;
+				return NULL;
 			}
 		} else
-			*last_modified = 0;
+			request->last_modified = 0;
 
 		/* always cleanup */ 
 		curl_easy_cleanup(curl);
 	}
 
-	/* we're done with libcurl, so clean it up */
-	curl_global_cleanup();
-
-	return EXIT_SUCCESS;
+	return NULL;
 }
 
 /*** ahc_echo ***
@@ -269,30 +294,38 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	int ret;
 	struct hosts * tmphosts = hosts;
 
-	char * url = NULL, * url_recent = NULL, * page;
+	char * url = NULL, * page;
 	const char * basename;
 	struct timeval tv;
 
 	struct stat fst;
 	char * filename;
-	unsigned int recent = 0;
-	long http_code, last_modified, last_modified_recent = 0;
+	uint8_t dbfile = 0;
+	int i, error, req_count = -1;
+	pthread_t * tid = NULL;
+	struct request ** requests = NULL;
+	struct request * request = NULL;
+	long http_code = 0, last_modified = 0;
 
 	/* we want the filename, not the path */
 	basename = uri;
 	while (strstr(basename, "/") != NULL)
 		basename = strstr(basename, "/") + 1;
 
+	/* unexpected method */
 	if (strcmp(method, "GET") != 0)
-		return MHD_NO; /* unexpected method */
+		return MHD_NO;
+
+	/* The first time only the headers are valid,
+	 * do not respond in the first round... */
 	if (&dummy != *ptr) {
-		/* The first time only the headers are valid,
-		 * do not respond in the first round... */
 		*ptr = &dummy;
 		return MHD_YES;
 	}
+
+	/* upload data in a GET!? */
 	if (*upload_data_size != 0)
-		return MHD_NO; /* upload data in a GET!? */
+		return MHD_NO;
 
 	/* clear context pointer */
 	*ptr = NULL;
@@ -300,77 +333,80 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	/* process db file (and signature) request */
 	if ((strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) ||
 			(strlen(basename) > 7 && strcmp(basename + strlen(basename) - 7, ".db.sig") == 0)) {
+		dbfile = 1;
 		/* get timestamp of local file */
 		filename = malloc(strlen(SYNCPATH) + strlen(basename) + 2);
 		sprintf(filename, SYNCPATH "/%s", basename);
 	
-		bzero(&fst, sizeof(fst));
 		if (stat(filename, &fst) != 0)
 			write_log(stderr, "stat() failed, you do not have a local copy of %s\n", basename);
 		else
-			last_modified_recent = fst.st_mtime;
+			last_modified = fst.st_mtime;
 
 		free(filename);
+	}
 
-		/* try to find a server with most recent file */
-		while (tmphosts->host != NULL) {
-			gettimeofday(&tv, NULL);
+	/* try to find a server with most recent file */
+	while (tmphosts->host != NULL) {
+		gettimeofday(&tv, NULL);
 
-			/* skip host if offline or had a bad request within last BADTIME seconds */
-			if (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.bad + BADTIME > tv.tv_sec) {
-				tmphosts = tmphosts->next;
-				continue;
-			}
-
-			url = realloc(url, 10 + strlen(tmphosts->host) + (log10(PORT_PACDBSERVE)+1) + strlen(basename));
-			sprintf(url, "http://%s:%d/%s", tmphosts->host, PORT_PACDBSERVE, basename);
-
-			write_log(stdout, "Trying %s\n", url);
-			if (get_http_code(tmphosts->host, PORT_PACDBSERVE, url, &http_code, &last_modified) == EXIT_FAILURE)
-				tmphosts->pacdbserve.bad = tv.tv_sec;
-			else if (http_code == MHD_HTTP_OK && last_modified > last_modified_recent) {
-				if (recent > 0)
-					free(url_recent);
-				last_modified_recent = last_modified;
-				url_recent = url;
-				url = NULL;
-				recent++;
-			}
-
+		/* skip host if offline or had a bad request within last BADTIME seconds */
+		if ((dbfile == 1 && (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.bad + BADTIME > tv.tv_sec)) ||
+				(dbfile == 0 && (tmphosts->pacserve.online == 0 || tmphosts->pacserve.bad + BADTIME > tv.tv_sec))) {
 			tmphosts = tmphosts->next;
+			continue;
 		}
-		if (url != NULL) {
-			free(url);
-			url = NULL;
+
+		/* This is multi-threading code!
+		 * Pointer to struct request does not work as realloc can relocate the data.
+		 * We need a pointer to pointer to struct request, store the addresses in
+		 * an array and give get_http_code() a struct the does not change! */
+		req_count++;
+		tid = realloc(tid, sizeof(pthread_t) * (req_count + 1));
+		requests = realloc(requests, sizeof(size_t) * (req_count + 1));
+		requests[req_count] = malloc(sizeof(struct request));
+		request = requests[req_count];
+
+		/* prepare request struct */
+		request->host = tmphosts->host;
+		if (dbfile == 1) {
+			request->port = PORT_PACDBSERVE;
+			request->bad = &(tmphosts->pacdbserve.bad);
+		} else {
+			request->port = PORT_PACSERVE;
+			request->bad = &(tmphosts->pacserve.bad);
 		}
-		if (recent > 0) {
+		request->url = malloc(10 + strlen(tmphosts->host) + 5 /* max strlen of decimal 16bit value */ + strlen(basename));
+		sprintf(request->url, "http://%s:%d/%s", tmphosts->host, dbfile == 1 ? PORT_PACDBSERVE : PORT_PACSERVE, basename);
+		request->http_code = 0;
+		request->last_modified = 0;
+
+		write_log(stdout, "Trying %s\n", request->url);
+
+		if ((error = pthread_create(&tid[req_count], NULL, get_http_code, (void *)request)) != 0)
+			write_log(stderr, "Could not run thread number %d, errno %d\n", req_count, error);
+
+		tmphosts = tmphosts->next;
+	}
+
+	/* try to find a suitable response */
+	for (i = 0; i <= req_count; i++) {
+		if ((error = pthread_join(tid[i], NULL)) != 0)
+			write_log(stderr, "Could not join thread number %d, errno %d\n", i, error);
+
+		request = requests[i];
+
+		if (request->http_code == MHD_HTTP_OK &&
+				(dbfile == 0 || request->last_modified > last_modified)) {
+			printf("Found: %s\n", request->url);
+			if (url != NULL)
+				free(url);
+			url = request->url;
 			http_code = MHD_HTTP_OK;
-			url = url_recent;
+			last_modified = request->last_modified;
 		} else
-			http_code = 0;
-	/* process package file request */
-	} else {
-		/* try to find a server */
-		while (tmphosts->host != NULL) {
-			gettimeofday(&tv, NULL);
-
-			/* skip host if offline or had a bad request within last BADTIME seconds */
-			if (tmphosts->pacserve.online == 0 || tmphosts->pacserve.bad + BADTIME > tv.tv_sec) {
-				tmphosts = tmphosts->next;
-				continue;
-			}
-
-			url = realloc(url, 10 + strlen(tmphosts->host) + (log10(PORT_PACSERVE)+1) + strlen(basename));
-			sprintf(url, "http://%s:%d/%s", tmphosts->host, PORT_PACSERVE, basename);
-
-			write_log(stdout, "Trying %s\n", url);
-			if (get_http_code(tmphosts->host, PORT_PACSERVE, url, &http_code, &last_modified) == EXIT_FAILURE)
-				tmphosts->pacserve.bad = tv.tv_sec;
-			else if (http_code == MHD_HTTP_OK)
-				break;
-
-			tmphosts = tmphosts->next;
-		}
+			free(request->url);
+		free(request);
 	}
 
 	/* give response */
@@ -381,6 +417,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
 		ret = MHD_add_response_header(response, "Location", url);
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
+		free(url);
 	} else {
 		write_log(stdout, "File %s not found, giving up.\n", basename);
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
@@ -391,8 +428,10 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	MHD_destroy_response(response);
 
 	free(page);
-	if (url != NULL)
-		free(url);
+	if (req_count > -1) {
+		free(tid);
+		free(requests);
+	}
 
 	return ret;
 }
@@ -444,7 +483,6 @@ int main(int argc, char ** argv) {
 	ignore_interfaces = malloc(sizeof(struct ignore_interfaces));
 	ignore_interfaces->interface = NULL;
 	ignore_interfaces->next = NULL;
-
 
 	/* parse config file */
 	if ((ini = iniparser_load(CONFIGFILE)) == NULL) {
@@ -532,6 +570,9 @@ int main(int argc, char ** argv) {
 		return EXIT_FAILURE;
 	}
 
+	/* initialize curl */
+	curl_global_init(CURL_GLOBAL_ALL);
+
 	/* register signal callbacks */
 	signal(SIGTERM, sig_callback);
 	signal(SIGINT, sig_callback);
@@ -540,7 +581,11 @@ int main(int argc, char ** argv) {
 	/* run the main loop */
 	avahi_simple_poll_loop(simple_poll);
 
+	/* stop http server */
 	MHD_stop_daemon(mhd);
+
+	/* we're done with libcurl, so clean it up */
+	curl_global_cleanup();
 
 	ret = EXIT_SUCCESS;
 
