@@ -218,7 +218,7 @@ int get_http_code(const char * host, const uint16_t port, const char * url, long
 		/* example.com is redirected, so we tell libcurl to follow redirection */ 
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 		/* set user agent */
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "pacredir/" VERSION);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "pacredir/" VERSION " (" ARCH ")");
 		/* do not receive body */
 		curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
 		/* ask for filetime */
