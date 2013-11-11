@@ -63,3 +63,8 @@ Do not worry if `pacman` reports:
 
 This is ok, it just tells `pacman` that `pacredir` could not find a file
 and downloading it from an official server is required.
+
+Please note that `pacredir` redirects to the most recent file found on
+the local network. To make sure you really do have the latest files run
+`pacman -Syu` *twice*.
+
