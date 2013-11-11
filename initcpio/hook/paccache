@@ -3,12 +3,13 @@
 run_latehook() {
 	local newroot="/new_root/"
 	
-	if [[ -n "${pacserve}" ]]; then
+	if ! grep -q '^pacserve hosts' ${newroot}/etc/pacredir.conf -a [[ -n "${pacserve}" ]]; then
 		msg ":: Adding pacserve host '${pacserve}' to pacredir.conf..."
 		echo "pacserve hosts = ${pacserve}" >> ${newroot}/etc/pacredir.conf
 	fi
 
-	case $(uname -m) in
+	if ! grep -q '^pacdbserve hosts' ${newroot}/etc/pacredir.conf; then
+		case $(uname -m) in
 			x86_64)
 				if [[ -n "${pacdbserve_x86_64}" ]]; then
 					msg ":: Adding pacdbserve host '${pacdbserve_x86_64}' to pacredir.conf..."
@@ -21,5 +22,6 @@ run_latehook() {
 					echo "pacdbserve hosts = ${pacdbserve_i686}" >> ${newroot}/etc/pacredir.conf
 				fi
 				;;
-	esac
+		esac
+	fi
 }
