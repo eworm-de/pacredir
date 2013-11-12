@@ -419,7 +419,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 		free(url);
 	} else {
-		write_log(stdout, "File %s not found, giving up.\n", basename);
+		write_log(stdout, "File %s not found on %d servers, giving up.\n", basename, req_count + 1);
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename + 1);
 		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
