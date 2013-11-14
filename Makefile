@@ -24,7 +24,7 @@ all: pacredir avahi/pacdbserve.service README.html
 arch: arch.c config.h
 	$(CC) -o arch arch.c
 
-pacredir: pacredir.c config.h
+pacredir: pacredir.c pacredir.h config.h
 	$(CC) $(CFLAGS) -o pacredir pacredir.c \
 		-DVERSION="\"$(VERSION)\""
 
