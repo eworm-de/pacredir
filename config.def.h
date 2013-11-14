@@ -49,9 +49,10 @@
 /* this is where pacman stores its local copy of db files */
 #define SYNCPATH	"/var/lib/pacman/sync"
 
-/* This defines when a host is queried again after a bad request
- * default is 600 seconds (10 minutes) */
-#define BADTIME	60 * 10
+/* This defines the initial time in seconds after which a host is queried
+ * again after a bad request. Time is doubled after every subsequent
+ * request. */
+#define BADTIME	30
 
 #endif /* _CONFIG_H */
 

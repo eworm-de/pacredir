@@ -14,6 +14,8 @@ struct services {
 	uint8_t online;
 	/* unix timestamp of last bad request */
 	__time_t bad;
+	/* count the number of bad requests */
+	unsigned int badcount;
 };
 
 /* hosts */
@@ -41,8 +43,8 @@ struct request {
 	const char * host;
 	/* port */
 	uint16_t port;
-	/* pointer to bad */
-	__time_t * bad;
+	/* pointer to service */
+	struct services * service;
 	/* url */
 	char * url;
 	/* HTTP status code */

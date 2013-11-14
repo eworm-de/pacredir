@@ -93,8 +93,10 @@ int add_host(const char * host, const char * type) {
 	tmphosts->host = strdup(host);
 	tmphosts->pacserve.online = 0;
 	tmphosts->pacserve.bad = 0;
+	tmphosts->pacserve.badcount = 0;
 	tmphosts->pacdbserve.online = 0;
 	tmphosts->pacdbserve.bad = 0;
+	tmphosts->pacdbserve.badcount = 0;
 	tmphosts->next = malloc(sizeof(struct hosts));
 	tmphosts->next->host = NULL;
 	tmphosts->next->next = NULL;
@@ -103,11 +105,11 @@ update:
 	if (strcmp(type, PACSERVE) == 0) {
 		tmphosts->pacserve.online = 1;
 		request.port = PORT_PACSERVE;
-		request.bad = &tmphosts->pacserve.bad;
+		request.service = &tmphosts->pacserve;
 	} else if (strcmp(type, PACDBSERVE) == 0)  {
 		tmphosts->pacdbserve.online = 1;
 		request.port = PORT_PACDBSERVE;
-		request.bad = &tmphosts->pacdbserve.bad;
+		request.service = &tmphosts->pacdbserve;
 	}
 
 	/* do a first request and let get_http_code() set the bad status */
@@ -245,9 +247,14 @@ static void * get_http_code(void * data) {
 			write_log(stderr, "Could not connect to server %s on port %d.\n", request->host, request->port);
 			request->http_code = 0;
 			request->last_modified = 0;
-			*request->bad = tv.tv_sec;
+			request->service->bad = tv.tv_sec;
+			request->service->badcount++;
 			return NULL;
+		} else {
+			request->service->bad = 0;
+			request->service->badcount = 0;
 		}
+
 
 		/* get http status code */
 		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &(request->http_code))) != CURLE_OK) {
@@ -337,8 +344,8 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		gettimeofday(&tv, NULL);
 
 		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if ((dbfile == 1 && (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.bad + BADTIME > tv.tv_sec)) ||
-				(dbfile == 0 && (tmphosts->pacserve.online == 0 || tmphosts->pacserve.bad + BADTIME > tv.tv_sec))) {
+		if ((dbfile == 1 && (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.bad + tmphosts->pacdbserve.badcount * BADTIME > tv.tv_sec)) ||
+				(dbfile == 0 && (tmphosts->pacserve.online == 0 || tmphosts->pacserve.bad + tmphosts->pacserve.bad * BADTIME > tv.tv_sec))) {
 			tmphosts = tmphosts->next;
 			continue;
 		}
@@ -357,10 +364,10 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		request->host = tmphosts->host;
 		if (dbfile == 1) {
 			request->port = PORT_PACDBSERVE;
-			request->bad = &(tmphosts->pacdbserve.bad);
+			request->service = &(tmphosts->pacdbserve);
 		} else {
 			request->port = PORT_PACSERVE;
-			request->bad = &(tmphosts->pacserve.bad);
+			request->service = &(tmphosts->pacserve);
 		}
 		request->url = get_url(tmphosts->host, dbfile == 1 ? PORT_PACDBSERVE : PORT_PACSERVE, basename);
 		request->http_code = 0;
