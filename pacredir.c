@@ -32,48 +32,8 @@
 /* compile time configuration */
 #include "config.h"
 
-/* services */
-struct services {
-	/* true if host/service is online */
-	uint8_t online;
-	/* unix timestamp of last bad request */
-	__time_t bad;
-};
-
-/* hosts */
-struct hosts {
-	/* host name */
-	char * host;
-	/* online status and bad time for services */
-	struct services pacserve;
-	struct services pacdbserve;
-	/* pointer to next struct element */
-	struct hosts * next;
-};
-
-/* ignore interfaces */
-struct ignore_interfaces {
-	/* interface name */
-	char * interface;
-	/* pointer to next struct element */
-	struct ignore_interfaces * next;
-};
-
-/* request */
-struct request {
-	/* host name */
-	const char * host;
-	/* port */
-	uint16_t port;
-	/* pointer to bad */
-	__time_t * bad;
-	/* url */
-	char * url;
-	/* HTTP status code */
-	long http_code;
-	/* last modified timestamp */
-	long last_modified;
-};
+/* define structs and functions */
+#include "pacredir.h"
 
 /* global variables */
 struct hosts * hosts = NULL;
