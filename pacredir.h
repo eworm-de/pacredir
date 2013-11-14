@@ -55,6 +55,8 @@ struct request {
 int write_log(FILE *stream, const char *format, ...);
 /* get_fqdn */
 char * get_fqdn(const char * hostname, const char * domainname);
+/* get_url */
+char * get_url(const char * hostname, const uint16_t port, const char * uri);
 
 /* add_host */
 int add_host(const char * host, const char * type);

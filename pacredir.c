@@ -57,12 +57,28 @@ char * get_fqdn(const char * hostname, const char * domainname) {
 
 	name = malloc(strlen(hostname) + strlen(domainname) + 2 /* '.' and null char */);
 	sprintf(name, "%s.%s", hostname, domainname);
+
 	return name;
+}
+
+/*** get_url ***/
+char * get_url(const char * hostname, const uint16_t port, const char * uri) {
+	char * url;
+
+	url = malloc(10 /* static chars of an url & null char */
+			+ strlen(hostname)
+			+ 5 /* max strlen of decimal 16bit value */
+			+ strlen(uri));
+	sprintf(url, "http://%s:%d/%s",
+			hostname, port, uri);
+
+	return url;
 }
 
 /*** add_host ***/
 int add_host(const char * host, const char * type) {
 	struct hosts * tmphosts = hosts;
+	struct request request;
 
 	while (tmphosts->host != NULL) {
 		if (strcmp(tmphosts->host, host) == 0) {
@@ -86,11 +102,21 @@ int add_host(const char * host, const char * type) {
 update:
 	if (strcmp(type, PACSERVE) == 0) {
 		tmphosts->pacserve.online = 1;
-		tmphosts->pacserve.bad = 0;
+		request.port = PORT_PACSERVE;
+		request.bad = &tmphosts->pacserve.bad;
 	} else if (strcmp(type, PACDBSERVE) == 0)  {
 		tmphosts->pacdbserve.online = 1;
-		tmphosts->pacdbserve.bad = 0;
+		request.port = PORT_PACDBSERVE;
+		request.bad = &tmphosts->pacdbserve.bad;
 	}
+
+	/* do a first request and let get_http_code() set the bad status */
+	request.host = tmphosts->host;
+	request.url = get_url(request.host, request.port, "");
+	request.http_code = 0;
+	request.last_modified = 0;
+	get_http_code(&request);
+	free(request.url);
 
 	return EXIT_SUCCESS;
 }
@@ -336,8 +362,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 			request->port = PORT_PACSERVE;
 			request->bad = &(tmphosts->pacserve.bad);
 		}
-		request->url = malloc(10 + strlen(tmphosts->host) + 5 /* max strlen of decimal 16bit value */ + strlen(basename));
-		sprintf(request->url, "http://%s:%d/%s", tmphosts->host, dbfile == 1 ? PORT_PACDBSERVE : PORT_PACSERVE, basename);
+		request->url = get_url(tmphosts->host, dbfile == 1 ? PORT_PACDBSERVE : PORT_PACSERVE, basename);
 		request->http_code = 0;
 		request->last_modified = 0;
 
