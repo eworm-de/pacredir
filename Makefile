@@ -58,3 +58,6 @@ install-doc: README.html
 
 clean:
 	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html
+
+distclean:
+	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html config.h
