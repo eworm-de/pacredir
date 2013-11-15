@@ -13,7 +13,7 @@ struct services {
 	/* true if host/service is online */
 	uint8_t online;
 	/* unix timestamp of last bad request */
-	__time_t bad;
+	__time_t badtime;
 	/* count the number of bad requests */
 	unsigned int badcount;
 };

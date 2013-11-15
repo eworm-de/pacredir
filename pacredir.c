@@ -92,10 +92,10 @@ int add_host(const char * host, const char * type) {
 	write_log(stdout, "Adding host %s with service %s\n", host, type);
 	tmphosts->host = strdup(host);
 	tmphosts->pacserve.online = 0;
-	tmphosts->pacserve.bad = 0;
+	tmphosts->pacserve.badtime = 0;
 	tmphosts->pacserve.badcount = 0;
 	tmphosts->pacdbserve.online = 0;
-	tmphosts->pacdbserve.bad = 0;
+	tmphosts->pacdbserve.badtime = 0;
 	tmphosts->pacdbserve.badcount = 0;
 	tmphosts->next = malloc(sizeof(struct hosts));
 	tmphosts->next->host = NULL;
@@ -247,11 +247,11 @@ static void * get_http_code(void * data) {
 			write_log(stderr, "Could not connect to server %s on port %d.\n", request->host, request->port);
 			request->http_code = 0;
 			request->last_modified = 0;
-			request->service->bad = tv.tv_sec;
+			request->service->badtime = tv.tv_sec;
 			request->service->badcount++;
 			return NULL;
 		} else {
-			request->service->bad = 0;
+			request->service->badtime = 0;
 			request->service->badcount = 0;
 		}
 
@@ -344,8 +344,8 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		gettimeofday(&tv, NULL);
 
 		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if ((dbfile == 1 && (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.bad + tmphosts->pacdbserve.badcount * BADTIME > tv.tv_sec)) ||
-				(dbfile == 0 && (tmphosts->pacserve.online == 0 || tmphosts->pacserve.bad + tmphosts->pacserve.bad * BADTIME > tv.tv_sec))) {
+		if ((dbfile == 1 && (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.badtime + tmphosts->pacdbserve.badcount * BADTIME > tv.tv_sec)) ||
+				(dbfile == 0 && (tmphosts->pacserve.online == 0 || tmphosts->pacserve.badtime + tmphosts->pacserve.badcount * BADTIME > tv.tv_sec))) {
 			tmphosts = tmphosts->next;
 			continue;
 		}
@@ -442,9 +442,9 @@ void sighup_callback(int signal) {
 	write_log(stdout, "Received SIGHUP, resetting bad status for hosts.\n");
 
 	while (tmphosts->host != NULL) {
-		tmphosts->pacserve.bad = 0;
+		tmphosts->pacserve.badtime = 0;
 		tmphosts->pacserve.badcount = 0;
-		tmphosts->pacdbserve.bad = 0;
+		tmphosts->pacdbserve.badtime = 0;
 		tmphosts->pacdbserve.badcount = 0;
 		tmphosts = tmphosts->next;
 	}
@@ -469,9 +469,9 @@ int main(int argc, char ** argv) {
 	hosts = malloc(sizeof(struct hosts));
 	hosts->host = NULL;
 	hosts->pacserve.online = 0;
-	hosts->pacserve.bad = 0;
+	hosts->pacserve.badtime = 0;
 	hosts->pacdbserve.online = 0;
-	hosts->pacdbserve.bad = 0;
+	hosts->pacdbserve.badtime = 0;
 	hosts->next = NULL;
 
 	ignore_interfaces = malloc(sizeof(struct ignore_interfaces));
