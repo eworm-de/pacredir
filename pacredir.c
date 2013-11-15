@@ -443,7 +443,9 @@ void sighup_callback(int signal) {
 
 	while (tmphosts->host != NULL) {
 		tmphosts->pacserve.bad = 0;
+		tmphosts->pacserve.badcount = 0;
 		tmphosts->pacdbserve.bad = 0;
+		tmphosts->pacdbserve.badcount = 0;
 		tmphosts = tmphosts->next;
 	}
 }
