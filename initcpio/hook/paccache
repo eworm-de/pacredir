@@ -3,9 +3,11 @@
 run_latehook() {
 	local newroot="/new_root/"
 	
-	if ! grep -q '^pacserve hosts' ${newroot}/etc/pacredir.conf -a [[ -n "${pacserve}" ]]; then
-		msg ":: Adding pacserve host '${pacserve}' to pacredir.conf..."
-		echo "pacserve hosts = ${pacserve}" >> ${newroot}/etc/pacredir.conf
+	if ! grep -q '^pacserve hosts' ${newroot}/etc/pacredir.conf; then
+		if [[ -n "${pacserve}" ]]; then
+			msg ":: Adding pacserve host '${pacserve}' to pacredir.conf..."
+			echo "pacserve hosts = ${pacserve}" >> ${newroot}/etc/pacredir.conf
+		fi
 	fi
 
 	if ! grep -q '^pacdbserve hosts' ${newroot}/etc/pacredir.conf; then
