@@ -1,11 +1,11 @@
 #!/bin/sh
  
 case "${reason}" in
-	BOUND|INFORM|REBIND|REBOOT|RENEW|TIMEOUT|STATIC)
+	BOUND|REBIND|REBOOT|RENEW|TIMEOUT|STATIC)
 		# inform pacredir about reestablished connection
 		kill -HUP $(pgrep pacredir)
 		;;
-	PREINIT|EXPIRE|FAIL|IPV4LL|NAK|NOCARRIER|RELEASE|STOP)
+	PREINIT|EXPIRE|INFORM|FAIL|IPV4LL|NAK|NOCARRIER|RELEASE|STOP)
 		# do nothing here...
 		;;
 esac
