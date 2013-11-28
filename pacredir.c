@@ -152,7 +152,7 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 	struct ignore_interfaces * tmp_ignore_interfaces = ignore_interfaces;
 
 	assert(b);
-			
+
 	switch (event) {
 		case AVAHI_BROWSER_FAILURE:
 
@@ -226,7 +226,7 @@ static void * get_http_code(void * data) {
 
 	if ((curl = curl_easy_init()) != NULL) {
 		curl_easy_setopt(curl, CURLOPT_URL, request->url);
-		/* example.com is redirected, so we tell libcurl to follow redirection */ 
+		/* example.com is redirected, so we tell libcurl to follow redirection */
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 		/* set user agent */
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "pacredir/" VERSION " (" ARCH ")");
@@ -271,7 +271,7 @@ static void * get_http_code(void * data) {
 		} else
 			request->last_modified = 0;
 
-		/* always cleanup */ 
+		/* always cleanup */
 		curl_easy_cleanup(curl);
 	}
 
@@ -330,7 +330,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		/* get timestamp of local file */
 		filename = malloc(strlen(SYNCPATH) + strlen(basename) + 2);
 		sprintf(filename, SYNCPATH "/%s", basename);
-	
+
 		if (stat(filename, &fst) != 0)
 			write_log(stderr, "stat() failed, you do not have a local copy of %s\n", basename);
 		else
@@ -438,7 +438,7 @@ void sig_callback(int signal) {
 /*** sighup_callback ***/
 void sighup_callback(int signal) {
 	struct hosts * tmphosts = hosts;
-	
+
 	write_log(stdout, "Received SIGHUP, resetting bad status for hosts.\n");
 
 	while (tmphosts->host != NULL) {
@@ -489,7 +489,7 @@ int main(int argc, char ** argv) {
 			write_log(stdout, "Ignore interface: [%s]\n", values);
 #			endif
 			tmp_ignore_interfaces = ignore_interfaces;
-	
+
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				tmp_ignore_interfaces->interface = strdup(value);
@@ -500,7 +500,7 @@ int main(int argc, char ** argv) {
 			tmp_ignore_interfaces->interface = NULL;
 			tmp_ignore_interfaces->next = NULL;
 		}
-		
+
 		/* add static pacserve hosts */
 		if ((values = iniparser_getstring(ini, "general:pacserve hosts", NULL)) != NULL) {
 #			if defined DEBUG
@@ -512,7 +512,7 @@ int main(int argc, char ** argv) {
 				value = strtok(NULL, DELIMITER);
 			}
 		}
-	
+
 		/* add static pacdbserve hosts */
 		if ((values = iniparser_getstring(ini, "general:pacdbserve hosts", NULL)) != NULL) {
 #			if defined DEBUG
@@ -524,7 +524,7 @@ int main(int argc, char ** argv) {
 				value = strtok(NULL, DELIMITER);
 			}
 		}
-	
+
 		/* done reading config file, free */
 		iniparser_freedict(ini);
 	}
@@ -571,7 +571,7 @@ int main(int argc, char ** argv) {
 	signal(SIGTERM, sig_callback);
 	signal(SIGINT, sig_callback);
 	signal(SIGHUP, sighup_callback);
-	
+
 	/* run the main loop */
 	avahi_simple_poll_loop(simple_poll);
 
