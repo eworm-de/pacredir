@@ -26,7 +26,7 @@ arch: arch.c config.h
 	$(CC) -o arch arch.c
 
 pacredir: pacredir.c pacredir.h config.h
-	$(CC) $(CFLAGS) -o pacredir pacredir.c \
+	$(CC) $(CFLAGS) $(LDFLAGS) -o pacredir pacredir.c \
 		-DVERSION="\"$(VERSION)\""
 
 config.h:
