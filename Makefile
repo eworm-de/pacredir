@@ -13,24 +13,25 @@ CFLAGS	+= $(shell pkg-config --libs --cflags libcurl)
 CFLAGS	+= $(shell pkg-config --libs --cflags avahi-client)
 CFLAGS	+= $(shell pkg-config --libs --cflags libmicrohttpd)
 CFLAGS	+= -liniparser
-VERSION := $(shell git describe --tags --long 2>/dev/null)
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
-ifeq ($(VERSION),)
 VERSION := 0.1.1
-endif
 
 all: pacredir avahi/pacdbserve.service README.html
 
 arch: arch.c config.h
 	$(CC) -o arch arch.c
 
-pacredir: pacredir.c pacredir.h config.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -o pacredir pacredir.c \
-		-DVERSION="\"$(VERSION)\""
+pacredir: pacredir.c pacredir.h config.h version.h
+	$(CC) $(CFLAGS) $(LDFLAGS) -o pacredir pacredir.c
 
 config.h:
 	$(CP) config.def.h config.h
+
+version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
+	echo "#ifndef VERSION" > $@
+	echo "#define VERSION \"$(shell git describe --tags --long 2>/dev/null || echo ${VERSION})\"" >> $@
+	echo "#endif" >> $@
 
 avahi/pacdbserve.service: arch avahi/pacdbserve.service.in
 	$(SED) 's/%ARCH%/$(shell ./arch)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
@@ -58,7 +59,7 @@ install-doc: README.html
 	$(INSTALL) -D -m0644 README.html $(DESTDIR)$(PREFIX)/share/doc/paccache/README.html
 
 clean:
-	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html
+	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html version.h
 
 distclean:
-	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html config.h
+	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html version.h config.h

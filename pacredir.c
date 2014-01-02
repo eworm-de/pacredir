@@ -31,6 +31,7 @@
 
 /* compile time configuration */
 #include "config.h"
+#include "version.h"
 
 /* define structs and functions */
 #include "pacredir.h"

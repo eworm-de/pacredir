@@ -5,3 +5,4 @@ pacredir
 config.h
 avahi/pacdbserve.service
 README.html
+version.h
