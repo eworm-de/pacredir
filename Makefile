@@ -63,3 +63,7 @@ clean:
 
 distclean:
 	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html version.h config.h
+
+release:
+	git archive --format=tar.xz --prefix=paccache-$(VERSION)/ $(VERSION) > paccache-$(VERSION).tar.xz
+	gpg -ab paccache-$(VERSION).tar.xz
