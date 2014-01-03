@@ -8,23 +8,6 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-/* the binary needs to know its own architecture */
-#if defined __x86_64__
-#	define ARCH	"x86_64"
-#elif defined __i386__
-#	define ARCH	"i686"
-#elif defined __ARM_ARCH_7__
-#	define ARCH	"armv7h"
-#elif defined __ARM_ARCH_6__
-#	if defined __VFP_FP__
-#		define ARCH	"armv6h"
-#	else
-#		define ARCH	"arm"
-#	endif
-#else
-#	error Unknown architecture!
-#endif
-
 /* This is used for default documents. Usually you will not see this anyway. */
 #define PAGE307 "<html><head><title>307 temporary redirect</title>" \
 		"</head><body>307 temporary redirect: " \

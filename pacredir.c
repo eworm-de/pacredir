@@ -30,6 +30,7 @@
 #include <pthread.h>
 
 /* compile time configuration */
+#include "arch.h"
 #include "config.h"
 #include "version.h"
 

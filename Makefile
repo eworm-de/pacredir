@@ -19,10 +19,10 @@ VERSION := 0.1.1
 
 all: pacredir avahi/pacdbserve.service README.html
 
-arch: arch.c config.h
+arch: arch.c arch.h
 	$(CC) -o arch arch.c
 
-pacredir: pacredir.c pacredir.h config.h version.h
+pacredir: pacredir.c arch.h pacredir.h config.h version.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -o pacredir pacredir.c
 
 config.h:

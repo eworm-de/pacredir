@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "config.h"
+#include "arch.h"
 
 /*** main ***/
 int main(int argc, char ** argv) {
