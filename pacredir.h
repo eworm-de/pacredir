@@ -49,6 +49,8 @@ struct request {
 	char * url;
 	/* HTTP status code */
 	long http_code;
+	/* total connection time */
+	double time_total;
 	/* last modified timestamp */
 	long last_modified;
 };

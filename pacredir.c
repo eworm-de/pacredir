@@ -264,6 +264,11 @@ static void * get_http_code(void * data) {
 			return NULL;
 		}
 
+		if ((res = curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &(request->time_total))) != CURLE_OK) {
+			write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
+			return NULL;
+		}
+
 		/* get last modified time */
 		if (request->http_code == MHD_HTTP_OK) {
 			if ((res = curl_easy_getinfo(curl, CURLINFO_FILETIME, &(request->last_modified))) != CURLE_OK) {
@@ -301,6 +306,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	struct request ** requests = NULL;
 	struct request * request = NULL;
 	long http_code = 0, last_modified = 0;
+	double time_total = INFINITY;
 
 	/* we want the filename, not the path */
 	basename = uri;
@@ -390,14 +396,20 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 		request = requests[i];
 
+		if (request->http_code == MHD_HTTP_OK)
+			printf("Found: %s (%f sec)\n", request->url, request->time_total);
+
 		if (request->http_code == MHD_HTTP_OK &&
-				(dbfile == 0 || request->last_modified > last_modified)) {
-			printf("Found: %s\n", request->url);
+				/* for db files choose the most recent server */
+				((dbfile == 1 && request->last_modified > last_modified) ||
+				 /* for packages try to guess the fastest server */
+				 (dbfile == 0 && request->time_total < time_total))) {
 			if (url != NULL)
 				free(url);
 			url = request->url;
 			http_code = MHD_HTTP_OK;
 			last_modified = request->last_modified;
+			time_total = request->time_total;
 		} else
 			free(request->url);
 		free(request);
