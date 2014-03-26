@@ -68,3 +68,12 @@ Please note that `pacredir` redirects to the most recent file found on
 the local network. To make sure you really do have the latest files run
 `pacman -Syu` *twice*.
 
+Security
+--------
+
+There is no security within this project, information and file content
+is transferred unencrypted and unverified. Anybody is free to serve
+broken and/or malicious files to you, but this is by design. So make
+sure `pacman` is configured to check signatures! It will then detect if
+anything goes wrong.
+
