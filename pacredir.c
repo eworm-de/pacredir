@@ -407,7 +407,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		request = requests[i];
 
 		if (request->http_code == MHD_HTTP_OK)
-			printf("Found: %s (%f sec)\n", request->url, request->time_total);
+			write_log(stdout, "Found: %s (%f sec)\n", request->url, request->time_total);
 
 		if (request->http_code == MHD_HTTP_OK &&
 				/* for db files choose the most recent server */
