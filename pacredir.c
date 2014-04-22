@@ -333,6 +333,14 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	/* clear context pointer */
 	*ptr = NULL;
 
+	/* redirect to website if no file given */
+	if (*basename == 0) {
+		http_code = MHD_HTTP_OK;
+		/* duplicate string so we can free it later */
+		url = strdup(WEBSITE);
+		goto response;
+	}
+
 	/* process db file (and signature) request */
 	if ((strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) ||
 			(strlen(basename) > 7 && strcmp(basename + strlen(basename) - 7, ".db.sig") == 0)) {
@@ -417,6 +425,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		free(request);
 	}
 
+response:
 	/* give response */
 	if (http_code == MHD_HTTP_OK) {
 		write_log(stdout, "Redirecting to %s\n", url);
