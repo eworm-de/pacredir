@@ -414,6 +414,10 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 		if (request->http_code == MHD_HTTP_OK)
 			write_log(stdout, "Found: %s (%f sec, modified: %s)\n", request->url, request->time_total, ctime);
+#		if defined DEBUG
+		else
+			write_log(stderr, "Returned error %d for %s\n", request->http_code, request->url);
+#		endif
 
 		if (request->http_code == MHD_HTTP_OK &&
 				/* for db files choose the most recent server */
