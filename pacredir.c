@@ -392,7 +392,9 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		request->http_code = 0;
 		request->last_modified = 0;
 
+#		if defined DEBUG
 		write_log(stdout, "Trying %s\n", request->url);
+#		endif
 
 		if ((error = pthread_create(&tid[req_count], NULL, get_http_code, (void *)request)) != 0)
 			write_log(stderr, "Could not run thread number %d, errno %d\n", req_count, error);
