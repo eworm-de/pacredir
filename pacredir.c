@@ -309,6 +309,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 	struct request * request = NULL;
 	long http_code = 0, last_modified = 0;
 	double time_total = INFINITY;
+	char ctime[26];
 
 	/* we want the filename, not the path */
 	basename = uri;
@@ -406,8 +407,11 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 		request = requests[i];
 
+		ctime_r(&request->last_modified, ctime);
+		ctime[strlen(ctime) - 1] = 0;
+
 		if (request->http_code == MHD_HTTP_OK)
-			write_log(stdout, "Found: %s (%f sec)\n", request->url, request->time_total);
+			write_log(stdout, "Found: %s (%f sec, modified: %s)\n", request->url, request->time_total, ctime);
 
 		if (request->http_code == MHD_HTTP_OK &&
 				/* for db files choose the most recent server */
