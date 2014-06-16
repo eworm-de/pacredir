@@ -108,7 +108,7 @@ update:
 		tmphosts->pacserve.online = 1;
 		request.port = PORT_PACSERVE;
 		request.service = &tmphosts->pacserve;
-	} else if (strcmp(type, PACDBSERVE) == 0)  {
+	} else if (strcmp(type, PACDBSERVE) == 0) {
 		tmphosts->pacdbserve.online = 1;
 		request.port = PORT_PACDBSERVE;
 		request.service = &tmphosts->pacdbserve;
