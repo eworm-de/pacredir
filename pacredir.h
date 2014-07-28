@@ -10,6 +10,8 @@
 
 /* services */
 struct services {
+	/* network port */
+	uint16_t port;
 	/* true if host/service is online */
 	uint8_t online;
 	/* unix timestamp of last bad request */
@@ -41,8 +43,6 @@ struct ignore_interfaces {
 struct request {
 	/* host name */
 	const char * host;
-	/* port */
-	uint16_t port;
 	/* pointer to service */
 	struct services * service;
 	/* url */
@@ -63,7 +63,7 @@ char * get_fqdn(const char * hostname, const char * domainname);
 char * get_url(const char * hostname, const uint16_t port, const char * uri);
 
 /* add_host */
-int add_host(const char * host, const char * type);
+int add_host(const char * host, const uint16_t port, const char * type);
 /* remove_host */
 int remove_host(const char * host, const char * type);
 

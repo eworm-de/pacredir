@@ -78,7 +78,7 @@ char * get_url(const char * hostname, const uint16_t port, const char * uri) {
 }
 
 /*** add_host ***/
-int add_host(const char * host, const char * type) {
+int add_host(const char * host, const uint16_t port, const char * type) {
 	struct hosts * tmphosts = hosts;
 	struct request request;
 
@@ -93,12 +93,17 @@ int add_host(const char * host, const char * type) {
 	/* host not found, adding a new one */
 	write_log(stdout, "Adding host %s with service %s\n", host, type);
 	tmphosts->host = strdup(host);
+
+	tmphosts->pacserve.port = 0;
 	tmphosts->pacserve.online = 0;
 	tmphosts->pacserve.badtime = 0;
 	tmphosts->pacserve.badcount = 0;
+
+	tmphosts->pacdbserve.port = 0;
 	tmphosts->pacdbserve.online = 0;
 	tmphosts->pacdbserve.badtime = 0;
 	tmphosts->pacdbserve.badcount = 0;
+
 	tmphosts->next = malloc(sizeof(struct hosts));
 	tmphosts->next->host = NULL;
 	tmphosts->next->next = NULL;
@@ -106,17 +111,17 @@ int add_host(const char * host, const char * type) {
 update:
 	if (strcmp(type, PACSERVE) == 0) {
 		tmphosts->pacserve.online = 1;
-		request.port = PORT_PACSERVE;
+		tmphosts->pacserve.port = (port > 0 ? port : PORT_PACSERVE);
 		request.service = &tmphosts->pacserve;
 	} else if (strcmp(type, PACDBSERVE) == 0) {
 		tmphosts->pacdbserve.online = 1;
-		request.port = PORT_PACDBSERVE;
+		tmphosts->pacdbserve.port = (port > 0? port : PORT_PACDBSERVE);
 		request.service = &tmphosts->pacdbserve;
 	}
 
 	/* do a first request and let get_http_code() set the bad status */
 	request.host = tmphosts->host;
-	request.url = get_url(request.host, request.port, "");
+	request.url = get_url(request.host, request.service->port, "");
 	request.http_code = 0;
 	request.last_modified = 0;
 	get_http_code(&request);
@@ -182,7 +187,7 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			write_log(stdout, "NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
 #			endif
 
-			add_host(host, type);
+			add_host(host, 0, type);
 out:
 			free(host);
 
@@ -248,7 +253,7 @@ static void * get_http_code(void * data) {
 
 		/* perform the request */
 		if (curl_easy_perform(curl) != CURLE_OK) {
-			write_log(stderr, "Could not connect to server %s on port %d.\n", request->host, request->port);
+			write_log(stderr, "Could not connect to server %s on port %d.\n", request->host, request->service->port);
 			request->http_code = 0;
 			request->last_modified = 0;
 			request->service->badtime = tv.tv_sec;
@@ -381,14 +386,11 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 		/* prepare request struct */
 		request->host = tmphosts->host;
-		if (dbfile == 1) {
-			request->port = PORT_PACDBSERVE;
+		if (dbfile == 1)
 			request->service = &(tmphosts->pacdbserve);
-		} else {
-			request->port = PORT_PACSERVE;
+		else
 			request->service = &(tmphosts->pacserve);
-		}
-		request->url = get_url(tmphosts->host, dbfile == 1 ? PORT_PACDBSERVE : PORT_PACSERVE, basename);
+		request->url = get_url(tmphosts->host, request->service->port, basename);
 		request->http_code = 0;
 		request->last_modified = 0;
 
@@ -494,6 +496,7 @@ void sighup_callback(int signal) {
 int main(int argc, char ** argv) {
 	dictionary * ini;
 	char * values, * value;
+	uint16_t port;
 	struct ignore_interfaces * tmp_ignore_interfaces;
 	AvahiClient *client = NULL;
 	AvahiServiceBrowser *pacserve = NULL, *pacdbserve = NULL;
@@ -548,7 +551,12 @@ int main(int argc, char ** argv) {
 #			endif
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
-				add_host(value, PACSERVE);
+				if (strchr(value, ':') != NULL) {
+					port = atoi(strchr(value, ':') + 1);
+					*strchr(value, ':') = 0;
+				} else
+					port = PORT_PACSERVE;
+				add_host(value, port, PACSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
 		}
@@ -560,7 +568,12 @@ int main(int argc, char ** argv) {
 #			endif
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
-				add_host(value, PACDBSERVE);
+				if (strchr(value, ':') != NULL) {
+					port = atoi(strchr(value, ':') + 1);
+					*strchr(value, ':') = 0;
+				} else
+					port = PORT_PACDBSERVE;
+				add_host(value, port, PACDBSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
 		}
