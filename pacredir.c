@@ -8,6 +8,7 @@
 /* glibc headers */
 #include <arpa/inet.h>
 #include <assert.h>
+#include <getopt.h>
 #include <math.h>
 #include <net/if.h>
 #include <signal.h>
@@ -37,10 +38,19 @@
 /* define structs and functions */
 #include "pacredir.h"
 
+const static char optstring[] = "hv";
+const static struct option options_long[] = {
+	/* name		has_arg		flag	val */
+	{ "help",	no_argument,	NULL,	'h' },
+	{ "verbose",	no_argument,	NULL,	'v' },
+	{ 0, 0, 0, 0 }
+};
+
 /* global variables */
 struct hosts * hosts = NULL;
 struct ignore_interfaces * ignore_interfaces = NULL;
 static AvahiSimplePoll *simple_poll = NULL;
+uint8_t verbose = 0;
 
 /*** write_log ***/
 int write_log(FILE *stream, const char *format, ...) {
@@ -85,7 +95,7 @@ int add_host(const char * host, const uint16_t port, const char * type) {
 	while (tmphosts->host != NULL) {
 		if (strcmp(tmphosts->host, host) == 0) {
 			/* host already exists */
-			write_log(stdout, "Updating service %s on %s\n", type, host);
+			write_log(stdout, "Updating service %s on host %s\n", type, host);
 			goto update;
 		}
 		tmphosts = tmphosts->next;
@@ -177,15 +187,14 @@ static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avah
 			if_indextoname(interface, intname);
 			while (tmp_ignore_interfaces->next != NULL) {
 				if (strcmp(intname, tmp_ignore_interfaces->interface) == 0) {
-						write_log(stdout, "Ignoring service '%s' of type '%s' in domain '%s' on interface '%s'\n", name, type, domain, intname);
-						goto out;
+					write_log(stdout, "Ignoring service %s on host %s on interface %s\n", type, host, intname);
+					goto out;
 				}
 				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
 			}
 
-#			if defined DEBUG
-			write_log(stdout, "NEW: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
-#			endif
+			if (verbose > 0)
+				write_log(stdout, "Found service %s on host %s on interface %s\n", type, host, intname);
 
 			add_host(host, 0, type);
 out:
@@ -196,9 +205,8 @@ out:
 		case AVAHI_BROWSER_REMOVE:
 			host = get_fqdn(name, domain);
 
-#			if defined DEBUG
-			write_log(stdout, "REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
-#			endif
+			if (verbose > 0)
+				write_log(stdout, "Service %s on host %s disappeared\n", type, host);
 
 			remove_host(host, type);
 
@@ -355,9 +363,10 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		filename = malloc(strlen(SYNCPATH) + strlen(basename) + 2);
 		sprintf(filename, SYNCPATH "/%s", basename);
 
-		if (stat(filename, &fst) != 0)
-			write_log(stderr, "stat() failed, you do not have a local copy of %s\n", basename);
-		else
+		if (stat(filename, &fst) != 0) {
+			if (verbose > 0)
+				write_log(stderr, "stat() failed, you do not have a local copy of %s\n", basename);
+		} else
 			last_modified = fst.st_mtime;
 
 		free(filename);
@@ -394,9 +403,8 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 		request->http_code = 0;
 		request->last_modified = 0;
 
-#		if defined DEBUG
-		write_log(stdout, "Trying %s\n", request->url);
-#		endif
+		if (verbose > 0)
+			write_log(stdout, "Trying %s\n", request->url);
 
 		if ((error = pthread_create(&tid[req_count], NULL, get_http_code, (void *)request)) != 0)
 			write_log(stderr, "Could not run thread number %d, errno %d\n", req_count, error);
@@ -416,10 +424,8 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection, const char *
 
 		if (request->http_code == MHD_HTTP_OK)
 			write_log(stdout, "Found: %s (%f sec, modified: %s)\n", request->url, request->time_total, ctime);
-#		if defined DEBUG
-		else
+		else if (verbose > 0)
 			write_log(stderr, "Returned error %d for %s\n", request->http_code, request->url);
-#		endif
 
 		if (request->http_code == MHD_HTTP_OK &&
 				/* for db files choose the most recent server */
@@ -500,11 +506,22 @@ int main(int argc, char ** argv) {
 	struct ignore_interfaces * tmp_ignore_interfaces;
 	AvahiClient *client = NULL;
 	AvahiServiceBrowser *pacserve = NULL, *pacdbserve = NULL;
-	int error;
-	int ret = 1;
+	int error, i, ret = 1;
 	struct MHD_Daemon * mhd;
 	struct hosts * tmphosts;
 	struct sockaddr_in address;
+
+	/* get the verbose status */
+	while ((i = getopt_long(argc, argv, optstring, options_long, NULL)) != -1) {
+		switch (i) {
+			case 'h':
+				write_log(stdout, "usage: %s [-h] [-v]\n", argv[0]);
+				return EXIT_SUCCESS;
+			case 'v':
+				verbose++;
+				break;
+		}
+	}
 
 	write_log(stdout, "Starting pacredir/" VERSION " (compiled: " __DATE__ ", " __TIME__ " for " ARCH ")\n");
 
@@ -528,13 +545,12 @@ int main(int argc, char ** argv) {
 	} else {
 		/* store interfaces to ignore */
 		if ((values = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
-#			if defined DEBUG
-			write_log(stdout, "Ignore interface: [%s]\n", values);
-#			endif
 			tmp_ignore_interfaces = ignore_interfaces;
 
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
+				if (verbose > 0)
+					write_log(stdout, "Ignoring interface: %s\n", value);
 				tmp_ignore_interfaces->interface = strdup(value);
 				tmp_ignore_interfaces->next = malloc(sizeof(struct ignore_interfaces));
 				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
@@ -546,11 +562,11 @@ int main(int argc, char ** argv) {
 
 		/* add static pacserve hosts */
 		if ((values = iniparser_getstring(ini, "general:pacserve hosts", NULL)) != NULL) {
-#			if defined DEBUG
-			write_log(stdout, "pacserve hosts: [%s]\n", values);
-#			endif
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
+				if (verbose > 0)
+					write_log(stdout, "Adding static pacserve host: %s\n", value);
+
 				if (strchr(value, ':') != NULL) {
 					port = atoi(strchr(value, ':') + 1);
 					*strchr(value, ':') = 0;
@@ -563,11 +579,11 @@ int main(int argc, char ** argv) {
 
 		/* add static pacdbserve hosts */
 		if ((values = iniparser_getstring(ini, "general:pacdbserve hosts", NULL)) != NULL) {
-#			if defined DEBUG
-			write_log(stdout, "pacdbserve hosts: [%s]\n", values);
-#			endif
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
+				if (verbose > 0)
+					write_log(stdout, "Adding static pacdbserve host: %s\n", value);
+
 				if (strchr(value, ':') != NULL) {
 					port = atoi(strchr(value, ':') + 1);
 					*strchr(value, ':') = 0;
