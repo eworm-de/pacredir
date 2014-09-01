@@ -77,3 +77,7 @@ broken and/or malicious files to you, but this is by design. So make
 sure `pacman` is configured to check signatures! It will then detect if
 anything goes wrong.
 
+### Upstream
+
+URL: [GitHub.com](https://github.com/eworm-de/paccache)  
+Mirror: [eworm.de](http://git.eworm.de/cgit.cgi/paccache/)
