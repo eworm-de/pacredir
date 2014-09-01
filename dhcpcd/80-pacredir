@@ -1,9 +1,11 @@
 #!/bin/sh
- 
+
 case "${reason}" in
 	BOUND|REBIND|REBOOT|RENEW|TIMEOUT|STATIC)
 		# inform pacredir about reestablished connection
-		kill -HUP $(pgrep pacredir)
+		if pgrep -x pacredir >/dev/null; then
+			kill -HUP $(pgrep pacredir)
+		fi
 		;;
 	PREINIT|EXPIRE|INFORM|FAIL|IPV4LL|NAK|NOCARRIER|RELEASE|STOP)
 		# do nothing here...
