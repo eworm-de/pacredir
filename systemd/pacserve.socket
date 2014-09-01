@@ -1,0 +1,9 @@
+[Unit]
+Conflicts=pacserve.service
+
+[Socket]
+ListenStream=7078
+Accept=no
+
+[Install]
+WantedBy=sockets.target
