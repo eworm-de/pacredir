@@ -4,7 +4,7 @@ case "${reason}" in
 	BOUND|REBIND|REBOOT|RENEW|TIMEOUT|STATIC)
 		# inform pacredir about reestablished connection
 		if pgrep -x pacredir >/dev/null; then
-			kill -HUP $(pgrep pacredir)
+			kill -HUP $(pgrep -x pacredir)
 		fi
 		;;
 	PREINIT|EXPIRE|INFORM|FAIL|IPV4LL|NAK|NOCARRIER|RELEASE|STOP)
