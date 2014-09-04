@@ -68,16 +68,31 @@ int add_host(const char * host, const uint16_t port, const char * type);
 int remove_host(const char * host, const char * type);
 
 /* browse_callback */
-static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
-	const char *type, const char *domain, AVAHI_GCC_UNUSED AvahiLookupResultFlags flags, void* userdata);
+static void browse_callback(AvahiServiceBrowser *b,
+		AvahiIfIndex interface,
+		AvahiProtocol protocol,
+		AvahiBrowserEvent event,
+		const char *name,
+		const char *type,
+		const char *domain,
+		AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
+		void* userdata);
 /* client_callback */
-static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED void * userdata);
+static void client_callback(AvahiClient *c,
+		AvahiClientState state,
+		AVAHI_GCC_UNUSED void * userdata);
 
 /* get_http_code */
 static void * get_http_code(void * data);
 /* ahc_echo */
-static int ahc_echo(void * cls, struct MHD_Connection * connection, const char * uri, const char * method,
-	const char * version, const char * upload_data, size_t * upload_data_size, void ** ptr);
+static int ahc_echo(void * cls,
+		struct MHD_Connection * connection,
+		const char * uri,
+		const char * method,
+		const char * version,
+		const char * upload_data,
+		size_t * upload_data_size,
+		void ** ptr);
 
 /* sig_callback */
 void sig_callback(int signal);

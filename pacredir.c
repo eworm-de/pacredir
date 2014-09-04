@@ -162,8 +162,15 @@ int remove_host(const char * host, const char * type) {
 
 /*** browse_callback ***
  * Called whenever a new services becomes available on the LAN or is removed from the LAN */
-static void browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
-		const char *type, const char *domain, AVAHI_GCC_UNUSED AvahiLookupResultFlags flags, void* userdata) {
+static void browse_callback(AvahiServiceBrowser *b,
+		AvahiIfIndex interface,
+		AvahiProtocol protocol,
+		AvahiBrowserEvent event,
+		const char *name,
+		const char *type,
+		const char *domain,
+		AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
+		void* userdata) {
 	char * host;
 	char intname[IFNAMSIZ];
 	struct ignore_interfaces * tmp_ignore_interfaces = ignore_interfaces;
@@ -221,7 +228,9 @@ out:
 }
 
 /*** client_callback ***/
-static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED void * userdata) {
+static void client_callback(AvahiClient *c,
+		AvahiClientState state,
+		AVAHI_GCC_UNUSED void * userdata) {
 	assert(c);
 
 	if (state == AVAHI_CLIENT_FAILURE) {
@@ -302,8 +311,14 @@ static void * get_http_code(void * data) {
 
 /*** ahc_echo ***
  * called whenever a http request is received */
-static int ahc_echo(void * cls, struct MHD_Connection * connection, const char * uri, const char * method,
-		const char * version, const char * upload_data, size_t * upload_data_size, void ** ptr) {
+static int ahc_echo(void * cls,
+		struct MHD_Connection * connection,
+		const char * uri,
+		const char * method,
+		const char * version,
+		const char * upload_data,
+		size_t * upload_data_size,
+		void ** ptr) {
 	static int dummy;
 	struct MHD_Response * response;
 	int ret;
