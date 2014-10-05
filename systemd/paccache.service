@@ -1,0 +1,7 @@
+[Unit]
+Description=Redirect pacman requests via avahi service
+
+[Install]
+Also=pacredir.service
+Also=pacserve.service
+Also=pacdbserve.service
