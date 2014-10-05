@@ -444,7 +444,8 @@ static int ahc_echo(void * cls,
 
 		if (request->http_code == MHD_HTTP_OK &&
 				/* for db files choose the most recent server */
-				((dbfile == 1 && request->last_modified > last_modified) ||
+				((dbfile == 1 && request->last_modified >= last_modified &&
+					request->time_total < time_total) ||
 				 /* for packages try to guess the fastest server */
 				 (dbfile == 0 && request->time_total < time_total))) {
 			if (url != NULL)
