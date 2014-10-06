@@ -370,9 +370,8 @@ static int ahc_echo(void * cls,
 		goto response;
 	}
 
-	/* process db file (and signature) request */
-	if ((strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) ||
-			(strlen(basename) > 7 && strcmp(basename + strlen(basename) - 7, ".db.sig") == 0)) {
+	/* process db file request */
+	if (strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) {
 		dbfile = 1;
 		/* get timestamp of local file */
 		filename = malloc(strlen(SYNCPATH) + strlen(basename) + 2);
