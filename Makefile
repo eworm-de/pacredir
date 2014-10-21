@@ -7,7 +7,7 @@ INSTALL	:= install
 CP	:= cp
 RM	:= rm
 SED	:= sed
-CFLAGS	+= -O2 -Wall -Werror
+CFLAGS	+= -std=c11 -O2 -Wall -Werror
 CFLAGS	+= -lpthread
 CFLAGS	+= $(shell pkg-config --libs --cflags libcurl)
 CFLAGS	+= $(shell pkg-config --libs --cflags avahi-client)

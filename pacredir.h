@@ -8,6 +8,39 @@
 #ifndef _PACREDIR_H
 #define _PACREDIR_H
 
+#define _GNU_SOURCE
+
+/* glibc headers */
+#include <arpa/inet.h>
+#include <assert.h>
+#include <getopt.h>
+#include <math.h>
+#include <net/if.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <time.h>
+
+/* Avahi headers */
+#include <avahi-client/lookup.h>
+#include <avahi-common/error.h>
+#include <avahi-common/simple-watch.h>
+
+/* various headers needing linker options */
+#include <curl/curl.h>
+#include <iniparser.h>
+#include <microhttpd.h>
+#include <pthread.h>
+
+/* compile time configuration */
+#include "arch.h"
+#include "config.h"
+#include "version.h"
+
+
 /* services */
 struct services {
 	/* network port */
