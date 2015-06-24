@@ -489,6 +489,7 @@ void sighup_callback(int signal) {
 /*** main ***/
 int main(int argc, char ** argv) {
 	dictionary * ini;
+	const char * inistring;
 	char * values, * value;
 	uint16_t port;
 	struct ignore_interfaces * tmp_ignore_interfaces;
@@ -532,7 +533,8 @@ int main(int argc, char ** argv) {
 	/* continue anyway, there is nothing essential in the config file */
 	} else {
 		/* store interfaces to ignore */
-		if ((values = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
+		if ((inistring = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
+			values = strdup(inistring);
 			tmp_ignore_interfaces = ignore_interfaces;
 
 			value = strtok(values, DELIMITER);
@@ -546,10 +548,12 @@ int main(int argc, char ** argv) {
 			}
 			tmp_ignore_interfaces->interface = NULL;
 			tmp_ignore_interfaces->next = NULL;
+			free(values);
 		}
 
 		/* add static pacserve hosts */
-		if ((values = iniparser_getstring(ini, "general:pacserve hosts", NULL)) != NULL) {
+		if ((inistring = iniparser_getstring(ini, "general:pacserve hosts", NULL)) != NULL) {
+			values = strdup(inistring);
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				if (verbose > 0)
@@ -563,10 +567,12 @@ int main(int argc, char ** argv) {
 				add_host(value, port, PACSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
+			free(values);
 		}
 
 		/* add static pacdbserve hosts */
-		if ((values = iniparser_getstring(ini, "general:pacdbserve hosts", NULL)) != NULL) {
+		if ((inistring = iniparser_getstring(ini, "general:pacdbserve hosts", NULL)) != NULL) {
+			values = strdup(inistring);
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				if (verbose > 0)
@@ -580,6 +586,7 @@ int main(int argc, char ** argv) {
 				add_host(value, port, PACDBSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
+			free(values);
 		}
 
 		/* done reading config file, free */
