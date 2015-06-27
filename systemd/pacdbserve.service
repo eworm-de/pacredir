@@ -6,6 +6,10 @@ After=network.target
 User=nobody
 Group=nobody
 ExecStart=/usr/bin/darkhttpd /var/lib/pacman/sync/ --port 7079
+ProtectSystem=full
+ProtectHome=on
+PrivateDevices=on
+NoNewPrivileges=on
 
 [Install]
 WantedBy=multi-user.target

@@ -7,6 +7,10 @@ After=avahi-daemon.service
 User=nobody
 Group=nobody
 ExecStart=/usr/bin/pacredir
+ProtectSystem=full
+ProtectHome=on
+PrivateDevices=on
+NoNewPrivileges=on
 
 [Install]
 WantedBy=multi-user.target
