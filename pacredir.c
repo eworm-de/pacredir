@@ -8,11 +8,12 @@
 /* define structs and functions */
 #include "pacredir.h"
 
-const static char optstring[] = "hv";
+const static char optstring[] = "hvV";
 const static struct option options_long[] = {
 	/* name		has_arg		flag	val */
 	{ "help",	no_argument,	NULL,	'h' },
 	{ "verbose",	no_argument,	NULL,	'v' },
+	{ "version",	no_argument,	NULL,	'V' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -500,19 +501,32 @@ int main(int argc, char ** argv) {
 	struct hosts * tmphosts;
 	struct sockaddr_in address;
 
+	unsigned int version = 0, help = 0;
+
 	/* get the verbose status */
 	while ((i = getopt_long(argc, argv, optstring, options_long, NULL)) != -1) {
 		switch (i) {
 			case 'h':
-				write_log(stdout, "usage: %s [-h] [-v]\n", argv[0]);
-				return EXIT_SUCCESS;
+				help++;
+				break;
 			case 'v':
 				verbose++;
+				break;
+			case 'V':
+				verbose++;
+				version++;
 				break;
 		}
 	}
 
-	write_log(stdout, "Starting pacredir/" VERSION " (compiled: " __DATE__ ", " __TIME__ " for " ARCH ")\n");
+	if (verbose > 0)
+		write_log(stdout, "%s: %s v%s (compiled: " __DATE__ ", " __TIME__ " for %s)\n", argv[0], PROGNAME, VERSION, ARCH);
+
+	if (help > 0)
+		write_log(stdout, "usage: %s [-h] [-v] [-V]\n", argv[0]);
+
+	if (version > 0 || help > 0)
+		return EXIT_SUCCESS;
 
 	/* allocate first struct element as dummy */
 	hosts = malloc(sizeof(struct hosts));

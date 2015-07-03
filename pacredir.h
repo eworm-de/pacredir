@@ -40,6 +40,7 @@
 #include "config.h"
 #include "version.h"
 
+#define PROGNAME	"pacredir"
 
 /* services */
 struct services {
