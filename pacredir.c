@@ -445,7 +445,7 @@ response:
 		write_log(stdout, "Redirecting to %s\n", url);
 		page = malloc(strlen(PAGE307) + strlen(url) + strlen(basename) + 1);
 		sprintf(page, PAGE307, url, basename);
-		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
+		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
 		ret = MHD_add_response_header(response, "Location", url);
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 		free(url);
@@ -458,7 +458,7 @@ response:
 			write_log(stdout, "File %s not found on %d servers, giving up.\n", basename, req_count + 1);
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename);
-		response = MHD_create_response_from_data(strlen(page), (void*) page, MHD_NO, MHD_NO);
+		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
 		ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
 	}
 	MHD_destroy_response(response);
