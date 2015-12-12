@@ -20,6 +20,7 @@ const static struct option options_long[] = {
 /* global variables */
 struct hosts * hosts = NULL;
 struct ignore_interfaces * ignore_interfaces = NULL;
+int max_threads = 0;
 static AvahiSimplePoll *simple_poll = NULL;
 uint8_t verbose = 0;
 
@@ -368,6 +369,12 @@ static int ahc_echo(void * cls,
 			continue;
 		}
 
+		/* Check for limit on threads */
+		if (max_threads > 0 && req_count + 1 >= max_threads) {
+			write_log(stdout, "Hit hard limit for max threads (%d), not doing more requests\n", max_threads);
+			break;
+		}
+
 		/* This is multi-threading code!
 		 * Pointer to struct request does not work as realloc can relocate the data.
 		 * We need a pointer to pointer to struct request, store the addresses in
@@ -544,8 +551,13 @@ int main(int argc, char ** argv) {
 	/* parse config file */
 	if ((ini = iniparser_load(CONFIGFILE)) == NULL) {
 		write_log(stderr, "cannot parse file " CONFIGFILE ", continue anyway\n");
-	/* continue anyway, there is nothing essential in the config file */
+		/* continue anyway, there is nothing essential in the config file */
 	} else {
+		/* get max threads */
+		max_threads = iniparser_getint(ini, "general:max threads", max_threads);
+		if (verbose > 0)
+			write_log(stdout, "Limiting number of threads to a maximum of %d\n", max_threads);
+
 		/* store interfaces to ignore */
 		if ((inistring = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
 			values = strdup(inistring);
