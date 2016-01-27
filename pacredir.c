@@ -222,8 +222,8 @@ static void * get_http_code(void * data) {
 
 	if ((curl = curl_easy_init()) != NULL) {
 		curl_easy_setopt(curl, CURLOPT_URL, request->url);
-		/* darkhttpd only serves IPv4, so limit curl to that */
-		curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+		/* try to resolve addresses to all IP versions that your system allows */
+		curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
 		/* tell libcurl to follow redirection */
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 		/* set user agent */
