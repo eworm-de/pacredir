@@ -342,7 +342,7 @@ static int ahc_echo(void * cls,
 		goto response;
 	}
 
-	/* process db file request */
+	/* process db file request (*.db and *.files) */
 	if ((strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) ||
 			(strlen(basename) > 6 && strcmp(basename + strlen(basename) - 6, ".files") == 0)) {
 		dbfile = 1;
