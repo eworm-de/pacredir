@@ -6,6 +6,7 @@ MD	:= markdown
 INSTALL	:= install
 CP	:= cp
 RM	:= rm
+LN	:= ln
 SED	:= sed
 CFLAGS	+= -std=c11 -O2 -Wall -Werror
 CFLAGS	+= -lpthread
@@ -43,6 +44,8 @@ install: install-bin install-doc
 
 install-bin: pacredir
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)$(PREFIX)/bin/pacredir
+	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacserve
+	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacdbserve
 	$(INSTALL) -D -m0644 pacredir.conf $(DESTDIR)/etc/pacredir.conf
 	$(INSTALL) -D -m0644 pacman/paccache $(DESTDIR)/etc/pacman.d/paccache
 	$(INSTALL) -D -m0644 avahi/pacserve.service $(DESTDIR)/etc/avahi/services/pacserve.service
