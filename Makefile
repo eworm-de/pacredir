@@ -1,19 +1,25 @@
 # paccache - serve pacman cache and redirect via avahi service
 
 PREFIX	:= /usr
+
+# commands
 CC	:= gcc
-MD	:= markdown
-INSTALL	:= install
 CP	:= cp
-RM	:= rm
+INSTALL	:= install
 LN	:= ln
+MD	:= markdown
+RM	:= rm
 SED	:= sed
-CFLAGS	+= -std=c11 -O2 -Wall -Werror
-CFLAGS	+= -lpthread
-CFLAGS	+= $(shell pkg-config --libs --cflags libcurl)
-CFLAGS	+= $(shell pkg-config --libs --cflags avahi-client)
-CFLAGS	+= $(shell pkg-config --libs --cflags libmicrohttpd)
-CFLAGS	+= -liniparser
+
+# flags
+CFLAGS	+= -std=c11 -O2 -fPIC -Wall -Werror
+CFLAGS_EXTRA	+= -lpthread
+CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libcurl)
+CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags avahi-client)
+CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libmicrohttpd)
+CFLAGS_EXTRA	+= -liniparser
+LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
+
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
 VERSION := 0.1.19
@@ -21,10 +27,10 @@ VERSION := 0.1.19
 all: pacredir avahi/pacdbserve.service README.html
 
 arch: arch.c arch.h
-	$(CC) -o arch arch.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o arch arch.c
 
 pacredir: pacredir.c arch.h pacredir.h config.h version.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -o pacredir pacredir.c
+	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -o pacredir pacredir.c
 
 config.h:
 	$(CP) config.def.h config.h
