@@ -22,7 +22,7 @@ LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
-VERSION := 0.1.19
+VERSION := 0.1.20
 
 all: pacredir avahi/pacdbserve.service README.html
 
