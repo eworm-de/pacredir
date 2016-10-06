@@ -1,7 +1,7 @@
 [Unit]
 Description=Redirect pacman requests via avahi service
 Requires=avahi-daemon.service
-After=avahi-daemon.service
+After=avahi-daemon.service network.target network-online.target
 
 [Service]
 User=nobody
