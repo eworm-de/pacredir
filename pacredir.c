@@ -549,6 +549,11 @@ int main(int argc, char ** argv) {
 	ignore_interfaces->interface = NULL;
 	ignore_interfaces->next = NULL;
 
+	/* Probing for static pacserve and pacdbserve hosts takes some time.
+	 * Receiving a SIGHUP at this time could kill us. So register signal
+	 * SIGHUP here before probing. */
+	signal(SIGHUP, sighup_callback);
+
 	/* parse config file */
 	if ((ini = iniparser_load(CONFIGFILE)) == NULL) {
 		write_log(stderr, "cannot parse file " CONFIGFILE ", continue anyway\n");
@@ -658,10 +663,10 @@ int main(int argc, char ** argv) {
 	/* initialize curl */
 	curl_global_init(CURL_GLOBAL_ALL);
 
-	/* register signal callbacks */
+	/* register SIG{TERM,KILL,INT} signal callbacks */
 	signal(SIGTERM, sig_callback);
+	signal(SIGKILL, sig_callback);
 	signal(SIGINT, sig_callback);
-	signal(SIGHUP, sighup_callback);
 
 	/* run the main loop */
 	avahi_simple_poll_loop(simple_poll);
