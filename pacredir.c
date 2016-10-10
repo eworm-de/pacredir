@@ -216,6 +216,7 @@ static void * get_http_code(void * data) {
 	struct request * request = (struct request *)data;
 	CURL *curl;
 	CURLcode res;
+	char errbuf[CURL_ERROR_SIZE];
 	struct timeval tv;
 
 	gettimeofday(&tv, NULL);
@@ -239,10 +240,13 @@ static void * get_http_code(void * data) {
 		 * this should make curl finish after a maximum of 8 seconds */
 		curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1L);
 		curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 3L);
+		/* provide a buffer to store errors in */
+		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
 
 		/* perform the request */
 		if (curl_easy_perform(curl) != CURLE_OK) {
-			write_log(stderr, "Could not connect to server %s on port %d.\n", request->host, request->service->port);
+			write_log(stderr, "Could not connect to server %s on port %d: %s\n",
+					request->host, request->service->port, errbuf);
 			request->http_code = 0;
 			request->last_modified = 0;
 			request->service->badtime = tv.tv_sec;
