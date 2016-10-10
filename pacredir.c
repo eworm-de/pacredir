@@ -242,6 +242,7 @@ static void * get_http_code(void * data) {
 		curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 3L);
 		/* provide a buffer to store errors in */
 		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+		*errbuf = '\0';
 
 		/* perform the request */
 		if (curl_easy_perform(curl) != CURLE_OK) {
