@@ -245,9 +245,10 @@ static void * get_http_code(void * data) {
 		*errbuf = '\0';
 
 		/* perform the request */
-		if (curl_easy_perform(curl) != CURLE_OK) {
+		if ((res = curl_easy_perform(curl)) != CURLE_OK) {
 			write_log(stderr, "Could not connect to server %s on port %d: %s\n",
-					request->host, request->service->port, errbuf);
+					request->host, request->service->port,
+					*errbuf != 0 ? errbuf : curl_easy_strerror(res));
 			request->http_code = 0;
 			request->last_modified = 0;
 			request->service->badtime = tv.tv_sec;
