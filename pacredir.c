@@ -417,7 +417,7 @@ static int ahc_echo(void * cls,
 
 		if (request->http_code == MHD_HTTP_OK)
 			write_log(stdout, "Found: %s (%f sec, modified: %s)\n", request->url, request->time_total, ctime);
-		else if (verbose > 0)
+		else if (verbose > 0 && request->http_code > 0)
 			write_log(stderr, "Returned HTTP status code %d for %s\n", request->http_code, request->url);
 
 		if (request->http_code == MHD_HTTP_OK &&
