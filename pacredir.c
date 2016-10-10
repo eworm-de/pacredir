@@ -259,7 +259,6 @@ static void * get_http_code(void * data) {
 			request->service->badcount = 0;
 		}
 
-
 		/* get http status code */
 		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &(request->http_code))) != CURLE_OK) {
 			write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
