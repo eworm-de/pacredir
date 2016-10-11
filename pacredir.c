@@ -97,7 +97,7 @@ update:
 		request.service = &tmphosts->pacserve;
 	} else if (strcmp(type, PACDBSERVE) == 0) {
 		tmphosts->pacdbserve.online = 1;
-		tmphosts->pacdbserve.port = (port > 0? port : PORT_PACDBSERVE);
+		tmphosts->pacdbserve.port = (port > 0 ? port : PORT_PACDBSERVE);
 		request.service = &tmphosts->pacdbserve;
 	}
 
@@ -369,13 +369,17 @@ static int ahc_echo(void * cls,
 
 	/* try to find a server with most recent file */
 	while (tmphosts->host != NULL) {
+		struct services *service = (dbfile ? &tmphosts->pacdbserve : &tmphosts->pacserve);
+		time_t badtime = service->badtime + service->badcount * BADTIME;
+
 		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if ((dbfile == 1 &&
-					(tmphosts->pacdbserve.online == 0 ||
-					 tmphosts->pacdbserve.badtime + tmphosts->pacdbserve.badcount * BADTIME > tv.tv_sec)) ||
-				(dbfile == 0 &&
-					(tmphosts->pacserve.online == 0 ||
-					 tmphosts->pacserve.badtime + tmphosts->pacserve.badcount * BADTIME > tv.tv_sec))) {
+		if (service->online == 0 || badtime > tv.tv_sec) {
+			/* write the time to buffer ctime, then strip the line break */
+			ctime_r(&badtime, ctime);
+			ctime[strlen(ctime) - 1] = '\0';
+
+			write_log(stdout, "Service %s on host %s is marked bad until %s, skipping\n",
+					dbfile ? PACDBSERVE : PACSERVE, tmphosts->host, ctime);
 			tmphosts = tmphosts->next;
 			continue;
 		}
@@ -411,7 +415,7 @@ static int ahc_echo(void * cls,
 		request->last_modified = 0;
 
 		if (verbose > 0)
-			write_log(stdout, "Trying %s\n", request->url);
+			write_log(stdout, "Trying: %s\n", request->url);
 
 		if ((error = pthread_create(&tid[req_count], NULL, get_http_code, (void *)request)) != 0)
 			write_log(stderr, "Could not run thread number %d, errno %d\n", req_count, error);
