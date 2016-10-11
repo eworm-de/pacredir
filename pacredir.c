@@ -360,7 +360,7 @@ static int ahc_echo(void * cls,
 
 		if (stat(filename, &fst) != 0) {
 			if (verbose > 0)
-				write_log(stderr, "stat() failed, you do not have a local copy of %s\n", basename);
+				write_log(stdout, "You do not have a local copy of %s\n", basename);
 		} else
 			last_modified = fst.st_mtime;
 
