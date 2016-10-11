@@ -370,8 +370,12 @@ static int ahc_echo(void * cls,
 	/* try to find a server with most recent file */
 	while (tmphosts->host != NULL) {
 		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if ((dbfile == 1 && (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.badtime + tmphosts->pacdbserve.badcount * BADTIME > tv.tv_sec)) ||
-				(dbfile == 0 && (tmphosts->pacserve.online == 0 || tmphosts->pacserve.badtime + tmphosts->pacserve.badcount * BADTIME > tv.tv_sec))) {
+		if ((dbfile == 1 &&
+					(tmphosts->pacdbserve.online == 0 ||
+					 tmphosts->pacdbserve.badtime + tmphosts->pacdbserve.badcount * BADTIME > tv.tv_sec)) ||
+				(dbfile == 0 &&
+					(tmphosts->pacserve.online == 0 ||
+					 tmphosts->pacserve.badtime + tmphosts->pacserve.badcount * BADTIME > tv.tv_sec))) {
 			tmphosts = tmphosts->next;
 			continue;
 		}
