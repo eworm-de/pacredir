@@ -386,6 +386,10 @@ static int ahc_echo(void * cls,
 			break;
 		}
 
+		/* throttle requests - do not send all request at the same time
+		 * but wait for a short moment (10.000 us = 0.01 s) */
+		usleep(10000);
+
 		/* This is multi-threading code!
 		 * Pointer to struct request does not work as realloc can relocate the data.
 		 * We need a pointer to pointer to struct request, store the addresses in
