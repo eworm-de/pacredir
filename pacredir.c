@@ -545,7 +545,8 @@ int main(int argc, char ** argv) {
 	}
 
 	if (verbose > 0)
-		write_log(stdout, "%s: %s v%s (compiled: " __DATE__ ", " __TIME__ " for %s)\n", argv[0], PROGNAME, VERSION, ARCH);
+		write_log(stdout, "%s: %s v%s (compiled: " __DATE__ ", " __TIME__ " for %s)\n",
+				argv[0], PROGNAME, VERSION, ARCH);
 
 	if (help > 0)
 		write_log(stdout, "usage: %s [-h] [-v] [-V]\n", argv[0]);
