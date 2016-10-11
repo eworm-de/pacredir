@@ -316,6 +316,9 @@ static int ahc_echo(void * cls,
 	double time_total = INFINITY;
 	char ctime[26];
 
+	/* initialize struct timeval */
+	gettimeofday(&tv, NULL);
+
 	/* we want the filename, not the path */
 	basename = uri;
 	while (strstr(basename, "/") != NULL)
@@ -366,8 +369,6 @@ static int ahc_echo(void * cls,
 
 	/* try to find a server with most recent file */
 	while (tmphosts->host != NULL) {
-		gettimeofday(&tv, NULL);
-
 		/* skip host if offline or had a bad request within last BADTIME seconds */
 		if ((dbfile == 1 && (tmphosts->pacdbserve.online == 0 || tmphosts->pacdbserve.badtime + tmphosts->pacdbserve.badcount * BADTIME > tv.tv_sec)) ||
 				(dbfile == 0 && (tmphosts->pacserve.online == 0 || tmphosts->pacserve.badtime + tmphosts->pacserve.badcount * BADTIME > tv.tv_sec))) {
