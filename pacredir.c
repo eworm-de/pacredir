@@ -67,16 +67,18 @@ int add_host(const char * host, const uint16_t port, const char * type) {
 	while (tmphosts->host != NULL) {
 		if (strcmp(tmphosts->host, host) == 0) {
 			/* host already exists */
-			write_log(stdout, "Updating service %s (port %d) on host %s\n",
-					type, port, host);
+			if (verbose > 0)
+				write_log(stdout, "Updating service %s (port %d) on host %s\n",
+						type, port, host);
 			goto update;
 		}
 		tmphosts = tmphosts->next;
 	}
 
 	/* host not found, adding a new one */
-	write_log(stdout, "Adding host %s with service %s (port %d)\n",
-			host, type, port);
+	if (verbose > 0)
+		write_log(stdout, "Adding host %s with service %s (port %d)\n",
+				host, type, port);
 	tmphosts->host = strdup(host);
 
 	tmphosts->pacserve.port = 0;
@@ -121,7 +123,9 @@ int remove_host(const char * host, const char * type) {
 
 	while (tmphosts->host != NULL) {
 		if (strcmp(tmphosts->host, host) == 0) {
-			write_log(stdout, "Marking service %s on host %s offline\n", type, host);
+			if (verbose > 0)
+				write_log(stdout, "Marking service %s on host %s offline\n",
+						type, host);
 			if (strcmp(type, PACSERVE) == 0) {
 				tmphosts->pacserve.online = 0;
 			} else if (strcmp(type, PACDBSERVE) == 0) {
@@ -169,14 +173,17 @@ static void browse_callback(AvahiServiceBrowser *b,
 			if_indextoname(interface, intname);
 			while (tmp_ignore_interfaces->next != NULL) {
 				if (strcmp(intname, tmp_ignore_interfaces->interface) == 0) {
-					write_log(stdout, "Ignoring service %s on host %s on interface %s\n", type, host, intname);
+					if (verbose > 0)
+						write_log(stdout, "Ignoring service %s on host %s on interface %s\n",
+								type, host, intname);
 					goto out;
 				}
 				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
 			}
 
 			if (verbose > 0)
-				write_log(stdout, "Found service %s on host %s on interface %s\n", type, host, intname);
+				write_log(stdout, "Found service %s on host %s on interface %s\n",
+						type, host, intname);
 
 			add_host(host, strcmp(type, PACSERVE) == 0 ? PORT_PACSERVE : PORT_PACDBSERVE, type);
 out:
@@ -188,7 +195,8 @@ out:
 			host = get_fqdn(name, domain);
 
 			if (verbose > 0)
-				write_log(stdout, "Service %s on host %s disappeared\n", type, host);
+				write_log(stdout, "Service %s on host %s disappeared\n",
+						type, host);
 
 			remove_host(host, type);
 
@@ -397,7 +405,9 @@ static int ahc_echo(void * cls,
 
 		/* Check for limit on threads */
 		if (max_threads > 0 && req_count + 1 >= max_threads) {
-			write_log(stdout, "Hit hard limit for max threads (%d), not doing more requests\n", max_threads);
+			if (verbose > 0)
+				write_log(stdout, "Hit hard limit for max threads (%d), not doing more requests\n",
+						max_threads);
 			break;
 		}
 
@@ -445,12 +455,15 @@ static int ahc_echo(void * cls,
 		ctime_r(&request->last_modified, ctime);
 		ctime[strlen(ctime) - 1] = '\0';
 
-		if (request->http_code == MHD_HTTP_OK)
-			write_log(stdout, "Found: %s (%f sec, modified: %s)\n",
-					request->url, request->time_total, ctime);
-		else if (verbose > 0 && request->http_code > 0)
-			write_log(stderr, "Received HTTP status code %d for %s\n",
-					request->http_code, request->url);
+		if (request->http_code == MHD_HTTP_OK) {
+			if (verbose > 0)
+				write_log(stdout, "Found: %s (%f sec, modified: %s)\n",
+						request->url, request->time_total, ctime);
+		} else if (verbose > 0 && request->http_code > 0) {
+			if (verbose > 0)
+				write_log(stderr, "Received HTTP status code %d for %s\n",
+						request->http_code, request->url);
+		}
 
 		if (request->http_code == MHD_HTTP_OK &&
 				/* for db files choose the most recent server */
@@ -484,16 +497,21 @@ response:
 		free(url);
 	} else {
 		if (req_count < 0)
-			write_log(stdout, "Currently no servers are available to check for %s.\n", basename);
+			write_log(stdout, "Currently no servers are available to check for %s.\n",
+					basename);
 		else if (dbfile == 1)
-			write_log(stdout, "No more recent version of %s found on %d servers.\n", basename, req_count + 1);
+			write_log(stdout, "No more recent version of %s found on %d servers.\n",
+					basename, req_count + 1);
 		else
-			write_log(stdout, "File %s not found on %d servers, giving up.\n", basename, req_count + 1);
+			write_log(stdout, "File %s not found on %d servers, giving up.\n",
+					basename, req_count + 1);
+
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
 		ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
 	}
+
 	MHD_destroy_response(response);
 
 	free(page);
@@ -594,7 +612,7 @@ int main(int argc, char ** argv) {
 	} else {
 		/* get max threads */
 		max_threads = iniparser_getint(ini, "general:max threads", max_threads);
-		if (verbose > 0)
+		if (verbose > 0 && max_threads > 0)
 			write_log(stdout, "Limiting number of threads to a maximum of %d\n", max_threads);
 
 		/* store interfaces to ignore */
