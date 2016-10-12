@@ -67,13 +67,16 @@ int add_host(const char * host, const uint16_t port, const char * type) {
 	while (tmphosts->host != NULL) {
 		if (strcmp(tmphosts->host, host) == 0) {
 			/* host already exists */
-			write_log(stdout, "Updating service %s on host %s\n", type, host);
+			write_log(stdout, "Updating service %s (port %d) on host %s\n",
+					type, port, host);
 			goto update;
 		}
 		tmphosts = tmphosts->next;
 	}
+
 	/* host not found, adding a new one */
-	write_log(stdout, "Adding host %s with service %s\n", host, type);
+	write_log(stdout, "Adding host %s with service %s (port %d)\n",
+			host, type, port);
 	tmphosts->host = strdup(host);
 
 	tmphosts->pacserve.port = 0;
@@ -93,11 +96,11 @@ int add_host(const char * host, const uint16_t port, const char * type) {
 update:
 	if (strcmp(type, PACSERVE) == 0) {
 		tmphosts->pacserve.online = 1;
-		tmphosts->pacserve.port = (port > 0 ? port : PORT_PACSERVE);
+		tmphosts->pacserve.port = port;
 		request.service = &tmphosts->pacserve;
 	} else if (strcmp(type, PACDBSERVE) == 0) {
 		tmphosts->pacdbserve.online = 1;
-		tmphosts->pacdbserve.port = (port > 0 ? port : PORT_PACDBSERVE);
+		tmphosts->pacdbserve.port = port;
 		request.service = &tmphosts->pacdbserve;
 	}
 
@@ -175,7 +178,7 @@ static void browse_callback(AvahiServiceBrowser *b,
 			if (verbose > 0)
 				write_log(stdout, "Found service %s on host %s on interface %s\n", type, host, intname);
 
-			add_host(host, 0, type);
+			add_host(host, strcmp(type, PACSERVE) == 0 ? PORT_PACSERVE : PORT_PACDBSERVE, type);
 out:
 			free(host);
 
