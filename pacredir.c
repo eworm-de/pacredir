@@ -374,17 +374,20 @@ static int ahc_echo(void * cls,
 
 		/* skip host if offline or had a bad request within last BADTIME seconds */
 		if (service->online == 0) {
-			write_log(stdout, "Service %s on host %s is offline, skipping\n",
-					dbfile ? PACDBSERVE : PACSERVE, tmphosts->host);
+			if (verbose > 0)
+				write_log(stdout, "Service %s on host %s is offline, skipping\n",
+						dbfile ? PACDBSERVE : PACSERVE, tmphosts->host);
 			tmphosts = tmphosts->next;
 			continue;
 		} else if (badtime > tv.tv_sec) {
-			/* write the time to buffer ctime, then strip the line break */
-			ctime_r(&badtime, ctime);
-			ctime[strlen(ctime) - 1] = '\0';
+			if (verbose > 0) {
+				/* write the time to buffer ctime, then strip the line break */
+				ctime_r(&badtime, ctime);
+				ctime[strlen(ctime) - 1] = '\0';
 
-			write_log(stdout, "Service %s on host %s is marked bad until %s, skipping\n",
-					dbfile ? PACDBSERVE : PACSERVE, tmphosts->host, ctime);
+				write_log(stdout, "Service %s on host %s is marked bad until %s, skipping\n",
+						dbfile ? PACDBSERVE : PACSERVE, tmphosts->host, ctime);
+			}
 			tmphosts = tmphosts->next;
 			continue;
 		}
