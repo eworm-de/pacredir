@@ -451,14 +451,15 @@ static int ahc_echo(void * cls,
 
 		request = requests[i];
 
-		/* write the time to buffer ctime, then strip the line break */
-		ctime_r(&request->last_modified, ctime);
-		ctime[strlen(ctime) - 1] = '\0';
-
 		if (request->http_code == MHD_HTTP_OK) {
-			if (verbose > 0)
+			if (verbose > 0) {
+				/* write the time to buffer ctime, then strip the line break */
+				ctime_r(&request->last_modified, ctime);
+				ctime[strlen(ctime) - 1] = '\0';
+
 				write_log(stdout, "Found: %s (%f sec, modified: %s)\n",
 						request->url, request->time_total, ctime);
+			}
 		} else if (verbose > 0 && request->http_code > 0) {
 			if (verbose > 0)
 				write_log(stderr, "Received HTTP status code %d for %s\n",
