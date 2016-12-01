@@ -24,6 +24,9 @@
 #include <sys/stat.h>
 #include <time.h>
 
+/* systemd headers */
+#include <systemd/sd-daemon.h>
+
 /* Avahi headers */
 #include <avahi-client/lookup.h>
 #include <avahi-common/error.h>

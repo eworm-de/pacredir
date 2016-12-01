@@ -14,6 +14,7 @@ SED	:= sed
 # flags
 CFLAGS	+= -std=c11 -O2 -fPIC -Wall -Werror
 CFLAGS_EXTRA	+= -lpthread
+CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libsystemd)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libcurl)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags avahi-client)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libmicrohttpd)

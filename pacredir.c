@@ -720,6 +720,9 @@ int main(int argc, char ** argv) {
 	signal(SIGKILL, sig_callback);
 	signal(SIGINT, sig_callback);
 
+	/* report ready to systemd */
+	sd_notifyf(0, "READY=1\nSTATUS=Waiting for requests to redirect...\nMAINPID=%lu", (unsigned long) getpid());
+
 	/* run the main loop */
 	avahi_simple_poll_loop(simple_poll);
 
