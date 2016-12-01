@@ -17,6 +17,7 @@ Requirements
 
 To compile and run `paccache` you need:
 
+* [systemd](https://www.github.com/systemd/systemd)
 * [avahi](http://avahi.org/)
 * [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 * [curl](http://curl.haxx.se/)
