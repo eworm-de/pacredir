@@ -726,6 +726,9 @@ int main(int argc, char ** argv) {
 	/* run the main loop */
 	avahi_simple_poll_loop(simple_poll);
 
+	/* report stopping to systemd */
+	sd_notify(0, "STOPPING=1\nSTATUS=Stopping...");
+
 	/* stop http server */
 	MHD_stop_daemon(mhd);
 
@@ -762,6 +765,8 @@ fail:
 
 	if (simple_poll)
 		avahi_simple_poll_free(simple_poll);
+
+	sd_notify(0, "STATUS=Stopped. Bye!");
 
 	return ret;
 }
