@@ -9,7 +9,7 @@
 #define _CONFIG_H
 
 /* website url */
-#define WEBSITE	"https://github.com/eworm-de/pacredir/"
+#define WEBSITE	"https://github.com/eworm-de/pacredir#pacredir"
 
 /* This is used for default documents. Usually you will not see this anyway. */
 #define PAGE307 "<html><head><title>307 temporary redirect</title>" \

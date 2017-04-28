@@ -80,5 +80,5 @@ anything goes wrong.
 
 ### Upstream
 
-URL: [GitHub.com](https://github.com/eworm-de/pacredir)  
-Mirror: [eworm.de](https://git.eworm.de/cgit.cgi/pacredir/)
+URL: [GitHub.com](https://github.com/eworm-de/pacredir#pacredir)  
+Mirror: [eworm.de](https://git.eworm.de/cgit.cgi/pacredir/about/)
