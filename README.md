@@ -1,7 +1,7 @@
-paccache
+pacredir
 ========
 
-**paccache - serve pacman cache and redirect via avahi service**
+**pacredir - redirect pacman requests, assisted by avahi service discovery**
 
 By default every [Arch Linux](https://www.archlinux.org/) installation
 downloads its package files from online mirrors, transferring all the
@@ -9,13 +9,13 @@ bits via WAN connection.
 
 But often other Arch systems may be around that already have the files
 available on local storage - just a fast LAN connection way. This is
-where `paccache` can help. It uses [Avahi](http://avahi.org/) to find
+where `pacredir` can help. It uses [Avahi](http://avahi.org/) to find
 other instances and get the files there if available.
 
 Requirements
 ------------
 
-To compile and run `paccache` you need:
+To compile and run `pacredir` you need:
 
 * [systemd](https://www.github.com/systemd/systemd)
 * [avahi](http://avahi.org/)
@@ -41,7 +41,7 @@ followed by:
 > make install
 
 This will place an executable at `/usr/bin/pacredir`,
-documentation can be found in `/usr/share/doc/paccache/`.
+documentation can be found in `/usr/share/doc/pacredir/`.
 Additionally systemd service files are installed to
 `/usr/lib/systemd/system/` and avahi service files go to
 `/etc/avahi/services/`.
@@ -55,7 +55,7 @@ works. Then enable systemd services `pacserve`, `pacdbserve` and
 `pacredir`, open TCP ports 7078 and 7079 and add the following line to
 your repository definitions in `pacman.conf`:
 
-> Include = /etc/pacman.d/paccache
+> Include = /etc/pacman.d/pacredir
 
 Do not worry if `pacman` reports:
 
@@ -80,5 +80,5 @@ anything goes wrong.
 
 ### Upstream
 
-URL: [GitHub.com](https://github.com/eworm-de/paccache)  
-Mirror: [eworm.de](https://git.eworm.de/cgit.cgi/paccache/)
+URL: [GitHub.com](https://github.com/eworm-de/pacredir)  
+Mirror: [eworm.de](https://git.eworm.de/cgit.cgi/pacredir/)

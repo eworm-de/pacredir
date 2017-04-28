@@ -6,5 +6,5 @@ config.h
 avahi/pacdbserve.service
 README.html
 version.h
-paccache-*.tar.xz
-paccache-*.tar.xz.asc
+pacredir-*.tar.xz
+pacredir-*.tar.xz.asc
