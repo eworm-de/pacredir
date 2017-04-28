@@ -55,7 +55,7 @@ works. Then enable systemd services `pacserve`, `pacdbserve` and
 `pacredir`, open TCP ports 7078 and 7079 and add the following line to
 your repository definitions in `pacman.conf`:
 
-> Include = /etc/pacman.d/paccache
+> Include = /etc/pacman.d/pacredir
 
 Do not worry if `pacman` reports:
 
