@@ -1,4 +1,4 @@
-# paccache - serve pacman cache and redirect via avahi service
+# pacredir - redirect pacman requests, assisted by avahi service discovery
 
 PREFIX	:= /usr
 
@@ -66,8 +66,8 @@ install-bin: pacredir
 	$(INSTALL) -D -m0755 networkmanager/80-pacredir $(DESTDIR)/etc/NetworkManager/dispatcher.d/80-pacredir
 
 install-doc: README.html
-	$(INSTALL) -D -m0644 README.md $(DESTDIR)$(PREFIX)/share/doc/paccache/README.md
-	$(INSTALL) -D -m0644 README.html $(DESTDIR)$(PREFIX)/share/doc/paccache/README.html
+	$(INSTALL) -D -m0644 README.md $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.md
+	$(INSTALL) -D -m0644 README.html $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.html
 
 clean:
 	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html version.h
@@ -76,5 +76,5 @@ distclean:
 	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html version.h config.h
 
 release:
-	git archive --format=tar.xz --prefix=paccache-$(VERSION)/ $(VERSION) > paccache-$(VERSION).tar.xz
-	gpg -ab paccache-$(VERSION).tar.xz
+	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz
+	gpg -ab pacredir-$(VERSION).tar.xz
