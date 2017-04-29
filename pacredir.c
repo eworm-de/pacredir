@@ -661,6 +661,12 @@ int main(int argc, char ** argv) {
 		write_log(stderr, "cannot parse file " CONFIGFILE ", continue anyway\n");
 		/* continue anyway, there is nothing essential in the config file */
 	} else {
+		int ini_verbose;
+
+		/* extra verbosity from config */
+		ini_verbose = iniparser_getint(ini, "general:verbose", 0);
+		verbose += ini_verbose;
+
 		/* get max threads */
 		max_threads = iniparser_getint(ini, "general:max threads", max_threads);
 		if (verbose > 0 && max_threads > 0)
