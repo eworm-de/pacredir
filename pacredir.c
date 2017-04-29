@@ -46,21 +46,23 @@ char * get_fqdn(const char * hostname, const char * domainname) {
 }
 
 /*** get_url ***/
-char * get_url(const char * hostname, const uint16_t port, const char * uri) {
+char * get_url(const char * hostname, const char * address, const uint16_t port, const char * uri) {
+	const char * host;
 	char * url;
 
+	host = (*address ? address : hostname);
+
 	url = malloc(10 /* static chars of an url & null char */
-			+ strlen(hostname)
+			+ strlen(host)
 			+ 5 /* max strlen of decimal 16bit value */
 			+ strlen(uri));
-	sprintf(url, "http://%s:%d/%s",
-			hostname, port, uri);
+	sprintf(url, "http://%s:%d/%s", host, port, uri);
 
 	return url;
 }
 
 /*** add_host ***/
-int add_host(const char * host, const uint16_t port, const char * type) {
+int add_host(const char * host, const char * address, const uint16_t port, const char * type) {
 	struct hosts * tmphosts = hosts;
 	struct request request;
 
@@ -79,6 +81,7 @@ int add_host(const char * host, const uint16_t port, const char * type) {
 	if (verbose > 0)
 		write_log(stdout, "Adding host %s with service %s (port %d)\n",
 				host, type, port);
+
 	tmphosts->host = strdup(host);
 
 	tmphosts->pacserve.port = 0;
@@ -96,6 +99,11 @@ int add_host(const char * host, const uint16_t port, const char * type) {
 	tmphosts->next->next = NULL;
 
 update:
+	if (address != NULL)
+		memcpy(tmphosts->address, address, AVAHI_ADDRESS_STR_MAX);
+	else
+		memset(tmphosts->address, 0, AVAHI_ADDRESS_STR_MAX);
+
 	if (strcmp(type, PACSERVE) == 0) {
 		tmphosts->pacserve.online = 1;
 		tmphosts->pacserve.port = port;
@@ -108,7 +116,7 @@ update:
 
 	/* do a first request and let get_http_code() set the bad status */
 	request.host = tmphosts->host;
-	request.url = get_url(request.host, request.service->port, "");
+	request.url = get_url(request.host, tmphosts->address, request.service->port, "");
 	request.http_code = 0;
 	request.last_modified = 0;
 	get_http_code(&request);
@@ -139,6 +147,48 @@ int remove_host(const char * host, const char * type) {
 	return EXIT_SUCCESS;
 }
 
+/*** resolve_callback ***
+ * Called whenever a service has been resolved successfully or timed out */
+static void resolve_callback(AvahiServiceResolver *r,
+		AvahiIfIndex interface,
+		AvahiProtocol protocol,
+		AvahiResolverEvent event,
+		const char *name,
+		const char *type,
+		const char *domain,
+		const char *host,
+		const AvahiAddress *address,
+		uint16_t port,
+		AvahiStringList *txt,
+		AvahiLookupResultFlags flags,
+		void* userdata) {
+	char ipaddress[AVAHI_ADDRESS_STR_MAX];
+	char intname[IFNAMSIZ];
+
+	assert(r);
+
+	if_indextoname(interface, intname);
+
+	switch (event) {
+		case AVAHI_RESOLVER_FAILURE:
+			write_log(stderr, "Failed to resolve service '%s' of type '%s' in domain '%s': %s\n",
+					name, type, domain, avahi_strerror(avahi_client_errno(avahi_service_resolver_get_client(r))));
+			break;
+
+		case AVAHI_RESOLVER_FOUND:
+			avahi_address_snprint(ipaddress, AVAHI_ADDRESS_STR_MAX, address);
+
+			if (verbose > 0)
+				write_log(stdout, "Found service %s on host %s (%s) on interface %s\n",
+						type, host, ipaddress, intname);
+
+			add_host(host, ipaddress, strcmp(type, PACSERVE) == 0 ? PORT_PACSERVE : PORT_PACDBSERVE, type);
+			break;
+	}
+
+	avahi_service_resolver_free(r);
+}
+
 /*** browse_callback ***
  * Called whenever a new services becomes available on the LAN or is removed from the LAN */
 static void browse_callback(AvahiServiceBrowser *b,
@@ -148,18 +198,21 @@ static void browse_callback(AvahiServiceBrowser *b,
 		const char *name,
 		const char *type,
 		const char *domain,
-		AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
+		AvahiLookupResultFlags flags,
 		void* userdata) {
 	char * host;
 	char intname[IFNAMSIZ];
 	struct ignore_interfaces * tmp_ignore_interfaces = ignore_interfaces;
+	AvahiClient * c;
 
 	assert(b);
 
+	c = userdata;
+	if_indextoname(interface, intname);
+
 	switch (event) {
 		case AVAHI_BROWSER_FAILURE:
-
-			write_log(stderr, "%s\n", avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b))));
+			write_log(stderr, "Failed to browse: %s\n", avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b))));
 			avahi_simple_poll_quit(simple_poll);
 			return;
 
@@ -170,7 +223,6 @@ static void browse_callback(AvahiServiceBrowser *b,
 				goto out;
 
 			/* check whether to ignore the interface */
-			if_indextoname(interface, intname);
 			while (tmp_ignore_interfaces->next != NULL) {
 				if (strcmp(intname, tmp_ignore_interfaces->interface) == 0) {
 					if (verbose > 0)
@@ -181,11 +233,9 @@ static void browse_callback(AvahiServiceBrowser *b,
 				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
 			}
 
-			if (verbose > 0)
-				write_log(stdout, "Found service %s on host %s on interface %s\n",
-						type, host, intname);
-
-			add_host(host, strcmp(type, PACSERVE) == 0 ? PORT_PACSERVE : PORT_PACDBSERVE, type);
+			if ((avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_INET, 0, resolve_callback, c)) == NULL)
+				write_log(stderr, "Failed to create resolver for service '%s' of type '%s' in domain '%s': %s\n",
+						name, type, domain, avahi_strerror(avahi_client_errno(c)));
 out:
 			free(host);
 
@@ -213,7 +263,7 @@ out:
 /*** client_callback ***/
 static void client_callback(AvahiClient *c,
 		AvahiClientState state,
-		AVAHI_GCC_UNUSED void * userdata) {
+		void * userdata) {
 	assert(c);
 
 	if (state == AVAHI_CLIENT_FAILURE) {
@@ -431,12 +481,12 @@ static int ahc_echo(void * cls,
 			request->service = &(tmphosts->pacdbserve);
 		else
 			request->service = &(tmphosts->pacserve);
-		request->url = get_url(tmphosts->host, request->service->port, basename);
+		request->url = get_url(tmphosts->host, tmphosts->address, request->service->port, basename);
 		request->http_code = 0;
 		request->last_modified = 0;
 
 		if (verbose > 0)
-			write_log(stdout, "Trying: %s\n", request->url);
+			write_log(stdout, "Trying %s: %s\n", request->host, request->url);
 
 		if ((error = pthread_create(&tid[req_count], NULL, get_http_code, (void *)request)) != 0)
 			write_log(stderr, "Could not run thread number %d, errno %d\n", req_count, error);
@@ -648,7 +698,7 @@ int main(int argc, char ** argv) {
 					*strchr(value, ':') = 0;
 				} else
 					port = PORT_PACSERVE;
-				add_host(value, port, PACSERVE);
+				add_host(value, NULL, port, PACSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
@@ -667,7 +717,7 @@ int main(int argc, char ** argv) {
 					*strchr(value, ':') = 0;
 				} else
 					port = PORT_PACDBSERVE;
-				add_host(value, port, PACDBSERVE);
+				add_host(value, NULL, port, PACDBSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
@@ -690,13 +740,13 @@ int main(int argc, char ** argv) {
 	}
 
 	/* create the service browser for PACSERVE */
-	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, PACSERVE, NULL, 0, browse_callback, NULL)) == NULL) {
+	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_INET, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
 
 	/* create the service browser for PACDBSERVE */
-	if ((pacdbserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, PACDBSERVE, NULL, 0, browse_callback, NULL)) == NULL) {
+	if ((pacdbserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_INET, PACDBSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}

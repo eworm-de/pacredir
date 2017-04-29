@@ -61,6 +61,8 @@ struct services {
 struct hosts {
 	/* host name */
 	char * host;
+	/* resolved address */
+	char address[AVAHI_ADDRESS_STR_MAX];
 	/* online status and bad time for services */
 	struct services pacserve;
 	struct services pacdbserve;
@@ -97,13 +99,27 @@ int write_log(FILE *stream, const char *format, ...);
 /* get_fqdn */
 char * get_fqdn(const char * hostname, const char * domainname);
 /* get_url */
-char * get_url(const char * hostname, const uint16_t port, const char * uri);
+char * get_url(const char * hostname, const char * address, const uint16_t port, const char * uri);
 
 /* add_host */
-int add_host(const char * host, const uint16_t port, const char * type);
+int add_host(const char * host, const char * address, const uint16_t port, const char * type);
 /* remove_host */
 int remove_host(const char * host, const char * type);
 
+/* resolve_callback */
+static void resolve_callback(AvahiServiceResolver *r,
+		AvahiIfIndex interface,
+		AvahiProtocol protocol,
+		AvahiResolverEvent event,
+		const char *name,
+		const char *type,
+		const char *domain,
+		const char *host,
+		const AvahiAddress *address,
+		uint16_t port,
+		AvahiStringList *txt,
+		AvahiLookupResultFlags flags,
+		void* userdata);
 /* browse_callback */
 static void browse_callback(AvahiServiceBrowser *b,
 		AvahiIfIndex interface,
@@ -112,12 +128,12 @@ static void browse_callback(AvahiServiceBrowser *b,
 		const char *name,
 		const char *type,
 		const char *domain,
-		AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
+		AvahiLookupResultFlags flags,
 		void* userdata);
 /* client_callback */
 static void client_callback(AvahiClient *c,
 		AvahiClientState state,
-		AVAHI_GCC_UNUSED void * userdata);
+		void * userdata);
 
 /* get_http_code */
 static void * get_http_code(void * data);

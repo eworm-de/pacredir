@@ -8,7 +8,7 @@ downloads its package files from online mirrors, transferring all the
 bits via WAN connection.
 
 But often other Arch systems may be around that already have the files
-available on local storage - just a fast LAN connection way. This is
+available on local storage - just a fast LAN connection away. This is
 where `pacredir` can help. It uses [Avahi](http://avahi.org/) to find
 other instances and get the files there if available.
 
@@ -23,7 +23,6 @@ To compile and run `pacredir` you need:
 * [curl](http://curl.haxx.se/)
 * [iniparser](http://ndevilla.free.fr/iniparser/)
 * [darkhttpd](http://dmr.ath.cx/net/darkhttpd/)
-* [nss-mdns](http://0pointer.de/lennart/projects/nss-mdns/)
 * [markdown](http://daringfireball.net/projects/markdown/) (HTML documentation)
 
 `Arch Linux` installs development files for the packages by default, so
@@ -49,11 +48,9 @@ Additionally systemd service files are installed to
 Usage
 -----
 
-Make sure [multicast-
-DNS](https://wiki.archlinux.org/index.php/Avahi#Hostname_resolution)
-works. Then enable systemd services `pacserve`, `pacdbserve` and
-`pacredir`, open TCP ports 7078 and 7079 and add the following line to
-your repository definitions in `pacman.conf`:
+Enable systemd services `pacserve`, `pacdbserve` and `pacredir`, open TCP
+ports `7078` and `7079` and add the following line to your repository
+definitions in `pacman.conf`:
 
 > Include = /etc/pacman.d/pacredir
 
