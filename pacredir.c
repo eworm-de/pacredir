@@ -46,7 +46,7 @@ char * get_fqdn(const char * hostname, const char * domainname) {
 }
 
 /*** get_url ***/
-char * get_url(const char * hostname, const char * address, const uint16_t port, const char * uri) {
+char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const char * uri) {
 	const char * host;
 	char * url;
 
@@ -55,23 +55,28 @@ char * get_url(const char * hostname, const char * address, const uint16_t port,
 	url = malloc(10 /* static chars of an url & null char */
 			+ strlen(host)
 			+ 5 /* max strlen of decimal 16bit value */
+			+ 2 /* square brackets for IPv6 address */
 			+ strlen(uri));
-	sprintf(url, "http://%s:%d/%s", host, port, uri);
+
+	if (*address != 0 && proto == AVAHI_PROTO_INET6)
+		sprintf(url, "http://[%s]:%d/%s", address, port, uri);
+	else
+		sprintf(url, "http://%s:%d/%s", host, port, uri);
 
 	return url;
 }
 
 /*** add_host ***/
-int add_host(const char * host, const char * address, const uint16_t port, const char * type) {
+int add_host(const char * host, AvahiProtocol proto, const char * address, const uint16_t port, const char * type) {
 	struct hosts * tmphosts = hosts;
 	struct request request;
 
 	while (tmphosts->host != NULL) {
-		if (strcmp(tmphosts->host, host) == 0) {
+		if (strcmp(tmphosts->host, host) == 0 && tmphosts->proto == proto) {
 			/* host already exists */
 			if (verbose > 0)
-				write_log(stdout, "Updating service %s (port %d) on host %s\n",
-						type, port, host);
+				write_log(stdout, "Updating service %s (port %d) on host %s (%s)\n",
+						type, port, host, avahi_proto_to_string(proto));
 			goto update;
 		}
 		tmphosts = tmphosts->next;
@@ -79,10 +84,12 @@ int add_host(const char * host, const char * address, const uint16_t port, const
 
 	/* host not found, adding a new one */
 	if (verbose > 0)
-		write_log(stdout, "Adding host %s with service %s (port %d)\n",
-				host, type, port);
+		write_log(stdout, "Adding host %s (%s) with service %s (port %d)\n",
+				host, avahi_proto_to_string(proto), type, port);
 
 	tmphosts->host = strdup(host);
+	tmphosts->proto = AVAHI_PROTO_UNSPEC;
+	*tmphosts->address = 0;
 
 	tmphosts->pacserve.port = 0;
 	tmphosts->pacserve.online = 0;
@@ -99,10 +106,9 @@ int add_host(const char * host, const char * address, const uint16_t port, const
 	tmphosts->next->next = NULL;
 
 update:
+	tmphosts->proto = proto;
 	if (address != NULL)
 		memcpy(tmphosts->address, address, AVAHI_ADDRESS_STR_MAX);
-	else
-		memset(tmphosts->address, 0, AVAHI_ADDRESS_STR_MAX);
 
 	if (strcmp(type, PACSERVE) == 0) {
 		tmphosts->pacserve.online = 1;
@@ -116,7 +122,7 @@ update:
 
 	/* do a first request and let get_http_code() set the bad status */
 	request.host = tmphosts->host;
-	request.url = get_url(request.host, tmphosts->address, request.service->port, "");
+	request.url = get_url(request.host, tmphosts->proto, tmphosts->address, request.service->port, "");
 	request.http_code = 0;
 	request.last_modified = 0;
 	get_http_code(&request);
@@ -126,14 +132,14 @@ update:
 }
 
 /*** remove_host ***/
-int remove_host(const char * host, const char * type) {
+int remove_host(const char * host, AvahiProtocol proto, const char * type) {
 	struct hosts * tmphosts = hosts;
 
 	while (tmphosts->host != NULL) {
-		if (strcmp(tmphosts->host, host) == 0) {
+		if (strcmp(tmphosts->host, host) == 0 && tmphosts->proto == proto) {
 			if (verbose > 0)
-				write_log(stdout, "Marking service %s on host %s offline\n",
-						type, host);
+				write_log(stdout, "Marking service %s on host %s (%s) offline\n",
+						type, host, avahi_proto_to_string(proto));
 			if (strcmp(type, PACSERVE) == 0) {
 				tmphosts->pacserve.online = 0;
 			} else if (strcmp(type, PACDBSERVE) == 0) {
@@ -182,7 +188,7 @@ static void resolve_callback(AvahiServiceResolver *r,
 				write_log(stdout, "Found service %s on host %s (%s) on interface %s\n",
 						type, host, ipaddress, intname);
 
-			add_host(host, ipaddress, strcmp(type, PACSERVE) == 0 ? PORT_PACSERVE : PORT_PACDBSERVE, type);
+			add_host(host, protocol, ipaddress, strcmp(type, PACSERVE) == 0 ? PORT_PACSERVE : PORT_PACDBSERVE, type);
 			break;
 	}
 
@@ -233,7 +239,7 @@ static void browse_callback(AvahiServiceBrowser *b,
 				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
 			}
 
-			if ((avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_INET, 0, resolve_callback, c)) == NULL)
+			if ((avahi_service_resolver_new(c, interface, protocol, name, type, domain, protocol, 0, resolve_callback, c)) == NULL)
 				write_log(stderr, "Failed to create resolver for service '%s' of type '%s' in domain '%s': %s\n",
 						name, type, domain, avahi_strerror(avahi_client_errno(c)));
 out:
@@ -248,7 +254,7 @@ out:
 				write_log(stdout, "Service %s on host %s disappeared\n",
 						type, host);
 
-			remove_host(host, type);
+			remove_host(host, protocol, type);
 
 			free(host);
 
@@ -363,7 +369,7 @@ static int ahc_echo(void * cls,
 	struct hosts * tmphosts = hosts;
 
 	char * url = NULL, * page;
-	const char * basename;
+	const char * basename, * host = NULL;
 	struct timeval tv;
 
 	struct stat fst;
@@ -408,6 +414,7 @@ static int ahc_echo(void * cls,
 		http_code = MHD_HTTP_OK;
 		/* duplicate string so we can free it later */
 		url = strdup(WEBSITE);
+		host = "project site";
 		goto response;
 	}
 
@@ -481,7 +488,7 @@ static int ahc_echo(void * cls,
 			request->service = &(tmphosts->pacdbserve);
 		else
 			request->service = &(tmphosts->pacserve);
-		request->url = get_url(tmphosts->host, tmphosts->address, request->service->port, basename);
+		request->url = get_url(tmphosts->host, tmphosts->proto, tmphosts->address, request->service->port, basename);
 		request->http_code = 0;
 		request->last_modified = 0;
 
@@ -528,6 +535,7 @@ static int ahc_echo(void * cls,
 			if (url != NULL)
 				free(url);
 			url = request->url;
+			host = request->host;
 			http_code = MHD_HTTP_OK;
 			last_modified = request->last_modified;
 			time_total = request->time_total;
@@ -539,7 +547,7 @@ static int ahc_echo(void * cls,
 response:
 	/* give response */
 	if (http_code == MHD_HTTP_OK) {
-		write_log(stdout, "Redirecting to %s\n", url);
+		write_log(stdout, "Redirecting to %s: %s\n", host, url);
 		page = malloc(strlen(PAGE307) + strlen(url) + strlen(basename) + 1);
 		sprintf(page, PAGE307, url, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
@@ -704,7 +712,7 @@ int main(int argc, char ** argv) {
 					*strchr(value, ':') = 0;
 				} else
 					port = PORT_PACSERVE;
-				add_host(value, NULL, port, PACSERVE);
+				add_host(value, AVAHI_PROTO_UNSPEC, NULL, port, PACSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
@@ -723,7 +731,7 @@ int main(int argc, char ** argv) {
 					*strchr(value, ':') = 0;
 				} else
 					port = PORT_PACDBSERVE;
-				add_host(value, NULL, port, PACDBSERVE);
+				add_host(value, AVAHI_PROTO_UNSPEC, NULL, port, PACDBSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
@@ -746,13 +754,15 @@ int main(int argc, char ** argv) {
 	}
 
 	/* create the service browser for PACSERVE */
-	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_INET, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
+	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
+			 AVAHI_PROTO_UNSPEC, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
 
 	/* create the service browser for PACDBSERVE */
-	if ((pacdbserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_INET, PACDBSERVE, NULL, 0, browse_callback, client)) == NULL) {
+	if ((pacdbserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
+			AVAHI_PROTO_UNSPEC, PACDBSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
@@ -763,7 +773,8 @@ int main(int argc, char ** argv) {
 	inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
 
 	/* start http server */
-	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT_PACREDIR, NULL, NULL, &ahc_echo, NULL, MHD_OPTION_SOCK_ADDR, &address, MHD_OPTION_END)) == NULL) {
+	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT_PACREDIR,
+			NULL, NULL, &ahc_echo, NULL, MHD_OPTION_SOCK_ADDR, &address, MHD_OPTION_END)) == NULL) {
 		write_log(stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
 		return EXIT_FAILURE;
 	}
