@@ -609,6 +609,7 @@ int main(int argc, char ** argv) {
 	dictionary * ini;
 	const char * inistring;
 	char * values, * value;
+	int8_t use_proto = AVAHI_PROTO_UNSPEC;
 	uint16_t port;
 	struct ignore_interfaces * tmp_ignore_interfaces;
 	AvahiClient *client = NULL;
@@ -670,6 +671,7 @@ int main(int argc, char ** argv) {
 		/* continue anyway, there is nothing essential in the config file */
 	} else {
 		int ini_verbose;
+		const char * tmp;
 
 		/* extra verbosity from config */
 		ini_verbose = iniparser_getint(ini, "general:verbose", 0);
@@ -697,6 +699,22 @@ int main(int argc, char ** argv) {
 			tmp_ignore_interfaces->interface = NULL;
 			tmp_ignore_interfaces->next = NULL;
 			free(values);
+		}
+
+		/* configure protocols to use */
+		if ((tmp = iniparser_getstring(ini, "general:protocol", NULL)) != NULL) {
+			switch(tmp[strlen(tmp) - 1]) {
+				case '4':
+					if (verbose > 0)
+						write_log(stdout, "Using IPv4 only\n");
+					use_proto = AVAHI_PROTO_INET;
+					break;
+				case '6':
+					if (verbose > 0)
+						write_log(stdout, "Using IPv6 only\n");
+					use_proto = AVAHI_PROTO_INET6;
+					break;
+			}
 		}
 
 		/* add static pacserve hosts */
@@ -755,14 +773,14 @@ int main(int argc, char ** argv) {
 
 	/* create the service browser for PACSERVE */
 	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
-			 AVAHI_PROTO_UNSPEC, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
+			 use_proto, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
 
 	/* create the service browser for PACDBSERVE */
 	if ((pacdbserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
-			AVAHI_PROTO_UNSPEC, PACDBSERVE, NULL, 0, browse_callback, client)) == NULL) {
+			use_proto, PACDBSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
