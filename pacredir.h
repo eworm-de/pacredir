@@ -61,6 +61,8 @@ struct services {
 struct hosts {
 	/* host name */
 	char * host;
+	/* protocol (AVAHI_PROTO_INET, AVAHI_PROTO_INET6 or AVAHI_PROTO_UNSPEC) */
+	AvahiProtocol proto;
 	/* resolved address */
 	char address[AVAHI_ADDRESS_STR_MAX];
 	/* online status and bad time for services */
@@ -99,12 +101,12 @@ int write_log(FILE *stream, const char *format, ...);
 /* get_fqdn */
 char * get_fqdn(const char * hostname, const char * domainname);
 /* get_url */
-char * get_url(const char * hostname, const char * address, const uint16_t port, const char * uri);
+char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const char * uri);
 
 /* add_host */
-int add_host(const char * host, const char * address, const uint16_t port, const char * type);
+int add_host(const char * host, AvahiProtocol proto, const char * address, const uint16_t port, const char * type);
 /* remove_host */
-int remove_host(const char * host, const char * type);
+int remove_host(const char * host, AvahiProtocol proto, const char * type);
 
 /* resolve_callback */
 static void resolve_callback(AvahiServiceResolver *r,
