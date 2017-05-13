@@ -295,7 +295,7 @@ static void * get_http_code(void * data) {
 		/* tell libcurl to follow redirection */
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 		/* set user agent */
-		curl_easy_setopt(curl, CURLOPT_USERAGENT, "pacredir/" VERSION " (" ARCH ")");
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "pacredir/" VERSION " (" ID "/" ARCH ")");
 		/* do not receive body */
 		curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
 		/* ask for filetime */
@@ -638,8 +638,9 @@ int main(int argc, char ** argv) {
 	}
 
 	if (verbose > 0)
-		write_log(stdout, "%s: %s v%s (compiled: " __DATE__ ", " __TIME__ " for %s)\n",
-				argv[0], PROGNAME, VERSION, ARCH);
+		write_log(stdout, "%s: " PROGNAME " v" VERSION " " ID "/" ARCH
+				" (compiled: " __DATE__ ", " __TIME__ ")"
+				"\n", argv[0]);
 
 	if (help > 0)
 		write_log(stdout, "usage: %s [-h] [-v] [-V]\n", argv[0]);
