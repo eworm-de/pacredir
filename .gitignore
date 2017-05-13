@@ -4,6 +4,7 @@ arch
 pacredir
 config.h
 avahi/pacdbserve.service
+avahi/pacserve.service
 README.html
 version.h
 pacredir-*.tar.xz

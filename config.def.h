@@ -24,8 +24,8 @@
 #define PORT_PACDBSERVE	7079
 
 /* avahi service names */
-#define PACSERVE	"_pacserve._tcp"
-#define PACDBSERVE	"_pacdbserve_" ARCH "._tcp"
+#define PACSERVE	"_pacserve_" ID "._tcp"
+#define PACDBSERVE	"_pacdbserve_" ID "_" ARCH "._tcp"
 
 /* path to the config file */
 #define CONFIGFILE	"/etc/pacredir.conf"

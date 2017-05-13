@@ -21,17 +21,20 @@ CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libmicrohttpd)
 CFLAGS_EXTRA	+= -liniparser
 LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
 
+# the distribution ID
+ID	:= $(shell grep 'ID=' < /etc/os-release | cut -d= -f2)
+
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
 VERSION := 0.2.2
 
-all: pacredir avahi/pacdbserve.service README.html
+all: pacredir avahi/pacdbserve.service avahi/pacserve.service README.html
 
 arch: arch.c arch.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -o arch arch.c
 
 pacredir: pacredir.c arch.h pacredir.h config.h version.h
-	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -o pacredir pacredir.c
+	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DID=\"$(ID)\" -o pacredir pacredir.c
 
 config.h:
 	$(CP) config.def.h config.h
@@ -42,14 +45,17 @@ version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 	echo "#endif" >> $@
 
 avahi/pacdbserve.service: arch avahi/pacdbserve.service.in
-	$(SED) 's/%ARCH%/$(shell ./arch)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
+	$(SED) 's/%ARCH%/$(shell ./arch)/;s/%ID%/$(ID)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
+
+avahi/pacserve.service: avahi/pacserve.service.in
+	$(SED) 's/%ID%/$(ID)/' avahi/pacserve.service.in > avahi/pacserve.service
 
 README.html: README.md
 	$(MD) README.md > README.html
 
 install: install-bin install-doc
 
-install-bin: pacredir
+install-bin: pacredir avahi/pacdbserve.service avahi/pacserve.service
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)$(PREFIX)/bin/pacredir
 	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacserve
 	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacdbserve
@@ -70,10 +76,10 @@ install-doc: README.html
 	$(INSTALL) -D -m0644 README.html $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.html
 
 clean:
-	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html version.h
+	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service avahi/pacserve.service README.html version.h
 
 distclean:
-	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service README.html version.h config.h
+	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service avahi/pacserve.service README.html version.h config.h
 
 release:
 	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz
