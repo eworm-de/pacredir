@@ -1,6 +1,7 @@
 # pacredir - redirect pacman requests, assisted by avahi service discovery
 
-PREFIX	:= /usr
+PREFIX		:= /usr
+REPRODUCIBLE	:= 0
 
 # commands
 CC	:= gcc
@@ -34,7 +35,7 @@ arch: arch.c arch.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -o arch arch.c
 
 pacredir: pacredir.c arch.h pacredir.h config.h version.h
-	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DID=\"$(ID)\" -o pacredir pacredir.c
+	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -DID=\"$(ID)\" -o pacredir pacredir.c
 
 config.h:
 	$(CP) config.def.h config.h
