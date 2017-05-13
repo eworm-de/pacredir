@@ -23,6 +23,7 @@ CFLAGS_EXTRA	+= -liniparser
 LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
 
 # the distribution ID
+ARCH	:= $(shell shopt -u extglob && source /etc/makepkg.conf && echo $$CARCH)
 ID	:= $(shell grep 'ID=' < /etc/os-release | cut -d= -f2)
 
 # this is just a fallback in case you do not use git but downloaded
@@ -31,11 +32,8 @@ VERSION := 0.2.2
 
 all: pacredir avahi/pacdbserve.service avahi/pacserve.service README.html
 
-arch: arch.c arch.h
-	$(CC) $(CFLAGS) $(LDFLAGS) -o arch arch.c
-
-pacredir: pacredir.c arch.h pacredir.h config.h version.h
-	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -DID=\"$(ID)\" -o pacredir pacredir.c
+pacredir: pacredir.c pacredir.h config.h version.h
+	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -DARCH=\"$(ARCH)\" -DID=\"$(ID)\" -o pacredir pacredir.c
 
 config.h:
 	$(CP) config.def.h config.h
@@ -45,8 +43,8 @@ version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 	echo "#define VERSION \"$(shell git describe --tags --long 2>/dev/null || echo ${VERSION})\"" >> $@
 	echo "#endif" >> $@
 
-avahi/pacdbserve.service: arch avahi/pacdbserve.service.in
-	$(SED) 's/%ARCH%/$(shell ./arch)/;s/%ID%/$(ID)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
+avahi/pacdbserve.service: avahi/pacdbserve.service.in
+	$(SED) 's/%ARCH%/$(ARCH)/;s/%ID%/$(ID)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
 
 avahi/pacserve.service: avahi/pacserve.service.in
 	$(SED) 's/%ID%/$(ID)/' avahi/pacserve.service.in > avahi/pacserve.service
@@ -77,10 +75,10 @@ install-doc: README.html
 	$(INSTALL) -D -m0644 README.html $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.html
 
 clean:
-	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service avahi/pacserve.service README.html version.h
+	$(RM) -f *.o *~ pacredir avahi/pacdbserve.service avahi/pacserve.service README.html version.h
 
 distclean:
-	$(RM) -f *.o *~ arch pacredir avahi/pacdbserve.service avahi/pacserve.service README.html version.h config.h
+	$(RM) -f *.o *~ pacredir avahi/pacdbserve.service avahi/pacserve.service README.html version.h config.h
 
 release:
 	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz
