@@ -3,9 +3,8 @@ Description=Darkhttpd to serve pacman cache
 After=network.target
 
 [Service]
-User=nobody
-Group=nobody
 ExecStart=/usr/bin/pacserve /var/cache/pacman/pkg/ --ipv6 --port 7078 --no-listing
+DynamicUser=on
 ProtectSystem=full
 ProtectHome=on
 PrivateDevices=on

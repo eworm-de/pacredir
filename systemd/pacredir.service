@@ -5,9 +5,8 @@ After=avahi-daemon.service network.target network-online.target
 
 [Service]
 Type=notify
-User=nobody
-Group=nobody
 ExecStart=/usr/bin/pacredir
+DynamicUser=on
 ProtectSystem=full
 ProtectHome=on
 PrivateDevices=on

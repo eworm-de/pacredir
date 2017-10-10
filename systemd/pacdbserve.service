@@ -3,9 +3,8 @@ Description=Darkhttpd to serve pacman db files
 After=network.target
 
 [Service]
-User=nobody
-Group=nobody
 ExecStart=/usr/bin/pacdbserve /var/lib/pacman/sync/ --ipv6 --port 7079 --no-listing
+DynamicUser=on
 ProtectSystem=full
 ProtectHome=on
 PrivateDevices=on
