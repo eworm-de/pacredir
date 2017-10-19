@@ -23,6 +23,7 @@ struct ignore_interfaces * ignore_interfaces = NULL;
 int max_threads = 0;
 static AvahiSimplePoll *simple_poll = NULL;
 uint8_t verbose = 0;
+unsigned int count_redirect = 0, count_not_found = 0;
 
 /*** write_log ***/
 int write_log(FILE *stream, const char *format, ...) {
@@ -544,6 +545,13 @@ static int ahc_echo(void * cls,
 		free(request);
 	}
 
+	/* increase counters before reponse label,
+	   do not count redirects to project page */
+	if (http_code == MHD_HTTP_OK)
+		count_redirect++;
+	else
+		count_not_found++;
+
 response:
 	/* give response */
 	if (http_code == MHD_HTTP_OK) {
@@ -572,6 +580,10 @@ response:
 	}
 
 	MHD_destroy_response(response);
+
+	/* report counts to systemd */
+	sd_notifyf(0, "STATUS=%d redirects, %d not found, waiting...",
+			count_redirect, count_not_found);
 
 	free(page);
 	if (req_count > -1) {
