@@ -662,6 +662,14 @@ int main(int argc, char ** argv) {
 	if (version > 0 || help > 0)
 		return EXIT_SUCCESS;
 
+	if (getuid() == 0) {
+		/* process is running as root, drop privileges */
+		if (verbose > 0)
+			write_log(stdout, "Running as root, meh! Dropping privileges.\n");
+		if (setgid(65534) != 0 || setuid(65534) != 0)
+			write_log(stderr, "Unable to drop user privileges!\n");
+	}
+
 	/* allocate first struct element as dummy */
 	hosts = malloc(sizeof(struct hosts));
 	hosts->host = NULL;
