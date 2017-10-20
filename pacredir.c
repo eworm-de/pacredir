@@ -666,7 +666,7 @@ int main(int argc, char ** argv) {
 		/* process is running as root, drop privileges */
 		if (verbose > 0)
 			write_log(stdout, "Running as root, meh! Dropping privileges.\n");
-		if (setgid(65534) != 0 || setuid(65534) != 0)
+		if (setgid(DROP_PRIV_GID) != 0 || setuid(DROP_PRIV_UID) != 0)
 			write_log(stderr, "Unable to drop user privileges!\n");
 	}
 

@@ -8,6 +8,10 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
+/* drop privileges by changing uid and gid to these */
+#define DROP_PRIV_UID	65534
+#define DROP_PRIV_GID	65534
+
 /* website url */
 #define WEBSITE	"https://github.com/eworm-de/pacredir#pacredir"
 
