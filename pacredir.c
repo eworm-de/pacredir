@@ -415,7 +415,7 @@ static int ahc_echo(void * cls,
 		http_code = MHD_HTTP_OK;
 		/* duplicate string so we can free it later */
 		url = strdup(WEBSITE);
-		host = "project site";
+		host = basename = "project site";
 		goto response;
 	}
 
