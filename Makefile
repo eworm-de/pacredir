@@ -39,9 +39,7 @@ config.h:
 	$(CP) config.def.h config.h
 
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
-	echo "#ifndef VERSION" > $@
-	echo "#define VERSION \"$(shell git describe --long 2>/dev/null || echo ${VERSION})\"" >> $@
-	echo "#endif" >> $@
+	printf "#ifndef VERSION\n#define VERSION \"%s\"\n#endif\n" $(shell git describe --long 2>/dev/null || echo ${VERSION}) > $@
 
 avahi/pacdbserve.service: avahi/pacdbserve.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/;s/%ID%/$(ID)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
