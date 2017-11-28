@@ -816,7 +816,7 @@ int main(int argc, char ** argv) {
 	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT_PACREDIR,
 			NULL, NULL, &ahc_echo, NULL, MHD_OPTION_SOCK_ADDR, &address, MHD_OPTION_END)) == NULL) {
 		write_log(stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
-		return EXIT_FAILURE;
+		goto fail;
 	}
 
 	/* initialize curl */
