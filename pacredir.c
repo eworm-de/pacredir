@@ -393,7 +393,7 @@ static int ahc_echo(void * cls,
 		basename = strstr(basename, "/") + 1;
 
 	/* unexpected method */
-	if (strcmp(method, "GET") != 0)
+	if (strcmp(method, "GET") != 0 && strcmp(method, "HEAD") != 0)
 		return MHD_NO;
 
 	/* The first time only the headers are valid,
