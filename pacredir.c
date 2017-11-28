@@ -369,7 +369,7 @@ static int ahc_echo(void * cls,
 	int ret;
 	struct hosts * tmphosts = hosts;
 
-	char * url = NULL, * page;
+	char * url = NULL, * page = NULL;
 	const char * basename, * host = NULL;
 	struct timeval tv;
 
@@ -558,7 +558,7 @@ response:
 		write_log(stdout, "Redirecting to %s: %s\n", host, url);
 		page = malloc(strlen(PAGE307) + strlen(url) + strlen(basename) + 1);
 		sprintf(page, PAGE307, url, basename);
-		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
+		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
 		ret = MHD_add_response_header(response, "Location", url);
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 		free(url);
@@ -575,7 +575,7 @@ response:
 
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename);
-		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
+		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
 		ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
 	}
 
@@ -585,7 +585,6 @@ response:
 	sd_notifyf(0, "STATUS=%d redirects, %d not found, waiting...",
 			count_redirect, count_not_found);
 
-	free(page);
 	if (req_count > -1) {
 		free(tid);
 		free(requests);
