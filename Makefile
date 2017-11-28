@@ -28,7 +28,7 @@ ID	:= $(shell grep 'ID=' < /etc/os-release | cut -d= -f2)
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
-VERSION := 0.3.1
+VERSION := 0.3.2
 
 all: pacredir avahi/pacdbserve.service avahi/pacserve.service README.html
 
