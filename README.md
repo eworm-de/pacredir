@@ -56,7 +56,7 @@ definitions in `pacman.conf`:
 
 Do not worry if `pacman` reports:
 
-> error: failed retrieving file 'core.db' from localhost:7077 : The
+> error: failed retrieving file 'core.db' from 127.0.0.1:7077 : The
 > requested URL returned error: 404 Not Found
 
 This is ok, it just tells `pacman` that `pacredir` could not find a file
