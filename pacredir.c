@@ -813,7 +813,7 @@ int main(int argc, char ** argv) {
 	inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
 
 	/* start http server */
-	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT_PACREDIR,
+	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION | MHD_USE_TCP_FASTOPEN, PORT_PACREDIR,
 			NULL, NULL, &ahc_echo, NULL, MHD_OPTION_SOCK_ADDR, &address, MHD_OPTION_END)) == NULL) {
 		write_log(stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
 		goto fail;
