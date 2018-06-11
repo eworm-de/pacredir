@@ -18,12 +18,12 @@ Requirements
 To compile and run `pacredir` you need:
 
 * [systemd](https://www.github.com/systemd/systemd)
-* [avahi](http://avahi.org/)
-* [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
-* [curl](http://curl.haxx.se/)
-* [iniparser](http://ndevilla.free.fr/iniparser/)
-* [darkhttpd](http://dmr.ath.cx/net/darkhttpd/)
-* [markdown](http://daringfireball.net/projects/markdown/) (HTML documentation)
+* [avahi](https://avahi.org/)
+* [libmicrohttpd](https://www.gnu.org/software/libmicrohttpd/)
+* [curl](https://curl.haxx.se/)
+* [iniparser](https://github.com/ndevilla/iniparser)
+* [darkhttpd](https://unix4lyfe.org/darkhttpd/)
+* [markdown](https://daringfireball.net/projects/markdown/) (HTML documentation)
 
 `Arch Linux` installs development files for the packages by default, so
 no additional development packages are required.
