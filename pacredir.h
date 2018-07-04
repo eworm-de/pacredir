@@ -66,7 +66,6 @@ struct hosts {
 	char address[AVAHI_ADDRESS_STR_MAX];
 	/* online status and bad time for services */
 	struct services pacserve;
-	struct services pacdbserve;
 	/* pointer to next struct element */
 	struct hosts * next;
 };
@@ -100,7 +99,7 @@ int write_log(FILE *stream, const char *format, ...);
 /* get_fqdn */
 char * get_fqdn(const char * hostname, const char * domainname);
 /* get_url */
-char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const char * uri);
+char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri);
 
 /* add_host */
 int add_host(const char * host, AvahiProtocol proto, const char * address, const uint16_t port, const char * type);

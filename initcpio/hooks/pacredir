@@ -4,24 +4,17 @@ run_latehook() {
 	local newroot="/new_root/"
 
 	if ! grep -q '^pacserve hosts' ${newroot}/etc/pacredir.conf; then
-		if [[ -n "${pacserve}" ]]; then
-			msg ":: Adding pacserve host '${pacserve}' to pacredir.conf..."
-			echo "pacserve hosts = ${pacserve}" >> ${newroot}/etc/pacredir.conf
-		fi
-	fi
-
-	if ! grep -q '^pacdbserve hosts' ${newroot}/etc/pacredir.conf; then
 		case $(uname -m) in
 			x86_64)
-				if [[ -n "${pacdbserve_x86_64}" ]]; then
-					msg ":: Adding pacdbserve host '${pacdbserve_x86_64}' to pacredir.conf..."
-					echo "pacdbserve hosts = ${pacdbserve_x86_64}" >> ${newroot}/etc/pacredir.conf
+				if [[ -n "${pacserve_x86_64}" ]]; then
+					msg ":: Adding pacserve host '${pacserve_x86_64}' to pacredir.conf..."
+					echo "pacserve hosts = ${pacserve_x86_64}" >> ${newroot}/etc/pacredir.conf
 				fi
 				;;
 			i686)
-				if [[ -n "${pacdbserve_i686}" ]]; then
-					msg ":: Adding pacdbserve host '${pacdbserve_i686}' to pacredir.conf..."
-					echo "pacdbserve hosts = ${pacdbserve_i686}" >> ${newroot}/etc/pacredir.conf
+				if [[ -n "${pacserve_i686}" ]]; then
+					msg ":: Adding pacserve host '${pacserve_i686}' to pacredir.conf..."
+					echo "pacserve hosts = ${pacserve_i686}" >> ${newroot}/etc/pacredir.conf
 				fi
 				;;
 		esac

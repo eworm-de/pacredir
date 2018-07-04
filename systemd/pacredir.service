@@ -16,4 +16,3 @@ NoNewPrivileges=on
 [Install]
 WantedBy=multi-user.target
 Also=pacserve.service
-Also=pacdbserve.service

@@ -22,14 +22,12 @@
 #define PAGE404 "<html><head><title>404 Not Found</title>" \
 		"</head><body>404 Not Found: %s</body></html>"
 
-/* the ports pacredir, pacserve and pacdbserve listen to */
+/* the ports pacredir and pacserve listen to */
 #define PORT_PACREDIR	7077
 #define PORT_PACSERVE	7078
-#define PORT_PACDBSERVE	7079
 
 /* avahi service names */
-#define PACSERVE	"_pacserve_" ID "._tcp"
-#define PACDBSERVE	"_pacdbserve_" ID "_" ARCH "._tcp"
+#define PACSERVE	"_pacserve_" ID "_" ARCH "._tcp"
 
 /* path to the config file */
 #define CONFIGFILE	"/etc/pacredir.conf"
