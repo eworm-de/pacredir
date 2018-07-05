@@ -30,7 +30,7 @@ ID	:= $(shell grep 'ID=' < /etc/os-release | cut -d= -f2)
 # a release tarball...
 VERSION := 0.3.3
 
-all: pacredir avahi/pacdbserve.service avahi/pacserve.service README.html
+all: pacredir avahi/pacserve.service README.html
 
 pacredir: pacredir.c pacredir.h config.h version.h
 	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -DARCH=\"$(ARCH)\" -DID=\"$(ID)\" -o pacredir pacredir.c
@@ -41,28 +41,23 @@ config.h:
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 	printf "#ifndef VERSION\n#define VERSION \"%s\"\n#endif\n" $(shell git describe --long 2>/dev/null || echo ${VERSION}) > $@
 
-avahi/pacdbserve.service: avahi/pacdbserve.service.in
-	$(SED) 's/%ARCH%/$(ARCH)/;s/%ID%/$(ID)/' avahi/pacdbserve.service.in > avahi/pacdbserve.service
-
 avahi/pacserve.service: avahi/pacserve.service.in
-	$(SED) 's/%ID%/$(ID)/' avahi/pacserve.service.in > avahi/pacserve.service
+	$(SED) 's/%ARCH%/$(ARCH)/;s/%ID%/$(ID)/' avahi/pacserve.service.in > avahi/pacserve.service
 
 README.html: README.md
 	$(MD) README.md > README.html
 
 install: install-bin install-doc
 
-install-bin: pacredir avahi/pacdbserve.service avahi/pacserve.service
+install-bin: pacredir avahi/pacserve.service
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)$(PREFIX)/bin/pacredir
 	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacserve
-	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacdbserve
 	$(INSTALL) -D -m0644 pacredir.conf $(DESTDIR)/etc/pacredir.conf
 	$(INSTALL) -D -m0644 pacman/pacredir $(DESTDIR)/etc/pacman.d/pacredir
 	$(INSTALL) -D -m0644 avahi/pacserve.service $(DESTDIR)/etc/avahi/services/pacserve.service
-	$(INSTALL) -D -m0644 avahi/pacdbserve.service $(DESTDIR)/etc/avahi/services/pacdbserve.service
-	$(INSTALL) -D -m0644 systemd/pacdbserve.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacdbserve.service
 	$(INSTALL) -D -m0644 systemd/pacredir.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacredir.service
 	$(INSTALL) -D -m0644 systemd/pacserve.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service
+	$(INSTALL) -D -m0644 systemd/tmpfiles.conf $(DESTDIR)$(PREFIX)/lib/tmpfiles.d/pacserve.conf
 	$(INSTALL) -D -m0644 initcpio/hooks/pacredir $(DESTDIR)$(PREFIX)/lib/initcpio/hooks/pacredir
 	$(INSTALL) -D -m0644 initcpio/install/pacredir $(DESTDIR)$(PREFIX)/lib/initcpio/install/pacredir
 	$(INSTALL) -D -m0644 dhcpcd/80-pacredir $(DESTDIR)$(PREFIX)/lib/dhcpcd/dhcpcd-hooks/80-pacredir
@@ -73,10 +68,10 @@ install-doc: README.html
 	$(INSTALL) -D -m0644 README.html $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.html
 
 clean:
-	$(RM) -f *.o *~ pacredir avahi/pacdbserve.service avahi/pacserve.service README.html version.h
+	$(RM) -f *.o *~ pacredir avahi/pacserve.service README.html version.h
 
 distclean:
-	$(RM) -f *.o *~ pacredir avahi/pacdbserve.service avahi/pacserve.service README.html version.h config.h
+	$(RM) -f *.o *~ pacredir avahi/pacserve.service README.html version.h config.h
 
 release:
 	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz

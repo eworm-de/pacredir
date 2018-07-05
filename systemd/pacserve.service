@@ -1,9 +1,10 @@
 [Unit]
-Description=Darkhttpd to serve pacman cache
-After=network.target
+Description=Serve pacman database files and package archives
+After=systemd-tmpfiles-setup.service network.target
 
 [Service]
-ExecStart=/usr/bin/pacserve /var/cache/pacman/pkg/ --ipv6 --port 7078 --no-listing
+ExecStart=/usr/bin/pacserve /run/pacserve/ --ipv6 --port 7078 --no-listing
+BindReadOnlyPaths=/var/cache/pacman/pkg:/run/pacserve/pkg /var/lib/pacman/sync:/run/pacserve/db
 DynamicUser=on
 ProtectSystem=full
 ProtectHome=on

@@ -48,8 +48,8 @@ Additionally systemd service files are installed to
 Usage
 -----
 
-Enable systemd services `pacserve`, `pacdbserve` and `pacredir`, open TCP
-ports `7078` and `7079` and add the following line to your repository
+Enable systemd services `pacserve` and `pacredir`, open TCP
+port `7078` and add the following line to your repository
 definitions in `pacman.conf`:
 
 > Include = /etc/pacman.d/pacredir

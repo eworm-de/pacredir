@@ -44,18 +44,6 @@
 
 #define PROGNAME	"pacredir"
 
-/* services */
-struct services {
-	/* network port */
-	uint16_t port;
-	/* true if host/service is online */
-	uint8_t online;
-	/* unix timestamp of last bad request */
-	__time_t badtime;
-	/* count the number of bad requests */
-	unsigned int badcount;
-};
-
 /* hosts */
 struct hosts {
 	/* host name */
@@ -64,9 +52,14 @@ struct hosts {
 	AvahiProtocol proto;
 	/* resolved address */
 	char address[AVAHI_ADDRESS_STR_MAX];
-	/* online status and bad time for services */
-	struct services pacserve;
-	struct services pacdbserve;
+	/* network port */
+	uint16_t port;
+	/* true if host/service is online */
+	uint8_t online;
+	/* unix timestamp of last bad request */
+	__time_t badtime;
+	/* count the number of bad requests */
+	unsigned int badcount;
 	/* pointer to next struct element */
 	struct hosts * next;
 };
@@ -81,10 +74,8 @@ struct ignore_interfaces {
 
 /* request */
 struct request {
-	/* host name */
-	const char * host;
-	/* pointer to service */
-	struct services * service;
+	/* host infos */
+	struct hosts * host;
 	/* url */
 	char * url;
 	/* HTTP status code */
@@ -100,7 +91,7 @@ int write_log(FILE *stream, const char *format, ...);
 /* get_fqdn */
 char * get_fqdn(const char * hostname, const char * domainname);
 /* get_url */
-char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const char * uri);
+char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri);
 
 /* add_host */
 int add_host(const char * host, AvahiProtocol proto, const char * address, const uint16_t port, const char * type);

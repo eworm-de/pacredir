@@ -47,22 +47,25 @@ char * get_fqdn(const char * hostname, const char * domainname) {
 }
 
 /*** get_url ***/
-char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const char * uri) {
-	const char * host;
+char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri) {
+	const char * host, * dir;
 	char * url;
 
-	host = (*address ? address : hostname);
+	host = *address ? address : hostname;
+
+	dir = dbfile ? "db" : "pkg";
 
 	url = malloc(10 /* static chars of an url & null char */
 			+ strlen(host)
 			+ 5 /* max strlen of decimal 16bit value */
 			+ 2 /* square brackets for IPv6 address */
+			+ 4 /* extra dir */
 			+ strlen(uri));
 
 	if (*address != 0 && proto == AVAHI_PROTO_INET6)
-		sprintf(url, "http://[%s]:%d/%s", address, port, uri);
+		sprintf(url, "http://[%s]:%d/%s/%s", address, port, dir, uri);
 	else
-		sprintf(url, "http://%s:%d/%s", host, port, uri);
+		sprintf(url, "http://%s:%d/%s/%s", host, port, dir, uri);
 
 	return url;
 }
@@ -92,15 +95,10 @@ int add_host(const char * host, AvahiProtocol proto, const char * address, const
 	tmphosts->proto = AVAHI_PROTO_UNSPEC;
 	*tmphosts->address = 0;
 
-	tmphosts->pacserve.port = 0;
-	tmphosts->pacserve.online = 0;
-	tmphosts->pacserve.badtime = 0;
-	tmphosts->pacserve.badcount = 0;
-
-	tmphosts->pacdbserve.port = 0;
-	tmphosts->pacdbserve.online = 0;
-	tmphosts->pacdbserve.badtime = 0;
-	tmphosts->pacdbserve.badcount = 0;
+	tmphosts->port = 0;
+	tmphosts->online = 0;
+	tmphosts->badtime = 0;
+	tmphosts->badcount = 0;
 
 	tmphosts->next = malloc(sizeof(struct hosts));
 	tmphosts->next->host = NULL;
@@ -111,19 +109,12 @@ update:
 	if (address != NULL)
 		memcpy(tmphosts->address, address, AVAHI_ADDRESS_STR_MAX);
 
-	if (strcmp(type, PACSERVE) == 0) {
-		tmphosts->pacserve.online = 1;
-		tmphosts->pacserve.port = port;
-		request.service = &tmphosts->pacserve;
-	} else if (strcmp(type, PACDBSERVE) == 0) {
-		tmphosts->pacdbserve.online = 1;
-		tmphosts->pacdbserve.port = port;
-		request.service = &tmphosts->pacdbserve;
-	}
+	tmphosts->online = 1;
+	tmphosts->port = port;
 
 	/* do a first request and let get_http_code() set the bad status */
-	request.host = tmphosts->host;
-	request.url = get_url(request.host, tmphosts->proto, tmphosts->address, request.service->port, "");
+	request.host = tmphosts;
+	request.url = get_url(request.host->host, request.host->proto, request.host->address, request.host->port, 0, "");
 	request.http_code = 0;
 	request.last_modified = 0;
 	get_http_code(&request);
@@ -141,11 +132,7 @@ int remove_host(const char * host, AvahiProtocol proto, const char * type) {
 			if (verbose > 0)
 				write_log(stdout, "Marking service %s on host %s (%s) offline\n",
 						type, host, avahi_proto_to_string(proto));
-			if (strcmp(type, PACSERVE) == 0) {
-				tmphosts->pacserve.online = 0;
-			} else if (strcmp(type, PACDBSERVE) == 0) {
-				tmphosts->pacdbserve.online = 0;
-			}
+			tmphosts->online = 0;
 			break;
 		}
 		tmphosts = tmphosts->next;
@@ -189,7 +176,7 @@ static void resolve_callback(AvahiServiceResolver *r,
 				write_log(stdout, "Found service %s on host %s (%s) on interface %s\n",
 						type, host, ipaddress, intname);
 
-			add_host(host, protocol, ipaddress, strcmp(type, PACSERVE) == 0 ? PORT_PACSERVE : PORT_PACDBSERVE, type);
+			add_host(host, protocol, ipaddress, PORT_PACSERVE, type);
 			break;
 	}
 
@@ -315,16 +302,16 @@ static void * get_http_code(void * data) {
 		/* perform the request */
 		if ((res = curl_easy_perform(curl)) != CURLE_OK) {
 			write_log(stderr, "Could not connect to server %s on port %d: %s\n",
-					request->host, request->service->port,
+					request->host->host, request->host->port,
 					*errbuf != 0 ? errbuf : curl_easy_strerror(res));
 			request->http_code = 0;
 			request->last_modified = 0;
-			request->service->badtime = tv.tv_sec;
-			request->service->badcount++;
+			request->host->badtime = tv.tv_sec;
+			request->host->badcount++;
 			return NULL;
 		} else {
-			request->service->badtime = 0;
-			request->service->badcount = 0;
+			request->host->badtime = 0;
+			request->host->badcount = 0;
 		}
 
 		/* get http status code */
@@ -438,14 +425,14 @@ static int ahc_echo(void * cls,
 
 	/* try to find a server with most recent file */
 	while (tmphosts->host != NULL) {
-		struct services *service = (dbfile ? &tmphosts->pacdbserve : &tmphosts->pacserve);
-		time_t badtime = service->badtime + service->badcount * BADTIME;
+		struct hosts * host = tmphosts;
+		time_t badtime = host->badtime + host->badcount * BADTIME;
 
 		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if (service->online == 0) {
+		if (host->online == 0) {
 			if (verbose > 0)
 				write_log(stdout, "Service %s on host %s is offline, skipping\n",
-						dbfile ? PACDBSERVE : PACSERVE, tmphosts->host);
+						PACSERVE, tmphosts->host);
 			tmphosts = tmphosts->next;
 			continue;
 		} else if (badtime > tv.tv_sec) {
@@ -455,7 +442,7 @@ static int ahc_echo(void * cls,
 				ctime[strlen(ctime) - 1] = '\0';
 
 				write_log(stdout, "Service %s on host %s is marked bad until %s, skipping\n",
-						dbfile ? PACDBSERVE : PACSERVE, tmphosts->host, ctime);
+						PACSERVE, tmphosts->host, ctime);
 			}
 			tmphosts = tmphosts->next;
 			continue;
@@ -484,12 +471,8 @@ static int ahc_echo(void * cls,
 		request = requests[req_count];
 
 		/* prepare request struct */
-		request->host = tmphosts->host;
-		if (dbfile == 1)
-			request->service = &(tmphosts->pacdbserve);
-		else
-			request->service = &(tmphosts->pacserve);
-		request->url = get_url(tmphosts->host, tmphosts->proto, tmphosts->address, request->service->port, basename);
+		request->host = tmphosts;
+		request->url = get_url(request->host->host, request->host->proto, request->host->address, request->host->port, dbfile, basename);
 		request->http_code = 0;
 		request->last_modified = 0;
 
@@ -536,7 +519,7 @@ static int ahc_echo(void * cls,
 			if (url != NULL)
 				free(url);
 			url = request->url;
-			host = request->host;
+			host = request->host->host;
 			http_code = MHD_HTTP_OK;
 			last_modified = request->last_modified;
 			time_total = request->time_total;
@@ -607,10 +590,8 @@ void sighup_callback(int signal) {
 	write_log(stdout, "Received SIGHUP, resetting bad status for hosts.\n");
 
 	while (tmphosts->host != NULL) {
-		tmphosts->pacserve.badtime = 0;
-		tmphosts->pacserve.badcount = 0;
-		tmphosts->pacdbserve.badtime = 0;
-		tmphosts->pacdbserve.badcount = 0;
+		tmphosts->badtime = 0;
+		tmphosts->badcount = 0;
 		tmphosts = tmphosts->next;
 	}
 }
@@ -624,7 +605,7 @@ int main(int argc, char ** argv) {
 	uint16_t port;
 	struct ignore_interfaces * tmp_ignore_interfaces;
 	AvahiClient *client = NULL;
-	AvahiServiceBrowser *pacserve = NULL, *pacdbserve = NULL;
+	AvahiServiceBrowser *pacserve = NULL;
 	int error, i, ret = 1;
 	struct MHD_Daemon * mhd;
 	struct hosts * tmphosts;
@@ -672,17 +653,15 @@ int main(int argc, char ** argv) {
 	/* allocate first struct element as dummy */
 	hosts = malloc(sizeof(struct hosts));
 	hosts->host = NULL;
-	hosts->pacserve.online = 0;
-	hosts->pacserve.badtime = 0;
-	hosts->pacdbserve.online = 0;
-	hosts->pacdbserve.badtime = 0;
+	hosts->online = 0;
+	hosts->badtime = 0;
 	hosts->next = NULL;
 
 	ignore_interfaces = malloc(sizeof(struct ignore_interfaces));
 	ignore_interfaces->interface = NULL;
 	ignore_interfaces->next = NULL;
 
-	/* Probing for static pacserve and pacdbserve hosts takes some time.
+	/* Probing for static pacserve hosts takes some time.
 	 * Receiving a SIGHUP at this time could kill us. So register signal
 	 * SIGHUP here before probing. */
 	signal(SIGHUP, sighup_callback);
@@ -758,25 +737,6 @@ int main(int argc, char ** argv) {
 			free(values);
 		}
 
-		/* add static pacdbserve hosts */
-		if ((inistring = iniparser_getstring(ini, "general:pacdbserve hosts", NULL)) != NULL) {
-			values = strdup(inistring);
-			value = strtok(values, DELIMITER);
-			while (value != NULL) {
-				if (verbose > 0)
-					write_log(stdout, "Adding static pacdbserve host: %s\n", value);
-
-				if (strchr(value, ':') != NULL) {
-					port = atoi(strchr(value, ':') + 1);
-					*strchr(value, ':') = 0;
-				} else
-					port = PORT_PACDBSERVE;
-				add_host(value, AVAHI_PROTO_UNSPEC, NULL, port, PACDBSERVE);
-				value = strtok(NULL, DELIMITER);
-			}
-			free(values);
-		}
-
 		/* done reading config file, free */
 		iniparser_freedict(ini);
 	}
@@ -796,13 +756,6 @@ int main(int argc, char ** argv) {
 	/* create the service browser for PACSERVE */
 	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
 			 use_proto, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
-		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
-		goto fail;
-	}
-
-	/* create the service browser for PACDBSERVE */
-	if ((pacdbserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
-			use_proto, PACDBSERVE, NULL, 0, browse_callback, client)) == NULL) {
 		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
 		goto fail;
 	}
@@ -860,9 +813,6 @@ fail:
 		free(ignore_interfaces);
 		ignore_interfaces = tmp_ignore_interfaces;
 	}
-
-	if (pacdbserve)
-		avahi_service_browser_free(pacdbserve);
 
 	if (pacserve)
 		avahi_service_browser_free(pacserve);
