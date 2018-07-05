@@ -95,10 +95,10 @@ int add_host(const char * host, AvahiProtocol proto, const char * address, const
 	tmphosts->proto = AVAHI_PROTO_UNSPEC;
 	*tmphosts->address = 0;
 
-	tmphosts->pacserve.port = 0;
-	tmphosts->pacserve.online = 0;
-	tmphosts->pacserve.badtime = 0;
-	tmphosts->pacserve.badcount = 0;
+	tmphosts->port = 0;
+	tmphosts->online = 0;
+	tmphosts->badtime = 0;
+	tmphosts->badcount = 0;
 
 	tmphosts->next = malloc(sizeof(struct hosts));
 	tmphosts->next->host = NULL;
@@ -109,13 +109,12 @@ update:
 	if (address != NULL)
 		memcpy(tmphosts->address, address, AVAHI_ADDRESS_STR_MAX);
 
-	tmphosts->pacserve.online = 1;
-	tmphosts->pacserve.port = port;
-	request.service = &tmphosts->pacserve;
+	tmphosts->online = 1;
+	tmphosts->port = port;
 
 	/* do a first request and let get_http_code() set the bad status */
-	request.host = tmphosts->host;
-	request.url = get_url(request.host, tmphosts->proto, tmphosts->address, request.service->port, 0, "");
+	request.host = tmphosts;
+	request.url = get_url(request.host->host, request.host->proto, request.host->address, request.host->port, 0, "");
 	request.http_code = 0;
 	request.last_modified = 0;
 	get_http_code(&request);
@@ -133,7 +132,7 @@ int remove_host(const char * host, AvahiProtocol proto, const char * type) {
 			if (verbose > 0)
 				write_log(stdout, "Marking service %s on host %s (%s) offline\n",
 						type, host, avahi_proto_to_string(proto));
-			tmphosts->pacserve.online = 0;
+			tmphosts->online = 0;
 			break;
 		}
 		tmphosts = tmphosts->next;
@@ -303,16 +302,16 @@ static void * get_http_code(void * data) {
 		/* perform the request */
 		if ((res = curl_easy_perform(curl)) != CURLE_OK) {
 			write_log(stderr, "Could not connect to server %s on port %d: %s\n",
-					request->host, request->service->port,
+					request->host->host, request->host->port,
 					*errbuf != 0 ? errbuf : curl_easy_strerror(res));
 			request->http_code = 0;
 			request->last_modified = 0;
-			request->service->badtime = tv.tv_sec;
-			request->service->badcount++;
+			request->host->badtime = tv.tv_sec;
+			request->host->badcount++;
 			return NULL;
 		} else {
-			request->service->badtime = 0;
-			request->service->badcount = 0;
+			request->host->badtime = 0;
+			request->host->badcount = 0;
 		}
 
 		/* get http status code */
@@ -426,11 +425,11 @@ static int ahc_echo(void * cls,
 
 	/* try to find a server with most recent file */
 	while (tmphosts->host != NULL) {
-		struct services *service = &tmphosts->pacserve;
-		time_t badtime = service->badtime + service->badcount * BADTIME;
+		struct hosts * host = tmphosts;
+		time_t badtime = host->badtime + host->badcount * BADTIME;
 
 		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if (service->online == 0) {
+		if (host->online == 0) {
 			if (verbose > 0)
 				write_log(stdout, "Service %s on host %s is offline, skipping\n",
 						PACSERVE, tmphosts->host);
@@ -472,9 +471,8 @@ static int ahc_echo(void * cls,
 		request = requests[req_count];
 
 		/* prepare request struct */
-		request->host = tmphosts->host;
-		request->service = &(tmphosts->pacserve);
-		request->url = get_url(tmphosts->host, tmphosts->proto, tmphosts->address, request->service->port, dbfile, basename);
+		request->host = tmphosts;
+		request->url = get_url(request->host->host, request->host->proto, request->host->address, request->host->port, dbfile, basename);
 		request->http_code = 0;
 		request->last_modified = 0;
 
@@ -521,7 +519,7 @@ static int ahc_echo(void * cls,
 			if (url != NULL)
 				free(url);
 			url = request->url;
-			host = request->host;
+			host = request->host->host;
 			http_code = MHD_HTTP_OK;
 			last_modified = request->last_modified;
 			time_total = request->time_total;
@@ -592,8 +590,8 @@ void sighup_callback(int signal) {
 	write_log(stdout, "Received SIGHUP, resetting bad status for hosts.\n");
 
 	while (tmphosts->host != NULL) {
-		tmphosts->pacserve.badtime = 0;
-		tmphosts->pacserve.badcount = 0;
+		tmphosts->badtime = 0;
+		tmphosts->badcount = 0;
 		tmphosts = tmphosts->next;
 	}
 }
@@ -655,8 +653,8 @@ int main(int argc, char ** argv) {
 	/* allocate first struct element as dummy */
 	hosts = malloc(sizeof(struct hosts));
 	hosts->host = NULL;
-	hosts->pacserve.online = 0;
-	hosts->pacserve.badtime = 0;
+	hosts->online = 0;
+	hosts->badtime = 0;
 	hosts->next = NULL;
 
 	ignore_interfaces = malloc(sizeof(struct ignore_interfaces));

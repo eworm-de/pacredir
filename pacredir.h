@@ -44,18 +44,6 @@
 
 #define PROGNAME	"pacredir"
 
-/* services */
-struct services {
-	/* network port */
-	uint16_t port;
-	/* true if host/service is online */
-	uint8_t online;
-	/* unix timestamp of last bad request */
-	__time_t badtime;
-	/* count the number of bad requests */
-	unsigned int badcount;
-};
-
 /* hosts */
 struct hosts {
 	/* host name */
@@ -64,8 +52,14 @@ struct hosts {
 	AvahiProtocol proto;
 	/* resolved address */
 	char address[AVAHI_ADDRESS_STR_MAX];
-	/* online status and bad time for services */
-	struct services pacserve;
+	/* network port */
+	uint16_t port;
+	/* true if host/service is online */
+	uint8_t online;
+	/* unix timestamp of last bad request */
+	__time_t badtime;
+	/* count the number of bad requests */
+	unsigned int badcount;
 	/* pointer to next struct element */
 	struct hosts * next;
 };
@@ -80,10 +74,8 @@ struct ignore_interfaces {
 
 /* request */
 struct request {
-	/* host name */
-	const char * host;
-	/* pointer to service */
-	struct services * service;
+	/* host infos */
+	struct hosts * host;
 	/* url */
 	char * url;
 	/* HTTP status code */
