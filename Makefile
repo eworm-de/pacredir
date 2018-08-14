@@ -75,5 +75,5 @@ distclean:
 
 release:
 	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz
-	gpg -ab pacredir-$(VERSION).tar.xz
-	git notes --ref=refs/notes/signatures/tar add -C $$(git archive --format=tar --prefix=pacredir-$(VERSION)/ $(VERSION) | gpg --armor --detach-sign | git hash-object -w --stdin) $(VERSION)
+	gpg --armor --detach-sign --comment pacredir-$(VERSION).tar.xz pacredir-$(VERSION).tar.xz
+	git notes --ref=refs/notes/signatures/tar add -C $$(git archive --format=tar --prefix=pacredir-$(VERSION)/ $(VERSION) | gpg --armor --detach-sign --comment pacredir-$(VERSION).tar | git hash-object -w --stdin) $(VERSION)
