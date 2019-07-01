@@ -22,7 +22,7 @@ struct hosts * hosts = NULL;
 struct ignore_interfaces * ignore_interfaces = NULL;
 int max_threads = 0;
 static AvahiSimplePoll *simple_poll = NULL;
-uint8_t verbose = 0;
+uint8_t verbose = 0, ignore_db_files = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
 /*** write_log ***/
@@ -409,7 +409,15 @@ static int ahc_echo(void * cls,
 	/* process db file request (*.db and *.files) */
 	if ((strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) ||
 			(strlen(basename) > 6 && strcmp(basename + strlen(basename) - 6, ".files") == 0)) {
+
 		dbfile = 1;
+
+		/* return 404 if database file are disabled */
+		if (ignore_db_files > 0) {
+			http_code = MHD_HTTP_NOT_FOUND;
+			goto response;
+		}
+
 		/* get timestamp of local file */
 		filename = malloc(strlen(SYNCPATH) + strlen(basename) + 2);
 		sprintf(filename, SYNCPATH "/%s", basename);
@@ -546,10 +554,12 @@ response:
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 		free(url);
 	} else {
-		if (req_count < 0)
+		if (dbfile > 0 && ignore_db_files > 0)
+			write_log(stdout, "Ignoring request for db file %s.\n", basename);
+		else if (req_count < 0)
 			write_log(stdout, "Currently no servers are available to check for %s.\n",
 					basename);
-		else if (dbfile == 1)
+		else if (dbfile > 0)
 			write_log(stdout, "No more recent version of %s found on %d servers.\n",
 					basename, req_count + 1);
 		else
@@ -682,6 +692,9 @@ int main(int argc, char ** argv) {
 		max_threads = iniparser_getint(ini, "general:max threads", max_threads);
 		if (verbose > 0 && max_threads > 0)
 			write_log(stdout, "Limiting number of threads to a maximum of %d\n", max_threads);
+
+		/* whether to ignore db files */
+		ignore_db_files = iniparser_getboolean(ini, "general:ignore db files", ignore_db_files);
 
 		/* store interfaces to ignore */
 		if ((inistring = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
