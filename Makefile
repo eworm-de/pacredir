@@ -33,7 +33,7 @@ VERSION := 0.4.1
 all: pacredir avahi/pacserve.service README.html
 
 pacredir: pacredir.c pacredir.h config.h version.h
-	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -DARCH=\"$(ARCH)\" -DID=\"$(ID)\" -o pacredir pacredir.c
+	$(CC) pacredir.c $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -DARCH=\"$(ARCH)\" -DID=\"$(ID)\" -o pacredir
 
 config.h:
 	$(CP) config.def.h config.h
