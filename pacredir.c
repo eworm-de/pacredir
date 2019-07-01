@@ -410,13 +410,14 @@ static int ahc_echo(void * cls,
 	if ((strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) ||
 			(strlen(basename) > 6 && strcmp(basename + strlen(basename) - 6, ".files") == 0)) {
 
+		dbfile = 1;
+
 		/* return 404 if database file are disabled */
 		if (ignore_db_files > 0) {
 			http_code = MHD_HTTP_NOT_FOUND;
 			goto response;
 		}
 
-		dbfile = 1;
 		/* get timestamp of local file */
 		filename = malloc(strlen(SYNCPATH) + strlen(basename) + 2);
 		sprintf(filename, SYNCPATH "/%s", basename);
@@ -553,10 +554,12 @@ response:
 		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 		free(url);
 	} else {
-		if (req_count < 0)
+		if (dbfile > 0 && ignore_db_files > 0)
+			write_log(stdout, "Ignoring request for db file %s.\n", basename);
+		else if (req_count < 0)
 			write_log(stdout, "Currently no servers are available to check for %s.\n",
 					basename);
-		else if (dbfile == 1)
+		else if (dbfile > 0)
 			write_log(stdout, "No more recent version of %s found on %d servers.\n",
 					basename, req_count + 1);
 		else
