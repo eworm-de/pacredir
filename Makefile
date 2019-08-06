@@ -61,7 +61,7 @@ install-bin: pacredir avahi/pacserve.service
 	$(INSTALL) -D -m0644 initcpio/hooks/pacredir $(DESTDIR)$(PREFIX)/lib/initcpio/hooks/pacredir
 	$(INSTALL) -D -m0644 initcpio/install/pacredir $(DESTDIR)$(PREFIX)/lib/initcpio/install/pacredir
 	$(INSTALL) -D -m0644 dhcpcd/80-pacredir $(DESTDIR)$(PREFIX)/lib/dhcpcd/dhcpcd-hooks/80-pacredir
-	$(INSTALL) -D -m0755 networkmanager/80-pacredir $(DESTDIR)/etc/NetworkManager/dispatcher.d/80-pacredir
+	$(INSTALL) -D -m0755 networkmanager/80-pacredir $(DESTDIR)$(PREFIX)/lib/NetworkManager/dispatcher.d/80-pacredir
 
 install-doc: README.html
 	$(INSTALL) -D -m0644 README.md $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.md
