@@ -44,6 +44,13 @@
 
 #define PROGNAME	"pacredir"
 
+/* libmicrohttpd compat */
+#if MHD_VERSION >= 0x00097002
+#  define mhd_result enum MHD_Result
+#else
+#  define mhd_result int
+#endif
+
 /* hosts */
 struct hosts {
 	/* host name */
@@ -130,7 +137,7 @@ static void client_callback(AvahiClient *c,
 /* get_http_code */
 static void * get_http_code(void * data);
 /* ahc_echo */
-static int ahc_echo(void * cls,
+static mhd_result ahc_echo(void * cls,
 		struct MHD_Connection * connection,
 		const char * uri,
 		const char * method,
