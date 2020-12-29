@@ -14,6 +14,7 @@ Documentation=https://github.com/eworm-de/pacredir#pacredir
 [Service]
 Type=notify
 ExecStart=/usr/bin/pacredir
+ExecReload=/usr/bin/kill -HUP $MAINPID
 DynamicUser=on
 ProtectSystem=full
 ProtectHome=on
