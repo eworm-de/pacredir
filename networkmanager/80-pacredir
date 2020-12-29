@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ "${2}" == "up" ]; then
-	if pgrep -x pacredir >/dev/null; then
-		kill -HUP $(pgrep -x pacredir)
+	if systemctl is-active -q pacredir.service; then
+		systemctl reload pacredir.service
 	fi
 fi

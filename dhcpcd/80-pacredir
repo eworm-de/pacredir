@@ -3,8 +3,8 @@
 case "${reason}" in
 	BOUND|REBIND|REBOOT|RENEW|TIMEOUT|STATIC)
 		# inform pacredir about reestablished connection
-		if pgrep -x pacredir >/dev/null; then
-			kill -HUP $(pgrep -x pacredir)
+		if systemctl is-active -q pacredir.service; then
+			systemctl reload pacredir.service
 		fi
 		;;
 	PREINIT|EXPIRE|INFORM|FAIL|IPV4LL|NAK|NOCARRIER|RELEASE|STOP)
