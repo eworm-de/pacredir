@@ -578,6 +578,7 @@ response:
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
+		ret = MHD_add_response_header(response, "X-Pacman-Expected-Failure", "true");
 		ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
 	}
 
