@@ -66,6 +66,9 @@ Please note that `pacredir` redirects to the most recent file found on
 the local network. To make sure you really do have the latest files run
 `pacman -Syu` *twice*.
 
+To get a better idea what happens in the background have a look at
+[the request flow chart](FLOW.md).
+
 Security
 --------
 
