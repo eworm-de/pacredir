@@ -30,7 +30,10 @@ ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $$ID)
 # a release tarball...
 VERSION := 0.4.3
 
-all: pacredir avahi/pacserve.service README.html
+MARKDOWN = $(wildcard *.md)
+HTML = $(MARKDOWN:.md=.html)
+
+all: pacredir avahi/pacserve.service $(HTML)
 
 pacredir: pacredir.c pacredir.h config.h version.h
 	$(CC) pacredir.c $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -DARCH=\"$(ARCH)\" -DID=\"$(ID)\" -o pacredir
@@ -44,8 +47,8 @@ version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 avahi/pacserve.service: avahi/pacserve.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/;s/%ID%/$(ID)/' avahi/pacserve.service.in > avahi/pacserve.service
 
-README.html: README.md
-	$(MD) README.md > README.html
+%.html: %.md Makefile
+	markdown $< | sed 's/href="\([-[:alnum:]]*\)\.md"/href="\1.html"/g' > $@
 
 install: install-bin install-doc
 
@@ -63,15 +66,15 @@ install-bin: pacredir avahi/pacserve.service
 	$(INSTALL) -D -m0644 dhcpcd/80-pacredir $(DESTDIR)$(PREFIX)/lib/dhcpcd/dhcpcd-hooks/80-pacredir
 	$(INSTALL) -D -m0755 networkmanager/80-pacredir $(DESTDIR)$(PREFIX)/lib/NetworkManager/dispatcher.d/80-pacredir
 
-install-doc: README.html
-	$(INSTALL) -D -m0644 README.md $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.md
-	$(INSTALL) -D -m0644 README.html $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.html
+install-doc: $(HTML)
+	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/
+	$(INSTALL) -D -m0644 $(MARKDOWN) $(HTML) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/
 
 clean:
-	$(RM) -f *.o *~ pacredir avahi/pacserve.service README.html version.h
+	$(RM) -f *.o *~ pacredir avahi/pacserve.service $(HTML) version.h
 
 distclean:
-	$(RM) -f *.o *~ pacredir avahi/pacserve.service README.html version.h config.h
+	$(RM) -f *.o *~ pacredir avahi/pacserve.service $(HTML) version.h config.h
 
 release:
 	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz
