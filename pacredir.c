@@ -524,8 +524,9 @@ static mhd_result ahc_echo(void * cls,
 		}
 
 		if (request->http_code == MHD_HTTP_OK &&
-				/* for db files choose the most recent server */
-				((dbfile == 1 && ((request->last_modified > last_modified) ||
+				/* for db files choose the most recent server when not too old */
+				((dbfile == 1 && ((request->last_modified > last_modified &&
+						   request->last_modified + 86400 > time(NULL)) ||
 				/* but use a faster server if available */
 						  (url != NULL &&
 						   request->last_modified >= last_modified &&

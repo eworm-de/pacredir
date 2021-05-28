@@ -62,9 +62,9 @@ Do not worry if `pacman` reports:
 This is ok, it just tells `pacman` that `pacredir` could not find a file
 and downloading it from an official server is required.
 
-Please note that `pacredir` redirects to the most recent file found on
-the local network. To make sure you really do have the latest files run
-`pacman -Syu` *twice*.
+Please note that `pacredir` redirects to the most recent database file
+found on the local network if it is not too old (currently 24 hours). To
+make sure you really do have the latest files run `pacman -Syu` *twice*.
 
 To get a better idea what happens in the background have a look at
 [the request flow chart](FLOW.md).
