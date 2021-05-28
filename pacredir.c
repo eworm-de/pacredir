@@ -371,14 +371,15 @@ static mhd_result ahc_echo(void * cls,
 	const char * basename, * host = NULL;
 	struct timeval tv;
 
-	struct stat fst;
-	char * filename;
+	struct tm tm;
+	const char * if_modified_since = NULL;
+	time_t last_modified = 0;
 	uint8_t dbfile = 0;
 	int i, error, req_count = -1;
 	pthread_t * tid = NULL;
 	struct request ** requests = NULL;
 	struct request * request = NULL;
-	long http_code = 0, last_modified = 0;
+	long http_code = 0;
 	double time_total = INFINITY;
 	char ctime[26];
 
@@ -429,17 +430,13 @@ static mhd_result ahc_echo(void * cls,
 			goto response;
 		}
 
-		/* get timestamp of local file */
-		filename = malloc(strlen(SYNCPATH) + strlen(basename) + 2);
-		sprintf(filename, SYNCPATH "/%s", basename);
-
-		if (stat(filename, &fst) != 0) {
-			if (verbose > 0)
-				write_log(stdout, "You do not have a local copy of %s\n", basename);
-		} else
-			last_modified = fst.st_mtime;
-
-		free(filename);
+		/* get timestamp from request */
+		if ((if_modified_since = MHD_lookup_connection_value(connection,
+				MHD_HEADER_KIND, MHD_HTTP_HEADER_IF_MODIFIED_SINCE))) {
+			if (strptime(if_modified_since, "%a, %d %b %Y %H:%M:%S %Z", &tm) != NULL) {
+				last_modified = timegm(&tm);
+			}
+		}
 	}
 
 	/* try to find a server with most recent file */

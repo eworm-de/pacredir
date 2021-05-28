@@ -45,9 +45,6 @@
 /* these characters are used as delimiter in config file */
 #define DELIMITER	" ,;"
 
-/* this is where pacman stores its local copy of db files */
-#define SYNCPATH	"/var/lib/pacman/sync"
-
 /* This defines the initial time in seconds after which a host is queried
  * again after a bad request. Time is doubled after every subsequent
  * request. */
