@@ -382,6 +382,7 @@ static mhd_result ahc_echo(void * cls,
 	long http_code = 0;
 	double time_total = INFINITY;
 	char ctime[26];
+	unsigned long client;
 
 	/* initialize struct timeval */
 	gettimeofday(&tv, NULL);
@@ -409,8 +410,12 @@ static mhd_result ahc_echo(void * cls,
 	/* clear context pointer */
 	*ptr = NULL;
 
-	/* redirect to website if no file given */
-	if (*basename == 0) {
+	/* get the client address */
+	client = ((struct sockaddr_in *)MHD_get_connection_info(connection,
+			MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr)->sin_addr.s_addr;
+
+	/* redirect to website if no file given or not from loopback address */
+	if (*basename == 0 || (client & htonl(0xff000000)) != htonl(0x7f000000)) {
 		http_code = MHD_HTTP_OK;
 		/* duplicate string so we can free it later */
 		url = strdup(WEBSITE);
@@ -629,7 +634,6 @@ int main(int argc, char ** argv) {
 	int error, i, ret = 1;
 	struct MHD_Daemon * mhd;
 	struct hosts * tmphosts;
-	struct sockaddr_in address;
 
 	unsigned int version = 0, help = 0;
 
@@ -783,14 +787,9 @@ int main(int argc, char ** argv) {
 		goto fail;
 	}
 
-	/* prepare struct to make microhttpd listen on localhost only */
-	address.sin_family = AF_INET;
-	address.sin_port = htons(PORT_PACREDIR);
-	address.sin_addr.s_addr = htonl(0x7f000001);
-
 	/* start http server */
 	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION | MHD_USE_TCP_FASTOPEN, PORT_PACREDIR,
-			NULL, NULL, &ahc_echo, NULL, MHD_OPTION_SOCK_ADDR, &address, MHD_OPTION_END)) == NULL) {
+			NULL, NULL, &ahc_echo, NULL, MHD_OPTION_END)) == NULL) {
 		write_log(stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
 		goto fail;
 	}
