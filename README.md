@@ -54,7 +54,17 @@ definitions in `pacman.conf`:
 
 > Include = /etc/pacman.d/pacredir
 
-Do not worry if `pacman` reports:
+To get a better idea what happens in the background have a look at
+[the request flow chart](FLOW.md).
+
+### Databases from cache server
+
+By default databases are not fetched from cache servers. To make that
+happen just add the server twice, additionally as regular server. This
+is prepared in `/etc/pacman.d/pacredir`, just uncomment the corresponding
+line.
+
+Do not worry if `pacman` reports the following after the change:
 
 > error: failed retrieving file 'core.db' from 127.0.0.1:7077 : The
 > requested URL returned error: 404 Not Found
@@ -66,74 +76,19 @@ Please note that `pacredir` redirects to the most recent database file
 found on the local network if it is not too old (currently 24 hours). To
 make sure you really do have the latest files run `pacman -Syu` *twice*.
 
-To get a better idea what happens in the background have a look at
-[the request flow chart](FLOW.md).
-
 Current caveat
 --------------
 
-With its latest release `pacman` now supports a *server error limit*: Three
-download errors from a server results in the server being skipped for the
-remainder of this transaction.
+With `pacman`'s latest major release `6.x` it now supports a
+*server error limit*: Three download errors from a server results in the
+server being skipped for the remainder of this transaction.
 However `pacredir` sends a "*404 - not found*" response if the file is not
 available in local network - and is skipped after just three misses.
 
-This new feature is not configurable at runtime, so rebuilding `pacman` with
-one of the following patches is the way to make things work with `pacredir`.
-
-### Disable server error limit
-
-This is the simplest workaround - just disable the server error limit.
-
-    --- a/lib/libalpm/dload.c
-    +++ b/lib/libalpm/dload.c
-    @@ -60,7 +60,7 @@ static int curl_gethost(const char *url, char *buffer, size_t buf_len);
-     
-     /* number of "soft" errors required to blacklist a server, set to 0 to disable
-      * server blacklisting */
-    -const unsigned int server_error_limit = 3;
-    +const unsigned int server_error_limit = 0;
-     
-     struct server_error_count {
-     	char server[HOSTNAME_SIZE];
-
-We can agree this is not to be desired - in general the feature is reasonable.
-
-### Support http header to indicate a soft failure
-
-This solution is simple, yet powerful:
-[Support http header 'Cache-Control: no-cache' for soft failure](patches/0001-support-http-header-Cache-Control-no-cache-for-soft-failure.patch)
-
-By setting the HTTP header `Cache-Control: no-cache` when returning with
-the status code `404` (not found) the server can indicate that this is a
-soft failure. No error message is shown, and server's error count is
-not increased.
-
-Sadly upstream denied, again.
-
-Anyway, pushed this as merge request to Gitlab, which was closed without
-merging. 😢
-
-~~[support http header 'Cache-Control: no-cache' for soft failure](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/76)~~
-
-### Implement CacheServer
-
-A more complex solution that breaks current API is:
-[Implement CacheServer](patches/0001-implement-CacheServer.patch)
-
-This implements a new configuration option `CacheServer`. Adding a cache
-server makes it ignore the server error limit.
-
-Handling for soft failures is demanded in a long standing upstream bug, and
-the given patch could solve it:
-[FS#23407 - Allow soft failures on Server URLs](https://bugs.archlinux.org/task/23407)
-
-Pushed this as merge request to Gitlab:
-[implement CacheServer](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/74)
-
-Looks like this is going to be closed as well, but Andrew opened a merge
-request with his own implementation:
+Currently there is a merge request to 
 [add cache server support](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/98)
+to `pacman`. That would resolve the situation, so let's hope that will be
+merged soon and is available with `pacman` version `7.x`.
 
 Security
 --------

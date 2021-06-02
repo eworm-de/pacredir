@@ -1,2 +1,8 @@
 # Make sure local service pacredir is running!
-Server = http://127.0.0.1:7077/
+
+# Add pacredir as a cache server. This makes pacman request package files.
+CacheServer = http://127.0.0.1:7077/
+
+# Uncomment this to add pacredir as a regular server as well. This makes
+# pacman request database files from pacredir.
+#Server = http://127.0.0.1:7077/
