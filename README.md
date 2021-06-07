@@ -69,6 +69,34 @@ make sure you really do have the latest files run `pacman -Syu` *twice*.
 To get a better idea what happens in the background have a look at
 [the request flow chart](FLOW.md).
 
+Current caveat
+--------------
+
+With its latest release `pacman` now supports a *server error limit*: Three
+download errors from a server results in the server being skipped for the
+remainder of this transaction.
+However `pacredir` sends a "*404 - not found*" response if the file is not
+available in local network - and is skipped after just three misses.
+
+This new feature is not configurable at runtime, so rebuilding `pacman` with
+this patch is the only way to make things work with `pacredir`.
+
+    --- a/lib/libalpm/dload.c
+    +++ b/lib/libalpm/dload.c
+    @@ -60,7 +60,7 @@ static int curl_gethost(const char *url, char *buffer, size_t buf_len);
+     
+     /* number of "soft" errors required to blacklist a server, set to 0 to disable
+      * server blacklisting */
+    -const unsigned int server_error_limit = 3;
+    +const unsigned int server_error_limit = 0;
+     
+     struct server_error_count {
+     	char server[HOSTNAME_SIZE];
+
+Let's hope
+[FS#23407 - Allow soft failures on Server URLs](https://bugs.archlinux.org/task/23407)
+is implemented any time soon.
+
 Security
 --------
 
