@@ -2,9 +2,9 @@
 
 # This is a regular server, so pacredir receives requests for database
 # files, but it is also accounted for server error limit.
-Server = http://127.0.0.1:7077/
+Server = http://127.70.77.1:7077/
 
 # Add a cache server with different address to make sure pacman requests
 # package files from pacredir in case the address above was caught by
 # pacman's server error limit.
-CacheServer = http://127.0.0.2:7077/
+CacheServer = http://127.70.77.2:7077/
