@@ -79,7 +79,11 @@ However `pacredir` sends a "*404 - not found*" response if the file is not
 available in local network - and is skipped after just three misses.
 
 This new feature is not configurable at runtime, so rebuilding `pacman` with
-this patch is the only way to make things work with `pacredir`.
+one of the following patches is the way to make things work with `pacredir`.
+
+### Disable server error limit
+
+This is the simplest workaround - just disable the server error limit.
 
     --- a/lib/libalpm/dload.c
     +++ b/lib/libalpm/dload.c
@@ -93,9 +97,30 @@ this patch is the only way to make things work with `pacredir`.
      struct server_error_count {
      	char server[HOSTNAME_SIZE];
 
-Let's hope
+We can agree this is not to be desired - in general the feature is reasonable.
+
+### Support http header to indicate an expected failure
+
+This solution is simple, yet powerful:
+[Support http header to indicate an expected failure](patches/0001-support-http-header-to-indicate-an-expected-failure.patch)
+
+By setting an extra HTTP header `X-Pacman-Expected-Failure` the server can
+indicate that the failure is expected. The next server is tried without
+error message and without increasing the server's error count.
+
+Sadly upstream denied. 😢
+
+### Implement CacheServer
+
+A more complex solution that breaks current API is:
+[Implement CacheServer](patches/0001-implement-CacheServer.patch)
+
+This implements a new configuration option `CacheServer`. Adding a cache
+server makes it ignore the server error limit.
+
+Handling for soft failures is demanded in a long standing upstream bug, and
+the given patch could solve it:
 [FS#23407 - Allow soft failures on Server URLs](https://bugs.archlinux.org/task/23407)
-is implemented any time soon.
 
 Security
 --------

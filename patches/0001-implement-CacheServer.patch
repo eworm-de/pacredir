@@ -1,0 +1,341 @@
+From a5239c9b76a515598afdb3e698dc82263341b1ad Mon Sep 17 00:00:00 2001
+From: Christian Hesse <mail@eworm.de>
+Date: Fri, 21 Jan 2022 16:11:02 +0100
+Subject: [PATCH] implement CacheServer
+
+This implements a new configuration option 'CacheServer'. Adding a cache
+server makes it ignore the server error limit.
+
+We have a struct that stores the server errors. Extend (and rename) this
+struct to store if this is a cache server. The errors are not increased
+for cache servers, thus they are never ignored.
+
+Signed-off-by: Christian Hesse <mail@eworm.de>
+---
+ doc/pacman.conf.5.asciidoc |  5 ++++
+ lib/libalpm/alpm.h         |  7 +++--
+ lib/libalpm/db.c           | 22 ++++++++++++----
+ lib/libalpm/db.h           |  1 +
+ lib/libalpm/dload.c        | 52 +++++++++++++++++++++++++++++++-------
+ lib/libalpm/dload.h        |  2 ++
+ src/pacman/conf.c          | 16 +++++++++---
+ src/pacman/conf.h          |  1 +
+ src/pacman/pacman-conf.c   |  1 +
+ 9 files changed, 88 insertions(+), 19 deletions(-)
+
+diff --git a/doc/pacman.conf.5.asciidoc b/doc/pacman.conf.5.asciidoc
+index 41f3ea03..a25e35eb 100644
+--- a/doc/pacman.conf.5.asciidoc
++++ b/doc/pacman.conf.5.asciidoc
+@@ -243,6 +243,11 @@ number.
+ *Server =* url::
+ 	A full URL to a location where the database, packages, and signatures (if
+ 	available) for this repository can be found.
++
++*CacheServer =* url::
++	A full URL to a location where packages, and signatures (if available)
++	for this repository can be found. There's no server error limit, log
++	messages are not shown for server side errors (http code >= 400).
+ +
+ During parsing, pacman will define the `$repo` variable to the name of the
+ current section. This is often utilized in files specified using the 'Include'
+diff --git a/lib/libalpm/alpm.h b/lib/libalpm/alpm.h
+index cdf71fdc..14889b9c 100644
+--- a/lib/libalpm/alpm.h
++++ b/lib/libalpm/alpm.h
+@@ -1322,16 +1322,19 @@ alpm_list_t *alpm_db_get_servers(const alpm_db_t *db);
+ /** Sets the list of servers for the database to use.
+  * @param db the database to set the servers. The list will be duped and
+  * the original will still need to be freed by the caller.
++ * @param cacheservers a char* list of cacheservers.
+  * @param servers a char* list of servers.
+  */
+-int alpm_db_set_servers(alpm_db_t *db, alpm_list_t *servers);
++int alpm_db_set_servers(alpm_db_t *db, alpm_list_t *cacheservers,
++		alpm_list_t *servers);
+ 
+ /** Add a download server to a database.
+  * @param db database pointer
+  * @param url url of the server
++ * @param cache 0 for regular server, 1 for cacheserver
+  * @return 0 on success, -1 on error (pm_errno is set accordingly)
+  */
+-int alpm_db_add_server(alpm_db_t *db, const char *url);
++int alpm_db_add_server(alpm_db_t *db, const char *url, const int cache);
+ 
+ /** Remove a download server from a database.
+  * @param db database pointer
+diff --git a/lib/libalpm/db.c b/lib/libalpm/db.c
+index ece8eae6..e9bca9c8 100644
+--- a/lib/libalpm/db.c
++++ b/lib/libalpm/db.c
+@@ -36,6 +36,7 @@
+ #include "alpm.h"
+ #include "package.h"
+ #include "group.h"
++#include "dload.h"
+ 
+ alpm_db_t SYMEXPORT *alpm_register_syncdb(alpm_handle_t *handle,
+ 		const char *treename, int siglevel)
+@@ -137,14 +138,22 @@ alpm_list_t SYMEXPORT *alpm_db_get_servers(const alpm_db_t *db)
+ 	return db->servers;
+ }
+ 
+-int SYMEXPORT alpm_db_set_servers(alpm_db_t *db, alpm_list_t *servers)
++int SYMEXPORT alpm_db_set_servers(alpm_db_t *db, alpm_list_t *cacheservers,
++		alpm_list_t *servers)
+ {
+ 	alpm_list_t *i;
+ 	ASSERT(db != NULL, return -1);
++	FREELIST(db->cacheservers);
+ 	FREELIST(db->servers);
++	for(i = cacheservers; i; i = i->next) {
++		char *url = i->data;
++		if(alpm_db_add_server(db, url, 1) != 0) {
++			return -1;
++		}
++	}
+ 	for(i = servers; i; i = i->next) {
+ 		char *url = i->data;
+-		if(alpm_db_add_server(db, url) != 0) {
++		if(alpm_db_add_server(db, url, 0) != 0) {
+ 			return -1;
+ 		}
+ 	}
+@@ -164,7 +173,7 @@ static char *sanitize_url(const char *url)
+ 	return newurl;
+ }
+ 
+-int SYMEXPORT alpm_db_add_server(alpm_db_t *db, const char *url)
++int SYMEXPORT alpm_db_add_server(alpm_db_t *db, const char *url, const int cache)
+ {
+ 	char *newurl;
+ 
+@@ -178,8 +187,11 @@ int SYMEXPORT alpm_db_add_server(alpm_db_t *db, const char *url)
+ 		return -1;
+ 	}
+ 	db->servers = alpm_list_add(db->servers, newurl);
+-	_alpm_log(db->handle, ALPM_LOG_DEBUG, "adding new server URL to database '%s': %s\n",
+-			db->treename, newurl);
++	if(cache) {
++		server_make_cache(db->handle, newurl);
++	}
++	_alpm_log(db->handle, ALPM_LOG_DEBUG, "adding new %sserver URL to database '%s': %s\n",
++			cache ? "cache " : "", db->treename, newurl);
+ 
+ 	return 0;
+ }
+diff --git a/lib/libalpm/db.h b/lib/libalpm/db.h
+index c9400365..50812e28 100644
+--- a/lib/libalpm/db.h
++++ b/lib/libalpm/db.h
+@@ -69,6 +69,7 @@ struct _alpm_db_t {
+ 	char *_path;
+ 	alpm_pkghash_t *pkgcache;
+ 	alpm_list_t *grpcache;
++	alpm_list_t *cacheservers;
+ 	alpm_list_t *servers;
+ 	const struct db_operations *ops;
+ 
+diff --git a/lib/libalpm/dload.c b/lib/libalpm/dload.c
+index 7c27c3ea..3b3e5dc4 100644
+--- a/lib/libalpm/dload.c
++++ b/lib/libalpm/dload.c
+@@ -62,15 +62,16 @@ static int curl_gethost(const char *url, char *buffer, size_t buf_len);
+  * server blacklisting */
+ const unsigned int server_error_limit = 3;
+ 
+-struct server_error_count {
++struct server_opts {
+ 	char server[HOSTNAME_SIZE];
++	unsigned int cache;
+ 	unsigned int errors;
+ };
+ 
+-static struct server_error_count *find_server_errors(alpm_handle_t *handle, const char *server)
++static struct server_opts *find_server_errors(alpm_handle_t *handle, const char *server)
+ {
+ 	alpm_list_t *i;
+-	struct server_error_count *h;
++	struct server_opts *h;
+ 	char hostname[HOSTNAME_SIZE];
+ 	/* key off the hostname because a host may serve multiple repos under
+ 	 * different url's and errors are likely to be host-wide */
+@@ -83,7 +84,7 @@ static struct server_error_count *find_server_errors(alpm_handle_t *handle, cons
+ 			return h;
+ 		}
+ 	}
+-	if((h = calloc(sizeof(struct server_error_count), 1))
++	if((h = calloc(sizeof(struct server_opts), 1))
+ 			&& alpm_list_append(&handle->server_errors, h)) {
+ 		strcpy(h->server, hostname);
+ 		h->errors = 0;
+@@ -94,9 +95,38 @@ static struct server_error_count *find_server_errors(alpm_handle_t *handle, cons
+ 	}
+ }
+ 
++static int is_cache_server(alpm_handle_t *handle, const char *server)
++{
++	struct server_opts *h;
++	if((h = find_server_errors(handle, server))) {
++		return h->cache;
++	}
++	return 0;
++}
++
++static int should_skip_cacheserver(alpm_handle_t *handle, const char *server, const char *filepath)
++{
++	if(!is_cache_server(handle, server)) {
++		return 0;
++	}
++	if(filepath) {
++		int len = strlen(filepath);
++		return (len > 3 && strncmp(filepath + len - 3, ".db", 3) == 0) ? 1 : 0;
++	}
++	return 0;
++}
++
++void server_make_cache(alpm_handle_t *handle, const char *server)
++{
++	struct server_opts *h;
++	if((h = find_server_errors(handle, server))) {
++		h->cache = 1;
++	}
++}
++
+ static int should_skip_server(alpm_handle_t *handle, const char *server)
+ {
+-	struct server_error_count *h;
++	struct server_opts *h;
+ 	if(server_error_limit && (h = find_server_errors(handle, server)) ) {
+ 		return h->errors >= server_error_limit;
+ 	}
+@@ -105,9 +135,10 @@ static int should_skip_server(alpm_handle_t *handle, const char *server)
+ 
+ static void server_increment_error(alpm_handle_t *handle, const char *server, int count)
+ {
+-	struct server_error_count *h;
++	struct server_opts *h;
+ 	if(server_error_limit
+ 			&& (h = find_server_errors(handle, server))
++			&& !is_cache_server(handle, server)
+ 			&& !should_skip_server(handle, server) ) {
+ 		h->errors += count;
+ 
+@@ -414,7 +445,8 @@ static int curl_retry_next_server(CURLM *curlm, CURL *curl, struct dload_payload
+ 	struct stat st;
+ 	alpm_handle_t *handle = payload->handle;
+ 
+-	while(payload->servers && should_skip_server(handle, payload->servers->data)) {
++	while(payload->servers && (should_skip_server(handle, payload->servers->data)
++				|| should_skip_cacheserver(handle, payload->servers->data, payload->filepath))) {
+ 		payload->servers = payload->servers->next;
+ 	}
+ 	if(!payload->servers) {
+@@ -511,7 +543,7 @@ static int curl_check_finished_download(CURLM *curlm, CURLMsg *msg,
+ 					/* non-translated message is same as libcurl */
+ 					snprintf(payload->error_buffer, sizeof(payload->error_buffer),
+ 							"The requested URL returned error: %ld", payload->respcode);
+-					_alpm_log(handle, ALPM_LOG_ERROR,
++					_alpm_log(handle, is_cache_server(handle, payload->fileurl) ? ALPM_LOG_DEBUG : ALPM_LOG_ERROR,
+ 							_("failed retrieving file '%s' from %s : %s\n"),
+ 							payload->remote_name, hostname, payload->error_buffer);
+ 					server_soft_error(handle, payload->fileurl);
+@@ -769,7 +801,9 @@ static int curl_add_payload(alpm_handle_t *handle, CURLM *curlm,
+ 		ASSERT(!payload->filepath, GOTO_ERR(handle, ALPM_ERR_WRONG_ARGS, cleanup));
+ 	} else {
+ 		const char *server;
+-		while(payload->servers && should_skip_server(handle, payload->servers->data)) {
++
++		while(payload->servers && (should_skip_server(handle, payload->servers->data)
++					|| should_skip_cacheserver(handle, payload->servers->data, payload->filepath))) {
+ 			payload->servers = payload->servers->next;
+ 		}
+ 
+diff --git a/lib/libalpm/dload.h b/lib/libalpm/dload.h
+index 9438e04a..d117244d 100644
+--- a/lib/libalpm/dload.h
++++ b/lib/libalpm/dload.h
+@@ -58,6 +58,8 @@ struct dload_payload {
+ #endif
+ };
+ 
++void server_make_cache(alpm_handle_t *handle, const char *server);
++
+ void _alpm_dload_payload_reset(struct dload_payload *payload);
+ 
+ int _alpm_download(alpm_handle_t *handle,
+diff --git a/src/pacman/conf.c b/src/pacman/conf.c
+index f9edf75b..04bb478b 100644
+--- a/src/pacman/conf.c
++++ b/src/pacman/conf.c
+@@ -172,6 +172,7 @@ void config_repo_free(config_repo_t *repo)
+ 		return;
+ 	}
+ 	free(repo->name);
++	FREELIST(repo->cacheservers);
+ 	FREELIST(repo->servers);
+ 	free(repo);
+ }
+@@ -781,9 +782,9 @@ static char *replace_server_vars(config_t *c, config_repo_t *r, const char *s)
+ 	}
+ }
+ 
+-static int _add_mirror(alpm_db_t *db, char *value)
++static int _add_mirror(alpm_db_t *db, char *value, const int cache)
+ {
+-	if(alpm_db_add_server(db, value) != 0) {
++	if(alpm_db_add_server(db, value, cache) != 0) {
+ 		/* pm_errno is set by alpm_db_setserver */
+ 		pm_printf(ALPM_LOG_ERROR, _("could not add server URL to database '%s': %s (%s)\n"),
+ 				alpm_db_get_name(db), value, alpm_strerror(alpm_errno(config->handle)));
+@@ -809,8 +810,14 @@ static int register_repo(config_repo_t *repo)
+ 			repo->usage, repo->name);
+ 	alpm_db_set_usage(db, repo->usage);
+ 
++	for(i = repo->cacheservers; i; i = alpm_list_next(i)) {
++		if(_add_mirror(db, i->data, 1) != 0) {
++			return 1;
++		}
++	}
++
+ 	for(i = repo->servers; i; i = alpm_list_next(i)) {
+-		if(_add_mirror(db, i->data) != 0) {
++		if(_add_mirror(db, i->data, 0) != 0) {
+ 			return 1;
+ 		}
+ 	}
+@@ -993,6 +1000,9 @@ static int _parse_repo(const char *key, char *value, const char *file,
+ 	if(strcmp(key, "Server") == 0) {
+ 		CHECK_VALUE(value);
+ 		repo->servers = alpm_list_add(repo->servers, strdup(value));
++	} else if(strcmp(key, "CacheServer") == 0) {
++		CHECK_VALUE(value);
++		repo->cacheservers = alpm_list_add(repo->cacheservers, strdup(value));
+ 	} else if(strcmp(key, "SigLevel") == 0) {
+ 		CHECK_VALUE(value);
+ 		alpm_list_t *values = NULL;
+diff --git a/src/pacman/conf.h b/src/pacman/conf.h
+index f7916ca9..f242f522 100644
+--- a/src/pacman/conf.h
++++ b/src/pacman/conf.h
+@@ -37,6 +37,7 @@ typedef struct __colstr_t {
+ 
+ typedef struct __config_repo_t {
+ 	char *name;
++	alpm_list_t *cacheservers;
+ 	alpm_list_t *servers;
+ 	int usage;
+ 	int siglevel;
+diff --git a/src/pacman/pacman-conf.c b/src/pacman/pacman-conf.c
+index a9d1f52b..db648d4c 100644
+--- a/src/pacman/pacman-conf.c
++++ b/src/pacman/pacman-conf.c
+@@ -236,6 +236,7 @@ static void dump_repo(config_repo_t *repo)
+ {
+ 	show_usage("Usage", repo->usage);
+ 	show_siglevel("SigLevel", repo->siglevel, 0);
++	show_list_str("CacheServer", repo->cacheservers);
+ 	show_list_str("Server", repo->servers);
+ }
+ 
