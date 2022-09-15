@@ -1,0 +1,58 @@
+From 1288a202b61cf01fbff8a8bd0071e57383aa954e Mon Sep 17 00:00:00 2001
+From: Christian Hesse <mail@eworm.de>
+Date: Fri, 21 May 2021 09:52:34 +0200
+Subject: [PATCH 1/1] support http header 'Cache-Control: no-cache' for soft
+ failure
+
+By setting the HTTP header 'Cache-Control: no-cache' when returning with
+the status code 404 (not found) the server can indicate that this is a
+soft failure. No error message is shown, and server's error count is
+not increased.
+
+This can be used by servers that are not expected to be complete, for
+example when serving a local cache [0]. In nginx this can be achived by
+adding a single directive in location block:
+
+    add_header Cache-Control "no-cache";
+
+Also this is a perfect match for pacredir [1].
+
+[0] https://wiki.archlinux.org/title/Pacman/Tips_and_tricks#Network_shared_pacman_cache
+[1] https://git.eworm.de/cgit/pacredir/about/
+
+Signed-off-by: Christian Hesse <mail@eworm.de>
+---
+ lib/libalpm/dload.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/lib/libalpm/dload.c b/lib/libalpm/dload.c
+index 4fa17b35..23034584 100644
+--- a/lib/libalpm/dload.c
++++ b/lib/libalpm/dload.c
+@@ -274,8 +274,10 @@ static size_t dload_parseheader_cb(void *ptr, size_t size, size_t nmemb, void *u
+ {
+ 	size_t realsize = size * nmemb;
+ 	const char *fptr, *endptr = NULL;
++	const char * const cc_header = "Cache-Control:";
+ 	const char * const cd_header = "Content-Disposition:";
+ 	const char * const fn_key = "filename=";
++	const char * const nc_key = "no-cache";
+ 	struct dload_payload *payload = (struct dload_payload *)user;
+ 	long respcode;
+ 
+@@ -302,6 +304,15 @@ static size_t dload_parseheader_cb(void *ptr, size_t size, size_t nmemb, void *u
+ 		}
+ 	}
+ 
++	/* By setting the HTTP header 'Cache-Control: no-cache' the server can indicate
++	   that this is a soft failure which should not be cached. No error message is
++	   shown, and server's error count is not increased. */
++	if(_alpm_raw_ncmp(cc_header, ptr, strlen(cc_header)) == 0) {
++		if(strstr(ptr, nc_key)) {
++			payload->errors_ok = 1;
++		}
++	}
++
+ 	curl_easy_getinfo(payload->curl, CURLINFO_RESPONSE_CODE, &respcode);
+ 	if(payload->respcode != respcode) {
+ 		payload->respcode = respcode;

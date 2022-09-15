@@ -99,16 +99,17 @@ This is the simplest workaround - just disable the server error limit.
 
 We can agree this is not to be desired - in general the feature is reasonable.
 
-### Support http header to indicate an expected failure
+### Support http header to indicate a soft failure
 
 This solution is simple, yet powerful:
-[Support http header to indicate an expected failure](patches/0001-support-http-header-to-indicate-an-expected-failure.patch)
+[Support http header 'Cache-Control: no-cache' for soft failure](patches/0001-support-http-header-Cache-Control-no-cache-for-soft-failure.patch)
 
-By setting an extra HTTP header `X-Pacman-Expected-Failure` the server can
-indicate that the failure is expected. The next server is tried without
-error message and without increasing the server's error count.
+By setting the HTTP header `Cache-Control: no-cache` when returning with
+the status code `404` (not found) the server can indicate that this is a
+soft failure. No error message is shown, and server's error count is
+not increased.
 
-Sadly upstream denied. 😢
+Sadly upstream denied. 😢 (At least an earlier version of the patch...)
 
 ### Implement CacheServer
 
