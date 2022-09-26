@@ -28,7 +28,7 @@ ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $$ID)
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
-VERSION := 0.4.5
+VERSION := 0.4.6
 
 MARKDOWN = $(wildcard *.md)
 HTML = $(MARKDOWN:.md=.html)
