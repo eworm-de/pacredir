@@ -109,7 +109,7 @@ the status code `404` (not found) the server can indicate that this is a
 soft failure. No error message is shown, and server's error count is
 not increased.
 
-Sadly upstream denied. 😢 (At least an earlier version of the patch...)
+Sadly upstream denied, again. 😢
 
 ### Implement CacheServer
 
