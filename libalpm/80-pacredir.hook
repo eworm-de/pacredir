@@ -1,0 +1,9 @@
+[Trigger]
+Operation = Upgrade
+Type = Package
+Target = pacredir
+
+[Action]
+Description = Restarting pacredir...
+When = PostTransaction
+Exec = /usr/bin/systemctl try-restart pacredir.service
