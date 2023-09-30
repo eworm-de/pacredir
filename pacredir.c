@@ -312,7 +312,7 @@ static void * get_http_code(void * data) {
 
 		/* perform the request */
 		if ((res = curl_easy_perform(curl)) != CURLE_OK) {
-			write_log(stderr, "Could not connect to server %s on port %d: %s\n",
+			write_log(stderr, "Could not connect to peer %s on port %d: %s\n",
 					request->host->host, request->host->port,
 					*errbuf != 0 ? errbuf : curl_easy_strerror(res));
 			request->http_code = 0;
@@ -439,7 +439,7 @@ static mhd_result ahc_echo(void * cls,
 		}
 	}
 
-	/* try to find a server with most recent file */
+	/* try to find a peer with most recent file */
 	while (tmphosts->host != NULL) {
 		struct hosts * host = tmphosts;
 		time_t badtime = host->badtime + host->badcount * BADTIME;
@@ -524,14 +524,14 @@ static mhd_result ahc_echo(void * cls,
 		}
 
 		if (request->http_code == MHD_HTTP_OK &&
-				/* for db files choose the most recent server when not too old */
+				/* for db files choose the most recent peer when not too old */
 				((dbfile == 1 && ((request->last_modified > last_modified &&
 						   request->last_modified + 86400 > time(NULL)) ||
-				/* but use a faster server if available */
+				/* but use a faster peer if available */
 						  (url != NULL &&
 						   request->last_modified >= last_modified &&
 						   request->time_total < time_total))) ||
-				 /* for packages try to guess the fastest server */
+				 /* for packages try to guess the fastest peer */
 				 (dbfile == 0 && request->time_total < time_total))) {
 			if (url != NULL)
 				free(url);
@@ -566,13 +566,13 @@ response:
 		if (dbfile > 0 && ignore_db_files > 0)
 			write_log(stdout, "Ignoring request for db file %s.\n", basename);
 		else if (req_count < 0)
-			write_log(stdout, "Currently no servers are available to check for %s.\n",
+			write_log(stdout, "Currently no peers are available to check for %s.\n",
 					basename);
 		else if (dbfile > 0)
-			write_log(stdout, "No more recent version of %s found on %d servers.\n",
+			write_log(stdout, "No more recent version of %s found on %d peers.\n",
 					basename, req_count + 1);
 		else
-			write_log(stdout, "File %s not found on %d servers, giving up.\n",
+			write_log(stdout, "File %s not found on %d peers, giving up.\n",
 					basename, req_count + 1);
 
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);

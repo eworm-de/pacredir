@@ -5,7 +5,7 @@ build() {
 }
 
 help() {
-	echo 'This hook adds servers to pacredir.conf from inside initramfs.'
+	echo 'This hook adds peers to pacredir.conf from inside initramfs.'
 	echo 'Useless for installed systems, but can be handy with'
 	echo 'no-persistent configurations.'
 }
