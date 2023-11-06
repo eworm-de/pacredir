@@ -111,6 +111,9 @@ not increased.
 
 Sadly upstream denied, again. 😢
 
+Anyway, pushed this as merge request to Gitlab:
+[support http header 'Cache-Control: no-cache' for soft failure](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/76)
+
 ### Implement CacheServer
 
 A more complex solution that breaks current API is:
@@ -122,6 +125,9 @@ server makes it ignore the server error limit.
 Handling for soft failures is demanded in a long standing upstream bug, and
 the given patch could solve it:
 [FS#23407 - Allow soft failures on Server URLs](https://bugs.archlinux.org/task/23407)
+
+Pushed this as merge request to Gitlab:
+[implement CacheServer](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/74)
 
 Security
 --------
