@@ -131,6 +131,10 @@ the given patch could solve it:
 Pushed this as merge request to Gitlab:
 [implement CacheServer](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/74)
 
+Looks like this is going to be closed as well, but Andrew opened a merge
+request with his own implementation:
+[add cache server support](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/98)
+
 Security
 --------
 
