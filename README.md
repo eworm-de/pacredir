@@ -109,10 +109,12 @@ the status code `404` (not found) the server can indicate that this is a
 soft failure. No error message is shown, and server's error count is
 not increased.
 
-Sadly upstream denied, again. 😢
+Sadly upstream denied, again.
 
-Anyway, pushed this as merge request to Gitlab:
-[support http header 'Cache-Control: no-cache' for soft failure](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/76)
+Anyway, pushed this as merge request to Gitlab, which was closed without
+merging. 😢
+
+~~[support http header 'Cache-Control: no-cache' for soft failure](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/76)~~
 
 ### Implement CacheServer
 
