@@ -85,10 +85,10 @@ server being skipped for the remainder of this transaction.
 However `pacredir` sends a "*404 - not found*" response if the file is not
 available in local network - and is skipped after just three misses.
 
-Currently there is a merge request to 
+The upcoming `pacman` version `7.x` does
 [add cache server support](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/98)
-to `pacman`. That would resolve the situation, so let's hope that will be
-merged soon and is available with `pacman` version `7.x`.
+and resolves the situation. You should use `pacman` with that feature
+backported.
 
 Security
 --------
