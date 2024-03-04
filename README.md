@@ -76,20 +76,6 @@ Please note that `pacredir` redirects to the most recent database file
 found on the local network if it is not too old (currently 24 hours). To
 make sure you really do have the latest files run `pacman -Syu` *twice*.
 
-Current caveat
---------------
-
-With `pacman`'s latest major release `6.x` it now supports a
-*server error limit*: Three download errors from a server results in the
-server being skipped for the remainder of this transaction.
-However `pacredir` sends a "*404 - not found*" response if the file is not
-available in local network - and is skipped after just three misses.
-
-The upcoming `pacman` version `7.x` does
-[add cache server support](https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/98)
-and resolves the situation. You should use `pacman` with that feature
-backported.
-
 Security
 --------
 
