@@ -19,7 +19,7 @@ CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libsystemd)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libcurl)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags avahi-client)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libmicrohttpd)
-CFLAGS_EXTRA	+= -liniparser
+CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags iniparser)
 LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
 
 # the distribution ID

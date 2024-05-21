@@ -44,7 +44,7 @@
 
 /* various headers needing linker options */
 #include <curl/curl.h>
-#include <iniparser.h>
+#include <iniparser/iniparser.h>
 #include <microhttpd.h>
 #include <pthread.h>
 
