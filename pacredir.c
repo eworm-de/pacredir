@@ -675,7 +675,9 @@ int main(int argc, char ** argv) {
 	/* Probing for static pacserve hosts takes some time.
 	 * Receiving a SIGHUP at this time could kill us. So register signal
 	 * SIGHUP here before probing. */
-	signal(SIGHUP, sighup_callback);
+	struct sigaction act_hup = { 0 };
+	act_hup.sa_handler = sighup_callback;
+	sigaction(SIGHUP, &act_hup, NULL);
 
 	/* parse config file */
 	if ((ini = iniparser_load(CONFIGFILE)) == NULL) {
@@ -787,9 +789,11 @@ int main(int argc, char ** argv) {
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	/* register SIG{TERM,KILL,INT} signal callbacks */
-	signal(SIGTERM, sig_callback);
-	signal(SIGKILL, sig_callback);
-	signal(SIGINT, sig_callback);
+	struct sigaction act = { 0 };
+	act.sa_handler = sig_callback;
+	sigaction(SIGTERM, &act, NULL);
+	sigaction(SIGKILL, &act, NULL);
+	sigaction(SIGINT, &act, NULL);
 
 	/* report ready to systemd */
 	sd_notify(0, "READY=1\nSTATUS=Waiting for requests to redirect...");
