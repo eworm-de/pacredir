@@ -776,7 +776,7 @@ int main(int argc, char ** argv) {
 	/* prepare struct to make microhttpd listen on localhost only */
 	address.sin_family = AF_INET;
 	address.sin_port = htons(PORT_PACREDIR);
-	address.sin_addr.s_addr = htonl(0x7f000001);
+	address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
 	/* start http server */
 	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION | MHD_USE_TCP_FASTOPEN, PORT_PACREDIR,
