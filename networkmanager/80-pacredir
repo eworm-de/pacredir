@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ "${2}" == "up" ]; then
+if [ "${2}" = "up" ]; then
 	if systemctl is-active -q pacredir.service; then
 		systemctl reload pacredir.service
 	fi
