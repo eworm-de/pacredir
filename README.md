@@ -106,3 +106,6 @@ URL:
 Mirror:
 [eworm.de](https://git.eworm.de/cgit.cgi/pacredir/about/)
 [GitLab.com](https://gitlab.com/eworm-de/pacredir#pacredir)
+
+---
+[⬆️ Go back to top](#top)

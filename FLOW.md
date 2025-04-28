@@ -1,7 +1,7 @@
 pacredir - request flow
 =======================
 
-[◀ Go back to main README](README.md)
+[⬅️ Go back to main README](README.md)
 
 Whenever `pacman` sends a request to `pacredir` a number of requests
 (increasing with the number of hosts found) is sent through the network.
@@ -34,5 +34,5 @@ All requests made by `pacredir` are answered with http code `404`, thus
 `pacman` receives the same. Finally `pacman` falls back to the next mirror.
 
 ---
-[◀ Go back to main README](README.md)  
-[▲ Go back to top](#top)
+[⬅️ Go back to main README](README.md)  
+[⬆️ Go back to top](#top)
