@@ -7,6 +7,7 @@
 
 [Unit]
 Description=Serve pacman database files and package archives
+Documentation=https://pacredir.eworm.de/
 After=systemd-tmpfiles-setup.service network.target
 
 [Service]
