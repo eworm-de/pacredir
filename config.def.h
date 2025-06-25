@@ -24,7 +24,7 @@
 #define DROP_PRIV_GID	65534
 
 /* website url */
-#define WEBSITE	"https://github.com/eworm-de/pacredir#pacredir"
+#define WEBSITE	"https://pacredir.eworm.de/"
 
 /* This is used for default documents. Usually you will not see this anyway. */
 #define PAGE307 "<html><head><title>307 temporary redirect</title>" \
