@@ -487,7 +487,7 @@ static mhd_result ahc_echo(void * cls,
 		request->last_modified = 0;
 
 		if (verbose > 0)
-			write_log(stdout, "Trying %s: %s\n", request->host, request->url);
+			write_log(stdout, "Trying %s: %s\n", request->host->host, request->url);
 
 		if ((error = pthread_create(&tid[req_count], NULL, get_http_code, (void *)request)) != 0)
 			write_log(stderr, "Could not run thread number %d, errno %d\n", req_count, error);
