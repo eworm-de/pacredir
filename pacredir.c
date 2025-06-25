@@ -187,7 +187,7 @@ static void resolve_callback(AvahiServiceResolver *r,
 				write_log(stdout, "Found service %s on host %s (%s) on interface %s\n",
 						type, host, ipaddress, intname);
 
-			add_host(host, protocol, ipaddress, PORT_PACSERVE, type);
+			add_host(host, protocol, ipaddress, port, type);
 			break;
 	}
 
