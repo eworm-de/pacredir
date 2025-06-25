@@ -184,8 +184,8 @@ static void resolve_callback(AvahiServiceResolver *r,
 			avahi_address_snprint(ipaddress, AVAHI_ADDRESS_STR_MAX, address);
 
 			if (verbose > 0)
-				write_log(stdout, "Found service %s on host %s (%s) on interface %s\n",
-						type, host, ipaddress, intname);
+				write_log(stdout, "Found service %s (port %d) on host %s (%s) on interface %s\n",
+						type, port, host, ipaddress, intname);
 
 			add_host(host, protocol, ipaddress, port, type);
 			break;
