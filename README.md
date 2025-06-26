@@ -42,8 +42,7 @@ followed by:
 This will place an executable at `/usr/bin/pacredir`,
 documentation can be found in `/usr/share/doc/pacredir/`.
 Additionally systemd service files are installed to
-`/usr/lib/systemd/system/` and avahi service files go to
-`/etc/avahi/services/`.
+`/usr/lib/systemd/system/`.
 
 Usage
 -----

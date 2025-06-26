@@ -1,4 +1,5 @@
 # (C) 2013-2025 by Christian Hesse <mail@eworm.de>
+#                  Markus Weippert <markus@gekmihesg.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -6,20 +7,17 @@
 # (at your option) any later version.
 
 [Unit]
-Description=Serve pacman database files and package archives
+Description=Announce pacman database files and package archives
 Documentation=https://pacredir.eworm.de/
-After=systemd-tmpfiles-setup.service network.target
-Upholds=pacserve-announce.service
+After=avahi-daemon.service pacserve.service
+BindsTo=pacserve.service
+Requisite=avahi-daemon.service
 
 [Service]
 EnvironmentFile=/etc/pacserve.conf
-ExecStart=/usr/bin/pacserve /run/pacserve/ --ipv6 --port ${PORT} --no-listing --index empty
-BindReadOnlyPaths=/var/cache/pacman/pkg:/run/pacserve/pkg /var/lib/pacman/sync:/run/pacserve/db
+ExecStart=/usr/bin/avahi-publish -s "pacserve on %l" _pacserve_%ID%_%ARCH%._tcp ${PORT}
 DynamicUser=on
 ProtectSystem=full
 ProtectHome=on
 PrivateDevices=on
 NoNewPrivileges=on
-
-[Install]
-WantedBy=multi-user.target
