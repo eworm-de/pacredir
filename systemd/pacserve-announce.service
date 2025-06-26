@@ -6,20 +6,21 @@
 # (at your option) any later version.
 
 [Unit]
-Description=Serve pacman database files and package archives
-After=systemd-tmpfiles-setup.service network.target
-Wants=pacserve-announce.service
+Description=Announce pacman database files and package archives
+After=avahi-daemon.service pacserve.service
+BindsTo=pacserve.service
+Requisite=avahi-daemon.service
 
 [Service]
+Environment=SERVICE=%l
+Environment=DIST=%o
+Environment=ARCH=
 Environment=PORT=7078
 EnvironmentFile=-/etc/pacserve.conf
-ExecStart=/usr/bin/pacserve /run/pacserve/ --ipv6 --port ${PORT} --no-listing --index empty
-BindReadOnlyPaths=/var/cache/pacman/pkg:/run/pacserve/pkg /var/lib/pacman/sync:/run/pacserve/db
+ExecStart=/bin/sh -c 'exec /usr/bin/avahi-publish -s $$1 _pacserve_$$2_$${3:-$$(uname -m)}._tcp $$4' \
+    pacserve-announce ${SERVICE} ${DIST} ${ARCH} ${PORT}
 DynamicUser=on
 ProtectSystem=full
 ProtectHome=on
 PrivateDevices=on
 NoNewPrivileges=on
-
-[Install]
-WantedBy=multi-user.target
