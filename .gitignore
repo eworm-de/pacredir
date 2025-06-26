@@ -4,7 +4,7 @@
 arch
 pacredir
 config.h
-avahi/pacserve.service
+systemd/pacserve-announce.service
 version.h
 pacredir-*.tar.xz
 pacredir-*.tar.xz.asc
