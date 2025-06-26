@@ -56,6 +56,7 @@ install-bin: pacredir avahi/pacserve.service
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)$(PREFIX)/bin/pacredir
 	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacserve
 	$(INSTALL) -D -m0644 pacredir.conf $(DESTDIR)/etc/pacredir.conf
+	$(INSTALL) -D -m0644 pacserve.conf $(DESTDIR)/etc/pacserve.conf
 	$(INSTALL) -D -m0644 pacman/pacredir $(DESTDIR)/etc/pacman.d/pacredir
 	$(INSTALL) -D -m0644 avahi/pacserve.service $(DESTDIR)/etc/avahi/services/pacserve.service
 	$(INSTALL) -D -m0644 systemd/pacredir.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacredir.service

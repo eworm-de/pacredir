@@ -11,7 +11,8 @@ Documentation=https://pacredir.eworm.de/
 After=systemd-tmpfiles-setup.service network.target
 
 [Service]
-ExecStart=/usr/bin/pacserve /run/pacserve/ --ipv6 --port 7078 --no-listing --index empty
+EnvironmentFile=/etc/pacserve.conf
+ExecStart=/usr/bin/pacserve /run/pacserve/ --ipv6 --port ${PORT} --no-listing --index empty
 BindReadOnlyPaths=/var/cache/pacman/pkg:/run/pacserve/pkg /var/lib/pacman/sync:/run/pacserve/db
 DynamicUser=on
 ProtectSystem=full
