@@ -38,7 +38,7 @@
 #define PORT_PACSERVE	7078
 
 /* avahi service names */
-#define PACSERVE	"_pacserve_" ID "_" ARCH "._tcp"
+#define PACSERVE	"_pacserve-" ID "-" ARCH "._tcp"
 
 /* path to the config file */
 #define CONFIGFILE	"/etc/pacredir.conf"
