@@ -181,17 +181,17 @@ static void resolve_callback(AvahiServiceResolver *r,
 			break;
 
 		case AVAHI_RESOLVER_FOUND:
-			if (!avahi_string_list_find(txt, PACSERVE_ID)) {
+			if (!avahi_string_list_find(txt, "id=" ID)) {
 				if (verbose > 0)
-					write_log(stderr, "Service %s (port %d) on host %s on interface %s does not match %s\n",
-							type, port, host, intname, PACSERVE_ID);
+					write_log(stderr, "Service %s (port %d) on host %s on interface %s does not match id=" ID "\n",
+							type, port, host, intname);
 				break;
 			}
 
-			if (!avahi_string_list_find(txt, PACSERVE_ARCH)) {
+			if (!avahi_string_list_find(txt, "arch=" ARCH)) {
 				if (verbose > 0)
-					write_log(stderr, "Service %s (port %d) on host %s on interface %s does not match %s\n",
-							type, port, host, intname, PACSERVE_ARCH);
+					write_log(stderr, "Service %s (port %d) on host %s on interface %s does not match arch=" ARCH "\n",
+							type, port, host, intname);
 				break;
 			}
 

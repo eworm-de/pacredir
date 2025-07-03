@@ -36,13 +36,13 @@ HTML = $(MARKDOWN:.md=.html)
 all: pacredir systemd/pacserve-announce.service $(HTML)
 
 pacredir: pacredir.c pacredir.h config.h version.h
-	$(CC) pacredir.c $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -DARCH=\"$(ARCH)\" -DID=\"$(ID)\" -o pacredir
+	$(CC) pacredir.c $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -o pacredir
 
 config.h:
 	$(CP) config.def.h config.h
 
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
-	printf "#ifndef VERSION\n#define VERSION \"%s\"\n#endif\n" $(shell git describe --long 2>/dev/null || echo ${VERSION}) > $@
+	printf "#ifndef VERSION\n#define VERSION \"%s\"\n#endif\n#define ARCH \"%s\"\n#define ID   \"%s\"\n" $(shell git describe --long 2>/dev/null || echo ${VERSION}) $(ARCH) $(ID) > $@
 
 systemd/pacserve-announce.service: systemd/pacserve-announce.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/;s/%ID%/$(ID)/' systemd/pacserve-announce.service.in > systemd/pacserve-announce.service

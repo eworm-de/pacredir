@@ -39,8 +39,6 @@
 
 /* avahi service names */
 #define PACSERVE	"_pacserve._tcp"
-#define PACSERVE_ID	"id=" ID
-#define PACSERVE_ARCH	"arch=" ARCH
 
 /* path to the config file */
 #define CONFIGFILE	"/etc/pacredir.conf"
