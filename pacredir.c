@@ -181,6 +181,20 @@ static void resolve_callback(AvahiServiceResolver *r,
 			break;
 
 		case AVAHI_RESOLVER_FOUND:
+			if (!avahi_string_list_find(txt, PACSERVE_ID)) {
+				if (verbose > 0)
+					write_log(stderr, "Service %s (port %d) on host %s on interface %s does not match %s\n",
+							type, port, host, intname, PACSERVE_ID);
+				break;
+			}
+
+			if (!avahi_string_list_find(txt, PACSERVE_ARCH)) {
+				if (verbose > 0)
+					write_log(stderr, "Service %s (port %d) on host %s on interface %s does not match %s\n",
+							type, port, host, intname, PACSERVE_ARCH);
+				break;
+			}
+
 			avahi_address_snprint(ipaddress, AVAHI_ADDRESS_STR_MAX, address);
 
 			if (verbose > 0)
