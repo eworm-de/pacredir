@@ -41,6 +41,7 @@
 #include <avahi-client/lookup.h>
 #include <avahi-common/error.h>
 #include <avahi-common/simple-watch.h>
+#include <avahi-common/strlst.h>
 
 /* various headers needing linker options */
 #include <curl/curl.h>

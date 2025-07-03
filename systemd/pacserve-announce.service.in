@@ -15,7 +15,7 @@ Requisite=avahi-daemon.service
 
 [Service]
 EnvironmentFile=/etc/pacserve.conf
-ExecStart=/usr/bin/avahi-publish -s "pacserve on %l" _pacserve-%ID%-%ARCH%._tcp ${PORT}
+ExecStart=/usr/bin/avahi-publish -s "pacserve on %l" _pacserve._tcp ${PORT} id=%ID% arch=%ARCH%
 DynamicUser=on
 ProtectSystem=full
 ProtectHome=on

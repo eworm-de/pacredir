@@ -23,8 +23,8 @@ CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags iniparser)
 LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
 
 # the distribution ID
-ARCH	:= $(shell shopt -u extglob && source /etc/makepkg.conf && echo $${CARCH//_/-})
-ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $${ID//_/-})
+ARCH	:= $(shell shopt -u extglob && source /etc/makepkg.conf && echo $$CARCH)
+ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $$ID)
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
