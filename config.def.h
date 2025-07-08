@@ -37,7 +37,7 @@
 #define PORT_PACREDIR	7077
 #define PORT_PACSERVE	7078
 
-/* avahi service names */
+/* mDNS service name */
 #define PACSERVE	"_pacserve._tcp"
 
 /* path to the config file */

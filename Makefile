@@ -1,4 +1,4 @@
-# pacredir - redirect pacman requests, assisted by avahi service discovery
+# pacredir - redirect pacman requests, assisted by mDNS Service Discovery
 
 PREFIX		:= /usr
 REPRODUCIBLE	:= 0
@@ -17,7 +17,6 @@ CFLAGS	+= -std=c11 -O2 -fPIC -Wall -Werror
 CFLAGS_EXTRA	+= -lpthread
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libsystemd)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libcurl)
-CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags avahi-client)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libmicrohttpd)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags iniparser)
 LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
