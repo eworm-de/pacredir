@@ -37,12 +37,6 @@
 /* systemd headers */
 #include <systemd/sd-daemon.h>
 
-/* Avahi headers */
-#include <avahi-client/lookup.h>
-#include <avahi-common/error.h>
-#include <avahi-common/simple-watch.h>
-#include <avahi-common/strlst.h>
-
 /* various headers needing linker options */
 #include <curl/curl.h>
 #include <iniparser/iniparser.h>
@@ -66,10 +60,10 @@
 struct hosts {
 	/* host name */
 	char * host;
-	/* protocol (AVAHI_PROTO_INET, AVAHI_PROTO_INET6 or AVAHI_PROTO_UNSPEC) */
-	AvahiProtocol proto;
+	/* protocol (AF_UNSPEC, AF_INET & AF_INET6) */
+	uint8_t proto;
 	/* resolved address */
-	char address[AVAHI_ADDRESS_STR_MAX];
+	char address[INET6_ADDRSTRLEN];
 	/* network port */
 	uint16_t port;
 	/* true if host/service is online */
@@ -106,44 +100,13 @@ struct request {
 
 /* write_log */
 int write_log(FILE *stream, const char *format, ...);
-/* get_fqdn */
-char * get_fqdn(const char * hostname, const char * domainname);
 /* get_url */
-char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri);
+char * get_url(const char * hostname, uint8_t proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri);
 
 /* add_host */
-int add_host(const char * host, AvahiProtocol proto, const char * address, const uint16_t port, const char * type);
+int add_host(const char * host, uint8_t proto, const char * address, const uint16_t port, const char * type);
 /* remove_host */
-int remove_host(const char * host, AvahiProtocol proto, const char * type);
-
-/* resolve_callback */
-static void resolve_callback(AvahiServiceResolver *r,
-		AvahiIfIndex interface,
-		AvahiProtocol protocol,
-		AvahiResolverEvent event,
-		const char *name,
-		const char *type,
-		const char *domain,
-		const char *host,
-		const AvahiAddress *address,
-		uint16_t port,
-		AvahiStringList *txt,
-		AvahiLookupResultFlags flags,
-		void* userdata);
-/* browse_callback */
-static void browse_callback(AvahiServiceBrowser *b,
-		AvahiIfIndex interface,
-		AvahiProtocol protocol,
-		AvahiBrowserEvent event,
-		const char *name,
-		const char *type,
-		const char *domain,
-		AvahiLookupResultFlags flags,
-		void* userdata);
-/* client_callback */
-static void client_callback(AvahiClient *c,
-		AvahiClientState state,
-		void * userdata);
+int remove_host(const char * host, uint8_t proto, const char * type);
 
 /* get_http_code */
 static void * get_http_code(void * data);

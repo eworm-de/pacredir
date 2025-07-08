@@ -5,7 +5,9 @@ pacredir
 [![GitHub forks](https://img.shields.io/github/forks/eworm-de/pacredir?logo=GitHub&style=flat&color=green)](https://github.com/eworm-de/pacredir/network)
 [![GitHub watchers](https://img.shields.io/github/watchers/eworm-de/pacredir?logo=GitHub&style=flat&color=blue)](https://github.com/eworm-de/pacredir/watchers)
 
-**pacredir - redirect pacman requests, assisted by avahi service discovery**
+**pacredir - redirect pacman requests, assisted by... nothing**
+
+(Work in progress - currently only static hosts are supported.)
 
 By default every [Arch Linux ↗️](https://www.archlinux.org/) installation
 downloads its package files from online mirrors, transferring all the
@@ -13,8 +15,7 @@ bits via WAN connection.
 
 But often other Arch systems may be around that already have the files
 available on local storage - just a fast LAN connection away. This is
-where `pacredir` can help. It uses [Avahi ↗️](https://avahi.org/) to find
-other instances and get the files there if available.
+where `pacredir` can help.
 
 *Use at your own risk*, pay attention to
 [license and warranty](#license-and-warranty), and
@@ -26,7 +27,6 @@ Requirements
 To compile and run `pacredir` you need:
 
 * [systemd ↗️](https://www.github.com/systemd/systemd)
-* [avahi ↗️](https://avahi.org/)
 * [libmicrohttpd ↗️](https://www.gnu.org/software/libmicrohttpd/)
 * [curl ↗️](https://curl.haxx.se/)
 * [iniparser ↗️](https://github.com/ndevilla/iniparser)

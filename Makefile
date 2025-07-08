@@ -1,4 +1,4 @@
-# pacredir - redirect pacman requests, assisted by avahi service discovery
+# pacredir - redirect pacman requests, assisted by mDNS Service Discovery
 
 PREFIX		:= /usr
 REPRODUCIBLE	:= 0
@@ -17,7 +17,6 @@ CFLAGS	+= -std=c11 -O2 -fPIC -Wall -Werror
 CFLAGS_EXTRA	+= -lpthread
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libsystemd)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libcurl)
-CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags avahi-client)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags libmicrohttpd)
 CFLAGS_EXTRA	+= $(shell pkg-config --libs --cflags iniparser)
 LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
@@ -33,7 +32,7 @@ VERSION := 0.6.0
 MARKDOWN = $(wildcard *.md)
 HTML = $(MARKDOWN:.md=.html)
 
-all: pacredir systemd/pacserve-announce.service $(HTML)
+all: pacredir $(HTML)
 
 pacredir: pacredir.c pacredir.h config.h version.h
 	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -o $@
@@ -44,15 +43,12 @@ config.h: config.def.h
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 	printf "#ifndef VERSION\n#define VERSION \"%s\"\n#endif\n#define ARCH \"%s\"\n#define ID   \"%s\"\n" $(shell git describe --long 2>/dev/null || echo ${VERSION}) $(ARCH) $(ID) > $@
 
-systemd/pacserve-announce.service: systemd/pacserve-announce.service.in
-	$(SED) 's/%ARCH%/$(ARCH)/;s/%ID%/$(ID)/' $< > $@
-
 %.html: %.md Makefile
 	markdown $< | sed 's/href="\([-[:alnum:]]*\)\.md"/href="\1.html"/g' > $@
 
 install: install-bin install-doc
 
-install-bin: pacredir systemd/pacserve-announce.service
+install-bin: pacredir
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)$(PREFIX)/bin/pacredir
 	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacserve
 	$(INSTALL) -D -m0644 etc/pacredir.conf $(DESTDIR)/etc/pacredir.conf
@@ -60,7 +56,6 @@ install-bin: pacredir systemd/pacserve-announce.service
 	$(INSTALL) -D -m0644 pacman/pacredir $(DESTDIR)/etc/pacman.d/pacredir
 	$(INSTALL) -D -m0644 systemd/pacredir.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacredir.service
 	$(INSTALL) -D -m0644 systemd/pacserve.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service
-	$(INSTALL) -D -m0644 systemd/pacserve-announce.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve-announce.service
 	$(INSTALL) -D -m0644 systemd/sysusers.conf $(DESTDIR)$(PREFIX)/lib/sysusers.d/pacredir.conf
 	$(INSTALL) -D -m0644 systemd/tmpfiles.conf $(DESTDIR)$(PREFIX)/lib/tmpfiles.d/pacredir.conf
 	$(INSTALL) -D -m0644 dhcpcd/80-pacredir $(DESTDIR)$(PREFIX)/lib/dhcpcd/dhcpcd-hooks/80-pacredir
@@ -73,10 +68,10 @@ install-doc: $(HTML)
 	$(INSTALL) -D -m0644 $(wildcard FLOW/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
 
 clean:
-	$(RM) -f *.o *~ pacredir systemd/pacserve-announce.service $(HTML) version.h
+	$(RM) -f *.o *~ pacredir $(HTML) version.h
 
 distclean:
-	$(RM) -f *.o *~ pacredir systemd/pacserve-announce.service $(HTML) version.h config.h
+	$(RM) -f *.o *~ pacredir $(HTML) version.h config.h
 
 release:
 	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz

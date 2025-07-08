@@ -32,8 +32,7 @@ const static struct option options_long[] = {
 struct hosts * hosts = NULL;
 struct ignore_interfaces * ignore_interfaces = NULL;
 int max_threads = 0;
-static AvahiSimplePoll *simple_poll = NULL;
-uint8_t verbose = 0;
+uint8_t verbose = 0, quit = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
 /*** write_log ***/
@@ -47,18 +46,8 @@ int write_log(FILE *stream, const char *format, ...) {
 	return EXIT_SUCCESS;
 }
 
-/*** get_fqdn ***/
-char * get_fqdn(const char * hostname, const char * domainname) {
-	char * name;
-
-	name = malloc(strlen(hostname) + strlen(domainname) + 2 /* '.' and null char */);
-	sprintf(name, "%s.%s", hostname, domainname);
-
-	return name;
-}
-
 /*** get_url ***/
-char * get_url(const char * hostname, AvahiProtocol proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri) {
+char * get_url(const char * hostname, uint8_t proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri) {
 	const char * host, * dir;
 	char * url;
 
@@ -73,7 +62,7 @@ char * get_url(const char * hostname, AvahiProtocol proto, const char * address,
 			+ 4 /* extra dir */
 			+ strlen(uri));
 
-	if (*address != 0 && proto == AVAHI_PROTO_INET6)
+	if (*address != 0 && proto == AF_INET6)
 		sprintf(url, "http://[%s]:%d/%s/%s", address, port, dir, uri);
 	else
 		sprintf(url, "http://%s:%d/%s/%s", host, port, dir, uri);
@@ -82,7 +71,7 @@ char * get_url(const char * hostname, AvahiProtocol proto, const char * address,
 }
 
 /*** add_host ***/
-int add_host(const char * host, AvahiProtocol proto, const char * address, const uint16_t port, const char * type) {
+int add_host(const char * host, uint8_t proto, const char * address, const uint16_t port, const char * type) {
 	struct hosts * tmphosts = hosts;
 	struct request request;
 
@@ -91,7 +80,7 @@ int add_host(const char * host, AvahiProtocol proto, const char * address, const
 			/* host already exists */
 			if (verbose > 0)
 				write_log(stdout, "Updating service %s (port %d) on host %s (%s)\n",
-						type, port, host, avahi_proto_to_string(proto));
+						type, port, host, "-");
 			goto update;
 		}
 		tmphosts = tmphosts->next;
@@ -100,10 +89,10 @@ int add_host(const char * host, AvahiProtocol proto, const char * address, const
 	/* host not found, adding a new one */
 	if (verbose > 0)
 		write_log(stdout, "Adding host %s (%s) with service %s (port %d)\n",
-				host, avahi_proto_to_string(proto), type, port);
+				host, "-", type, port);
 
 	tmphosts->host = strdup(host);
-	tmphosts->proto = AVAHI_PROTO_UNSPEC;
+	tmphosts->proto = AF_UNSPEC;
 	*tmphosts->address = 0;
 
 	tmphosts->port = 0;
@@ -118,7 +107,7 @@ int add_host(const char * host, AvahiProtocol proto, const char * address, const
 update:
 	tmphosts->proto = proto;
 	if (address != NULL)
-		memcpy(tmphosts->address, address, AVAHI_ADDRESS_STR_MAX);
+		memcpy(tmphosts->address, address, INET6_ADDRSTRLEN);
 
 	tmphosts->online = 1;
 	tmphosts->port = port;
@@ -135,14 +124,14 @@ update:
 }
 
 /*** remove_host ***/
-int remove_host(const char * host, AvahiProtocol proto, const char * type) {
+int remove_host(const char * host, uint8_t proto, const char * type) {
 	struct hosts * tmphosts = hosts;
 
 	while (tmphosts->host != NULL) {
 		if (strcmp(tmphosts->host, host) == 0 && tmphosts->proto == proto) {
 			if (verbose > 0)
 				write_log(stdout, "Marking service %s on host %s (%s) offline\n",
-						type, host, avahi_proto_to_string(proto));
+						type, host, "-");
 			tmphosts->online = 0;
 			break;
 		}
@@ -150,145 +139,6 @@ int remove_host(const char * host, AvahiProtocol proto, const char * type) {
 	}
 
 	return EXIT_SUCCESS;
-}
-
-/*** resolve_callback ***
- * Called whenever a service has been resolved successfully or timed out */
-static void resolve_callback(AvahiServiceResolver *r,
-		AvahiIfIndex interface,
-		AvahiProtocol protocol,
-		AvahiResolverEvent event,
-		const char *name,
-		const char *type,
-		const char *domain,
-		const char *host,
-		const AvahiAddress *address,
-		uint16_t port,
-		AvahiStringList *txt,
-		AvahiLookupResultFlags flags,
-		void* userdata) {
-	char ipaddress[AVAHI_ADDRESS_STR_MAX];
-	char intname[IFNAMSIZ];
-
-	assert(r);
-
-	if_indextoname(interface, intname);
-
-	switch (event) {
-		case AVAHI_RESOLVER_FAILURE:
-			write_log(stderr, "Failed to resolve service '%s' of type '%s' in domain '%s': %s\n",
-					name, type, domain, avahi_strerror(avahi_client_errno(avahi_service_resolver_get_client(r))));
-			break;
-
-		case AVAHI_RESOLVER_FOUND:
-			if (!avahi_string_list_find(txt, "id=" ID)) {
-				if (verbose > 0)
-					write_log(stderr, "Service %s (port %d) on host %s on interface %s does not match id=" ID "\n",
-							type, port, host, intname);
-				break;
-			}
-
-			if (!avahi_string_list_find(txt, "arch=" ARCH)) {
-				if (verbose > 0)
-					write_log(stderr, "Service %s (port %d) on host %s on interface %s does not match arch=" ARCH "\n",
-							type, port, host, intname);
-				break;
-			}
-
-			avahi_address_snprint(ipaddress, AVAHI_ADDRESS_STR_MAX, address);
-
-			if (verbose > 0)
-				write_log(stdout, "Found service %s (port %d) on host %s (%s) on interface %s\n",
-						type, port, host, ipaddress, intname);
-
-			add_host(host, protocol, ipaddress, port, type);
-			break;
-	}
-
-	avahi_service_resolver_free(r);
-}
-
-/*** browse_callback ***
- * Called whenever a new services becomes available on the LAN or is removed from the LAN */
-static void browse_callback(AvahiServiceBrowser *b,
-		AvahiIfIndex interface,
-		AvahiProtocol protocol,
-		AvahiBrowserEvent event,
-		const char *name,
-		const char *type,
-		const char *domain,
-		AvahiLookupResultFlags flags,
-		void* userdata) {
-	char * host;
-	char intname[IFNAMSIZ];
-	struct ignore_interfaces * tmp_ignore_interfaces = ignore_interfaces;
-	AvahiClient * c;
-
-	assert(b);
-
-	c = userdata;
-	if_indextoname(interface, intname);
-
-	switch (event) {
-		case AVAHI_BROWSER_FAILURE:
-			write_log(stderr, "Failed to browse: %s\n", avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b))));
-			avahi_simple_poll_quit(simple_poll);
-			return;
-
-		case AVAHI_BROWSER_NEW:
-			host = get_fqdn(name, domain);
-
-			if (flags & AVAHI_LOOKUP_RESULT_LOCAL)
-				goto out;
-
-			/* check whether to ignore the interface */
-			while (tmp_ignore_interfaces->next != NULL) {
-				if (strcmp(intname, tmp_ignore_interfaces->interface) == 0) {
-					if (verbose > 0)
-						write_log(stdout, "Ignoring service %s on host %s on interface %s\n",
-								type, host, intname);
-					goto out;
-				}
-				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
-			}
-
-			if ((avahi_service_resolver_new(c, interface, protocol, name, type, domain, protocol, 0, resolve_callback, c)) == NULL)
-				write_log(stderr, "Failed to create resolver for service '%s' of type '%s' in domain '%s': %s\n",
-						name, type, domain, avahi_strerror(avahi_client_errno(c)));
-out:
-			free(host);
-
-			break;
-
-		case AVAHI_BROWSER_REMOVE:
-			host = get_fqdn(name, domain);
-
-			if (verbose > 0)
-				write_log(stdout, "Service %s on host %s disappeared\n",
-						type, host);
-
-			remove_host(host, protocol, type);
-
-			free(host);
-
-			break;
-
-		case AVAHI_BROWSER_ALL_FOR_NOW:
-		case AVAHI_BROWSER_CACHE_EXHAUSTED:
-			break;
-	}
-}
-
-/*** client_callback ***/
-static void client_callback(AvahiClient *c,
-		AvahiClientState state,
-		void * userdata) {
-	assert(c);
-
-	if (state == AVAHI_CLIENT_FAILURE) {
-		write_log(stderr, "Server connection failure: %s\n", avahi_strerror(avahi_client_errno(c)));
-		avahi_simple_poll_quit(simple_poll);
-	}
 }
 
 /*** get_http_code ***/
@@ -605,7 +455,7 @@ response:
 void sig_callback(int signal) {
 	write_log(stdout, "Received signal '%s', quitting.\n", strsignal(signal));
 
-	avahi_simple_poll_quit(simple_poll);
+	quit = 1;
 }
 
 /*** sighup_callback ***/
@@ -626,12 +476,10 @@ int main(int argc, char ** argv) {
 	dictionary * ini;
 	const char * inistring;
 	char * values, * value;
-	int8_t use_proto = AVAHI_PROTO_UNSPEC;
+	int8_t use_proto = AF_UNSPEC;
 	uint16_t port;
 	struct ignore_interfaces * tmp_ignore_interfaces;
-	AvahiClient *client = NULL;
-	AvahiServiceBrowser *pacserve = NULL;
-	int error, i, ret = 1;
+	int i, ret = 1;
 	struct MHD_Daemon * mhd;
 	struct hosts * tmphosts;
 	struct sockaddr_in address;
@@ -735,12 +583,12 @@ int main(int argc, char ** argv) {
 				case '4':
 					if (verbose > 0)
 						write_log(stdout, "Using IPv4 only\n");
-					use_proto = AVAHI_PROTO_INET;
+					use_proto = AF_INET;
 					break;
 				case '6':
 					if (verbose > 0)
 						write_log(stdout, "Using IPv6 only\n");
-					use_proto = AVAHI_PROTO_INET6;
+					use_proto = AF_INET6;
 					break;
 			}
 		}
@@ -758,7 +606,7 @@ int main(int argc, char ** argv) {
 					*strchr(value, ':') = 0;
 				} else
 					port = PORT_PACSERVE;
-				add_host(value, AVAHI_PROTO_UNSPEC, NULL, port, PACSERVE);
+				add_host(value, use_proto, NULL, port, PACSERVE);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
@@ -766,25 +614,6 @@ int main(int argc, char ** argv) {
 
 		/* done reading config file, free */
 		iniparser_freedict(ini);
-	}
-
-	/* allocate main loop object */
-	if ((simple_poll = avahi_simple_poll_new()) == NULL) {
-		write_log(stderr, "Failed to create simple poll object.\n");
-		goto fail;
-	}
-
-	/* allocate a new client */
-	if ((client = avahi_client_new(avahi_simple_poll_get(simple_poll), 0, client_callback, NULL, &error)) == NULL) {
-		write_log(stderr, "Failed to create client: %s\n", avahi_strerror(error));
-		goto fail;
-	}
-
-	/* create the service browser for PACSERVE */
-	if ((pacserve = avahi_service_browser_new(client, AVAHI_IF_UNSPEC,
-			 use_proto, PACSERVE, NULL, 0, browse_callback, client)) == NULL) {
-		write_log(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
-		goto fail;
 	}
 
 	/* prepare struct to make microhttpd listen on localhost only */
@@ -812,8 +641,9 @@ int main(int argc, char ** argv) {
 	/* report ready to systemd */
 	sd_notify(0, "READY=1\nSTATUS=Waiting for requests to redirect...");
 
-	/* run the main loop */
-	avahi_simple_poll_loop(simple_poll);
+	/* main loop */
+	while(!quit)
+		sleep(UINT_MAX);
 
 	/* report stopping to systemd */
 	sd_notify(0, "STOPPING=1\nSTATUS=Stopping...");
@@ -842,15 +672,6 @@ fail:
 		free(ignore_interfaces);
 		ignore_interfaces = tmp_ignore_interfaces;
 	}
-
-	if (pacserve)
-		avahi_service_browser_free(pacserve);
-
-	if (client)
-		avahi_client_free(client);
-
-	if (simple_poll)
-		avahi_simple_poll_free(simple_poll);
 
 	sd_notify(0, "STATUS=Stopped. Bye!");
 
