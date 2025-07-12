@@ -28,6 +28,7 @@
 #include <math.h>
 #include <net/if.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,7 @@
 #include <time.h>
 
 /* systemd headers */
+#include <systemd/sd-bus.h>
 #include <systemd/sd-daemon.h>
 
 /* various headers needing linker options */
@@ -46,6 +48,12 @@
 /* compile time configuration */
 #include "config.h"
 #include "version.h"
+
+#define DNS_CLASS_IN 1U
+#define DNS_TYPE_PTR 12U
+
+#define SD_RESOLVED_NO_SYNTHESIZE	(UINT64_C(1) << 11)
+#define SD_RESOLVED_NO_ZONE		(UINT64_C(1) << 13)
 
 #define PROGNAME	"pacredir"
 
@@ -60,14 +68,12 @@
 struct hosts {
 	/* host name */
 	char * host;
-	/* protocol (AF_UNSPEC, AF_INET & AF_INET6) */
-	uint8_t proto;
-	/* resolved address */
-	char address[INET6_ADDRSTRLEN];
 	/* network port */
 	uint16_t port;
 	/* true if host/service is online */
 	uint8_t online;
+	/* intermediate state while querying mDNS */
+	uint8_t present;
 	/* unix timestamp of last bad request */
 	__time_t badtime;
 	/* count the number of bad requests */
@@ -101,12 +107,19 @@ struct request {
 /* write_log */
 int write_log(FILE *stream, const char *format, ...);
 /* get_url */
-char * get_url(const char * hostname, uint8_t proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri);
+char * get_url(const char * hostname, const uint16_t port, const uint8_t dbfile, const char * uri);
+
+/* get_name */
+static size_t get_name(const uint8_t* p, uint8_t* name);
+/* process_reply_record */
+static char* process_reply_record(const void *rr, size_t sz);
+/* update_hosts */
+int update_hosts(void);
 
 /* add_host */
-int add_host(const char * host, uint8_t proto, const char * address, const uint16_t port, const char * type);
+int add_host(const char * host, const uint16_t port);
 /* remove_host */
-int remove_host(const char * host, uint8_t proto, const char * type);
+int remove_host(const char * host);
 
 /* get_http_code */
 static void * get_http_code(void * data);

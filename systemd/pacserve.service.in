@@ -8,12 +8,16 @@
 [Unit]
 Description=Serve pacman database files and package archives
 Documentation=https://pacredir.eworm.de/
-After=systemd-tmpfiles-setup.service network.target
-Upholds=pacserve-announce.service
+Requires=systemd-resolved.service
+After=systemd-tmpfiles-setup.service network.target systemd-resolved.service
 
 [Service]
 EnvironmentFile=/etc/pacserve.conf
 ExecStart=/usr/bin/pacserve /run/pacserve/ --ipv6 --port ${PORT} --no-listing --index empty
+ExecStartPost=+/usr/bin/sh -c "printf '[Service]\nName=pacserve on %%%%H\nType=_pacserve._tcp\nPort=${PORT}\nTxtText=id=%ID% arch=%ARCH%\n' > /run/systemd/dnssd/pacserve.dnssd"
+ExecStartPost=+/usr/bin/systemctl reload systemd-resolved.service
+ExecStopPost=+/usr/bin/sh -c "printf '# service stopped\n' > /run/systemd/dnssd/pacserve.dnssd"
+ExecStopPost=+/usr/bin/systemctl reload systemd-resolved.service
 BindReadOnlyPaths=/var/cache/pacman/pkg:/run/pacserve/pkg /var/lib/pacman/sync:/run/pacserve/db
 DynamicUser=on
 ProtectSystem=full
