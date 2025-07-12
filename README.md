@@ -5,9 +5,7 @@ pacredir
 [![GitHub forks](https://img.shields.io/github/forks/eworm-de/pacredir?logo=GitHub&style=flat&color=green)](https://github.com/eworm-de/pacredir/network)
 [![GitHub watchers](https://img.shields.io/github/watchers/eworm-de/pacredir?logo=GitHub&style=flat&color=blue)](https://github.com/eworm-de/pacredir/watchers)
 
-**pacredir - redirect pacman requests, assisted by... nothing**
-
-(Work in progress - currently only static hosts are supported.)
+**pacredir - redirect pacman requests, assisted by mDNS Service Discovery**
 
 By default every [Arch Linux ↗️](https://www.archlinux.org/) installation
 downloads its package files from online mirrors, transferring all the
@@ -16,6 +14,9 @@ bits via WAN connection.
 But often other Arch systems may be around that already have the files
 available on local storage - just a fast LAN connection away. This is
 where `pacredir` can help.
+It uses [mDNS Service Discovery ↗️](https://www.freedesktop.org/software/systemd/man/latest/systemd.dnssd.html)
+by [systemd-resolved ↗️](https://www.freedesktop.org/software/systemd/man/latest/systemd-resolved)
+to find other instances and redirect `pacman` there if available.
 
 *Use at your own risk*, pay attention to
 [license and warranty](#license-and-warranty), and
@@ -55,9 +56,13 @@ Additionally systemd service files are installed to
 Usage
 -----
 
-Enable systemd services `pacserve` and `pacredir`, open TCP
-port `7078` and add the following line to your repository
-definitions in `pacman.conf`:
+Make sure *mDNS* is enabled in `systemd-resolved`, and also make sure it
+is enabled for all interface you want to use this with. Run `resolvectl`
+to get an overview.
+
+Then enable and start systemd services `pacserve` and `pacredir`, allow
+TCP port `7078` in your firewall and add the following line to your
+repository definitions in `pacman.conf`:
 
     Include = /etc/pacman.d/pacredir
 

@@ -32,11 +32,11 @@ const static struct option options_long[] = {
 struct hosts * hosts = NULL;
 struct ignore_interfaces * ignore_interfaces = NULL;
 int max_threads = 0;
-uint8_t verbose = 0, quit = 0;
+uint8_t quit = 0, verbose = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
 /*** write_log ***/
-int write_log(FILE *stream, const char *format, ...) {
+static int write_log(FILE *stream, const char *format, ...) {
 	va_list args;
 	va_start(args, format);
 
@@ -47,74 +47,345 @@ int write_log(FILE *stream, const char *format, ...) {
 }
 
 /*** get_url ***/
-char * get_url(const char * hostname, uint8_t proto, const char * address, const uint16_t port, const uint8_t dbfile, const char * uri) {
-	const char * host, * dir;
+static char * get_url(const char * hostname, const uint16_t port, const uint8_t dbfile, const char * uri) {
+	const char * dir;
 	char * url;
 
-	host = *address ? address : hostname;
-
 	dir = dbfile ? "db" : "pkg";
-
-	url = malloc(10 /* static chars of an url & null char */
-			+ strlen(host)
+	url = malloc(11 /* static chars of an url & null char */
+			+ strlen(hostname)
 			+ 5 /* max strlen of decimal 16bit value */
-			+ 2 /* square brackets for IPv6 address */
-			+ 4 /* extra dir */
+			+ strlen(dir)
 			+ strlen(uri));
 
-	if (*address != 0 && proto == AF_INET6)
-		sprintf(url, "http://[%s]:%d/%s/%s", address, port, dir, uri);
-	else
-		sprintf(url, "http://%s:%d/%s/%s", host, port, dir, uri);
+	sprintf(url, "http://%s:%d/%s/%s", hostname, port, dir, uri);
 
 	return url;
 }
 
+/*** update_interfaces ***/
+static void update_interfaces(void) {
+	struct ignore_interfaces *ignore_interfaces_ptr = ignore_interfaces;
+
+	while (ignore_interfaces_ptr->interface != NULL) {
+		ignore_interfaces_ptr->ifindex = if_nametoindex(ignore_interfaces_ptr->interface);
+		ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+	}
+}
+
+/*** get_name ***/
+static size_t get_name(const uint8_t* rr_ptr, char* name) {
+	uint8_t dot = 0;
+	char *name_ptr = name;
+
+	for (;;) {
+		if (*rr_ptr == 0)
+			return (strlen(name) + 2);
+		if (dot)
+			*(name_ptr++) = '.';
+		else
+			dot++;
+		memcpy(name_ptr, rr_ptr + 1, *rr_ptr + 1);
+		name_ptr += *rr_ptr;
+		rr_ptr += *rr_ptr + 1;
+	}
+}
+
+/*** process_reply_record ***/
+static char* process_reply_record(const void *rr, size_t sz) {
+	uint16_t class, type, rdlength;
+	const uint8_t *rr_ptr = rr;
+	char *name;
+	uint32_t ttl;
+
+	rr_ptr += strlen((char*)rr_ptr) + 1;
+	memcpy(&type, rr_ptr, sizeof(uint16_t));
+	rr_ptr += sizeof(uint16_t);
+	memcpy(&class, rr_ptr, sizeof(uint16_t));
+	rr_ptr += sizeof(uint16_t);
+	memcpy(&ttl, rr_ptr, sizeof(uint32_t));
+	rr_ptr += sizeof(uint32_t);
+	memcpy(&rdlength, rr_ptr, sizeof(uint16_t));
+	rr_ptr += sizeof(uint16_t);
+	assert(be16toh(type) == DNS_TYPE_PTR);
+	assert(be16toh(class) == DNS_CLASS_IN);
+
+	name = malloc(strlen((char*)rr_ptr) + 1);
+	rr_ptr += get_name(rr_ptr, name);
+
+	assert(rr_ptr == (const uint8_t*) rr + sz);
+
+	return name;
+}
+
+/*** update_hosts ***/
+static void update_hosts(void) {
+	struct hosts *hosts_ptr = hosts;
+	sd_bus_error error = SD_BUS_ERROR_NULL;
+	sd_bus_message *reply_record = NULL;
+	sd_bus *bus = NULL;
+	uint64_t flags;
+	int r;
+
+	/* set 'present' to 0, so we later know which hosts were available, and which were not */
+	while (hosts_ptr->host != NULL) {
+		hosts_ptr->present = 0;
+		hosts_ptr = hosts_ptr->next;
+	}
+
+	r = sd_bus_open_system(&bus);
+	if (r < 0) {
+		write_log(stderr, "Failed to open system bus: %s\n", strerror(-r));
+		goto finish;
+	}
+
+	r = sd_bus_call_method(bus, "org.freedesktop.resolve1", "/org/freedesktop/resolve1",
+		"org.freedesktop.resolve1.Manager", "ResolveRecord", &error,
+		&reply_record, "isqqt", 0 /* any */, PACSERVE "." MDNS_DOMAIN,
+		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
+	if (r < 0) {
+		if (verbose > 0)
+			write_log(stderr, "Failed to resolve record: %s\n", error.message);
+		sd_bus_error_free(&error);
+		goto finish;
+	}
+
+	r = sd_bus_message_enter_container(reply_record, 'a', "(iqqay)");
+	if (r < 0)
+		goto parse_failure_record;
+
+	for (;;) {
+		int ifindex;
+		uint16_t class, type, port;
+		const void *data;
+		size_t length;
+		const char *canonical, *discard;
+		uint8_t match = 0, ignore = 0;
+
+		r = sd_bus_message_enter_container(reply_record, 'r', "iqqay");
+		if (r < 0)
+			goto parse_failure_record;
+		if (r == 0)  /* Reached end of array */
+			break;
+		r = sd_bus_message_read(reply_record, "iqq", &ifindex, &class, &type);
+		if (r < 0)
+			goto parse_failure_record;
+		r = sd_bus_message_read_array(reply_record, 'y', &data, &length);
+		if (r < 0)
+			goto parse_failure_record;
+		r = sd_bus_message_exit_container(reply_record);
+		if (r < 0)
+			goto parse_failure_record;
+
+		/* process the data received */
+		char *peer = process_reply_record(data, length);
+
+		sd_bus_message *reply_service = NULL;
+		/* service START */
+		r = sd_bus_call_method(bus, "org.freedesktop.resolve1", "/org/freedesktop/resolve1",
+			"org.freedesktop.resolve1.Manager", "ResolveService", &error,
+			&reply_service, "isssit", 0 /* any */, "", "", peer, AF_UNSPEC, UINT64_C(0));
+		if (r < 0) {
+			if (verbose > 0)
+				write_log(stderr, "Failed to resolve service '%s': %s\n", peer, error.message);
+			sd_bus_error_free(&error);
+			goto finish_service;
+		}
+
+		r = sd_bus_message_enter_container(reply_service, 'a', "(qqqsa(iiay)s)");
+		if (r < 0)
+			goto parse_failure_service;
+
+		for (;;) {
+			uint16_t priority, weight;
+			const char *hostname;
+
+			r = sd_bus_message_enter_container(reply_service, 'r', "qqqsa(iiay)s");
+			if (r < 0)
+				goto parse_failure_service;
+			if (r == 0)  /* Reached end of array */
+				break;
+			r = sd_bus_message_read(reply_service, "qqqs", &priority, &weight, &port, &hostname);
+			if (r < 0)
+				goto parse_failure_service;
+
+			r = sd_bus_message_enter_container(reply_service, 'a', "(iiay)");
+			if (r < 0)
+				goto parse_failure_service;
+
+			for (;;) {
+				int ifindex, family;
+				const void *data;
+				size_t length;
+				struct ignore_interfaces *ignore_interfaces_ptr = ignore_interfaces;
+
+				r = sd_bus_message_enter_container(reply_service, 'r', "iiay");
+				if (r < 0)
+					goto parse_failure_service;
+				if (r == 0)  /* Reached end of array */
+					break;
+				r = sd_bus_message_read(reply_service, "ii", &ifindex, &family);
+				if (r < 0)
+					goto parse_failure_service;
+				r = sd_bus_message_read_array(reply_service, 'y', &data, &length);
+				if (r < 0)
+					goto parse_failure_service;
+				r = sd_bus_message_exit_container(reply_service);
+				if (r < 0)
+					goto parse_failure_service;
+
+				while (ignore_interfaces_ptr->interface != NULL) {
+					if (ignore_interfaces_ptr->ifindex == ifindex) {
+						ignore++;
+						break;
+					}
+					ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+				}
+			}
+			r = sd_bus_message_exit_container(reply_service);
+			if (r < 0)
+				goto parse_failure_service;
+
+			r = sd_bus_message_read(reply_service, "s", &canonical);
+			if (r < 0)
+				goto parse_failure_service;
+			r = sd_bus_message_exit_container(reply_service);
+			if (r < 0)
+				goto parse_failure_service;
+		}
+
+		r = sd_bus_message_exit_container(reply_service);
+		if (r < 0)
+			goto parse_failure_service;
+		r = sd_bus_message_enter_container(reply_service, 'a', "ay");
+		if (r < 0)
+			goto parse_failure_service;
+
+		for(;;) {
+			const void *txt_data;
+			size_t txt_len;
+
+			r = sd_bus_message_read_array(reply_service, 'y', &txt_data, &txt_len);
+			if (r < 0)
+				goto parse_failure_service;
+			if (r == 0)  /* Reached end of array */
+				break;
+
+			/* does the TXT data match our architecture (arch) or distribution (id)? */
+			if (strncmp((char*)txt_data, "arch=" ARCH, txt_len) == 0)
+				match++;
+			if (strncmp((char*)txt_data, "id=" ID, txt_len) == 0)
+				match++;
+		}
+
+		r = sd_bus_message_exit_container(reply_service);
+		if (r < 0)
+			goto parse_failure_service;
+
+		r = sd_bus_message_read(reply_service, "s", &discard);
+		if (r < 0)
+			goto parse_failure_service;
+		r = sd_bus_message_read(reply_service, "s", &discard);
+		if (r < 0)
+			goto parse_failure_service;
+		r = sd_bus_message_read(reply_service, "s", &discard);
+		if (r < 0)
+			goto parse_failure_service;
+
+		r = sd_bus_message_read(reply_service, "t", &flags);
+		if (r < 0)
+			goto parse_failure_service;
+
+		if (ignore > 0) {
+			if (verbose > 0)
+				write_log(stdout, "Host %s is on an ignored interface.\n", canonical);
+			goto finish_service;
+		}
+
+		if (match < 2) {
+			if (verbose > 0)
+				write_log(stdout, "Host %s does not match distribution and/or architecture.\n", canonical);
+			goto finish_service;
+		}
+
+		/* add the peer to our struct */
+		add_host(canonical, port, 1);
+
+		goto finish_service;
+
+parse_failure_service:
+		write_log(stderr, "Parse failure for service: %s\n", strerror(-r));
+
+finish_service:
+		sd_bus_message_unref(reply_service);
+	}
+
+	r = sd_bus_message_exit_container(reply_record);
+	if (r < 0)
+		goto parse_failure_record;
+	r = sd_bus_message_read(reply_record, "t", &flags);
+	if (r < 0)
+		goto parse_failure_record;
+
+	/* mark hosts offline that did not show up in query */
+	hosts_ptr = hosts;
+	while (hosts_ptr->host != NULL) {
+		if (hosts_ptr->mdns == 1 && hosts_ptr->online == 1 && hosts_ptr->present == 0) {
+			if (verbose > 0)
+				write_log(stdout, "Marking host %s offline\n", hosts_ptr->host);
+			hosts_ptr->online = 0;
+		}
+		hosts_ptr = hosts_ptr->next;
+	}
+
+	goto finish;
+
+parse_failure_record:
+	write_log(stderr, "Parse failure for record: %s\n", strerror(-r));
+
+finish:
+	sd_bus_message_unref(reply_record);
+	sd_bus_flush_close_unref(bus);
+}
+
 /*** add_host ***/
-int add_host(const char * host, uint8_t proto, const char * address, const uint16_t port, const char * type) {
-	struct hosts * tmphosts = hosts;
+static int add_host(const char * host, const uint16_t port, const uint8_t mdns) {
+	struct hosts * hosts_ptr = hosts;
 	struct request request;
 
-	while (tmphosts->host != NULL) {
-		if (strcmp(tmphosts->host, host) == 0 && tmphosts->proto == proto) {
+	while (hosts_ptr->host != NULL) {
+		if (strcmp(hosts_ptr->host, host) == 0) {
 			/* host already exists */
 			if (verbose > 0)
-				write_log(stdout, "Updating service %s (port %d) on host %s (%s)\n",
-						type, port, host, "-");
+				write_log(stdout, "Updating host %s with port %d\n",
+						host, port);
 			goto update;
 		}
-		tmphosts = tmphosts->next;
+		hosts_ptr = hosts_ptr->next;
 	}
 
 	/* host not found, adding a new one */
 	if (verbose > 0)
-		write_log(stdout, "Adding host %s (%s) with service %s (port %d)\n",
-				host, "-", type, port);
+		write_log(stdout, "Adding host %s with port %d\n",
+				host, port);
 
-	tmphosts->host = strdup(host);
-	tmphosts->proto = AF_UNSPEC;
-	*tmphosts->address = 0;
+	hosts_ptr->host = strdup(host);
+	hosts_ptr->mdns = mdns;
+	hosts_ptr->badtime = 0;
+	hosts_ptr->badcount = 0;
 
-	tmphosts->port = 0;
-	tmphosts->online = 0;
-	tmphosts->badtime = 0;
-	tmphosts->badcount = 0;
-
-	tmphosts->next = malloc(sizeof(struct hosts));
-	tmphosts->next->host = NULL;
-	tmphosts->next->next = NULL;
+	hosts_ptr->next = malloc(sizeof(struct hosts));
+	hosts_ptr->next->host = NULL;
+	hosts_ptr->next->next = NULL;
 
 update:
-	tmphosts->proto = proto;
-	if (address != NULL)
-		memcpy(tmphosts->address, address, INET6_ADDRSTRLEN);
-
-	tmphosts->online = 1;
-	tmphosts->port = port;
+	hosts_ptr->port = port;
+	hosts_ptr->online = 1;
+	hosts_ptr->present = 1;
 
 	/* do a first request and let get_http_code() set the bad status */
-	request.host = tmphosts;
-	request.url = get_url(request.host->host, request.host->proto, request.host->address, request.host->port, 0, "");
+	request.host = hosts_ptr;
+	request.url = get_url(request.host->host, request.host->port, 0, "");
 	request.http_code = 0;
 	request.last_modified = 0;
 	get_http_code(&request);
@@ -124,22 +395,23 @@ update:
 }
 
 /*** remove_host ***/
-int remove_host(const char * host, uint8_t proto, const char * type) {
-	struct hosts * tmphosts = hosts;
+/* currently unused, but could become important if continuous
+   mDNS querying becomes available again on day...
+static int remove_host(const char * host) {
+	struct hosts * hosts_ptr = hosts;
 
-	while (tmphosts->host != NULL) {
-		if (strcmp(tmphosts->host, host) == 0 && tmphosts->proto == proto) {
+	while (hosts_ptr->host != NULL) {
+		if (strcmp(hosts_ptr->host, host) == 0) {
 			if (verbose > 0)
-				write_log(stdout, "Marking service %s on host %s (%s) offline\n",
-						type, host, "-");
-			tmphosts->online = 0;
+				write_log(stdout, "Marking host %s offline\n", host);
+			hosts_ptr->online = 0;
 			break;
 		}
-		tmphosts = tmphosts->next;
+		hosts_ptr = hosts_ptr->next;
 	}
 
 	return EXIT_SUCCESS;
-}
+} */
 
 /*** get_http_code ***/
 static void * get_http_code(void * data) {
@@ -229,7 +501,7 @@ static mhd_result ahc_echo(void * cls,
 	static int dummy;
 	struct MHD_Response * response;
 	int ret;
-	struct hosts * tmphosts = hosts;
+	struct hosts * hosts_ptr = hosts;
 
 	char * url = NULL, * page = NULL;
 	const char * basename, * host = NULL;
@@ -298,16 +570,15 @@ static mhd_result ahc_echo(void * cls,
 	}
 
 	/* try to find a peer with most recent file */
-	while (tmphosts->host != NULL) {
-		struct hosts * host = tmphosts;
-		time_t badtime = host->badtime + host->badcount * BADTIME;
+	while (hosts_ptr->host != NULL) {
+		time_t badtime = hosts_ptr->badtime + hosts_ptr->badcount * BADTIME;
 
 		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if (host->online == 0) {
+		if (hosts_ptr->online == 0) {
 			if (verbose > 0)
-				write_log(stdout, "Service %s on host %s is offline, skipping\n",
-						PACSERVE, tmphosts->host);
-			tmphosts = tmphosts->next;
+				write_log(stdout, "Host %s is offline, skipping\n",
+						hosts_ptr->host);
+			hosts_ptr = hosts_ptr->next;
 			continue;
 		} else if (badtime > tv.tv_sec) {
 			if (verbose > 0) {
@@ -315,10 +586,10 @@ static mhd_result ahc_echo(void * cls,
 				ctime_r(&badtime, ctime);
 				ctime[strlen(ctime) - 1] = '\0';
 
-				write_log(stdout, "Service %s on host %s is marked bad until %s, skipping\n",
-						PACSERVE, tmphosts->host, ctime);
+				write_log(stdout, "Host %s is marked bad until %s, skipping\n",
+						hosts_ptr->host, ctime);
 			}
-			tmphosts = tmphosts->next;
+			hosts_ptr = hosts_ptr->next;
 			continue;
 		}
 
@@ -345,8 +616,8 @@ static mhd_result ahc_echo(void * cls,
 		request = requests[req_count];
 
 		/* prepare request struct */
-		request->host = tmphosts;
-		request->url = get_url(request->host->host, request->host->proto, request->host->address, request->host->port, dbfile, basename);
+		request->host = hosts_ptr;
+		request->url = get_url(request->host->host, request->host->port, dbfile, basename);
 		request->http_code = 0;
 		request->last_modified = 0;
 
@@ -356,7 +627,7 @@ static mhd_result ahc_echo(void * cls,
 		if ((error = pthread_create(&tid[req_count], NULL, get_http_code, (void *)request)) != 0)
 			write_log(stderr, "Could not run thread number %d, errno %d\n", req_count, error);
 
-		tmphosts = tmphosts->next;
+		hosts_ptr = hosts_ptr->next;
 	}
 
 	/* try to find a suitable response */
@@ -452,22 +723,23 @@ response:
 }
 
 /*** sig_callback ***/
-void sig_callback(int signal) {
+static void sig_callback(int signal) {
 	write_log(stdout, "Received signal '%s', quitting.\n", strsignal(signal));
 
-	quit = 1;
+	quit++;
 }
 
 /*** sighup_callback ***/
-void sighup_callback(int signal) {
-	struct hosts * tmphosts = hosts;
+static void sighup_callback(int signal) {
+	struct hosts * hosts_ptr = hosts;
 
-	write_log(stdout, "Received SIGHUP, resetting bad status for hosts.\n");
+	write_log(stdout, "Received signal '%s', resetting bad counts, updating interfaces and hosts.\n",
+		strsignal(signal));
 
-	while (tmphosts->host != NULL) {
-		tmphosts->badtime = 0;
-		tmphosts->badcount = 0;
-		tmphosts = tmphosts->next;
+	while (hosts_ptr->host != NULL) {
+		hosts_ptr->badtime = 0;
+		hosts_ptr->badcount = 0;
+		hosts_ptr = hosts_ptr->next;
 	}
 }
 
@@ -476,12 +748,11 @@ int main(int argc, char ** argv) {
 	dictionary * ini;
 	const char * inistring;
 	char * values, * value;
-	int8_t use_proto = AF_UNSPEC;
 	uint16_t port;
-	struct ignore_interfaces * tmp_ignore_interfaces;
+	struct ignore_interfaces * ignore_interfaces_ptr;
 	int i, ret = 1;
 	struct MHD_Daemon * mhd;
-	struct hosts * tmphosts;
+	struct hosts * hosts_ptr;
 	struct sockaddr_in address;
 
 	unsigned int version = 0, help = 0;
@@ -532,6 +803,7 @@ int main(int argc, char ** argv) {
 
 	ignore_interfaces = malloc(sizeof(struct ignore_interfaces));
 	ignore_interfaces->interface = NULL;
+	ignore_interfaces->ifindex = 0;
 	ignore_interfaces->next = NULL;
 
 	/* Probing for static pacserve hosts takes some time.
@@ -547,7 +819,6 @@ int main(int argc, char ** argv) {
 		/* continue anyway, there is nothing essential in the config file */
 	} else {
 		int ini_verbose;
-		const char * tmp;
 
 		/* extra verbosity from config */
 		ini_verbose = iniparser_getint(ini, "general:verbose", 0);
@@ -561,36 +832,20 @@ int main(int argc, char ** argv) {
 		/* store interfaces to ignore */
 		if ((inistring = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
 			values = strdup(inistring);
-			tmp_ignore_interfaces = ignore_interfaces;
+			ignore_interfaces_ptr = ignore_interfaces;
 
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				if (verbose > 0)
 					write_log(stdout, "Ignoring interface: %s\n", value);
-				tmp_ignore_interfaces->interface = strdup(value);
-				tmp_ignore_interfaces->next = malloc(sizeof(struct ignore_interfaces));
-				tmp_ignore_interfaces = tmp_ignore_interfaces->next;
+				ignore_interfaces_ptr->interface = strdup(value);
+				ignore_interfaces_ptr->next = malloc(sizeof(struct ignore_interfaces));
+				ignore_interfaces_ptr = ignore_interfaces_ptr->next;
 				value = strtok(NULL, DELIMITER);
 			}
-			tmp_ignore_interfaces->interface = NULL;
-			tmp_ignore_interfaces->next = NULL;
+			ignore_interfaces_ptr->interface = NULL;
+			ignore_interfaces_ptr->next = NULL;
 			free(values);
-		}
-
-		/* configure protocols to use */
-		if ((tmp = iniparser_getstring(ini, "general:protocol", NULL)) != NULL) {
-			switch(tmp[strlen(tmp) - 1]) {
-				case '4':
-					if (verbose > 0)
-						write_log(stdout, "Using IPv4 only\n");
-					use_proto = AF_INET;
-					break;
-				case '6':
-					if (verbose > 0)
-						write_log(stdout, "Using IPv6 only\n");
-					use_proto = AF_INET6;
-					break;
-			}
 		}
 
 		/* add static pacserve hosts */
@@ -599,14 +854,14 @@ int main(int argc, char ** argv) {
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				if (verbose > 0)
-					write_log(stdout, "Adding static pacserve host: %s\n", value);
+					write_log(stdout, "Adding static host: %s\n", value);
 
 				if (strchr(value, ':') != NULL) {
 					port = atoi(strchr(value, ':') + 1);
 					*strchr(value, ':') = 0;
 				} else
 					port = PORT_PACSERVE;
-				add_host(value, use_proto, NULL, port, PACSERVE);
+				add_host(value, port, 0);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
@@ -628,22 +883,28 @@ int main(int argc, char ** argv) {
 		goto fail;
 	}
 
+	if (verbose > 0)
+		write_log(stdout, "Listening on port %d\n", PORT_PACREDIR);
+
 	/* initialize curl */
 	curl_global_init(CURL_GLOBAL_ALL);
 
-	/* register SIG{TERM,KILL,INT} signal callbacks */
+	/* register SIG{INT,KILL,TERM} signal callbacks */
 	struct sigaction act = { 0 };
 	act.sa_handler = sig_callback;
-	sigaction(SIGTERM, &act, NULL);
+	sigaction(SIGINT,  &act, NULL);
 	sigaction(SIGKILL, &act, NULL);
-	sigaction(SIGINT, &act, NULL);
+	sigaction(SIGTERM, &act, NULL);
 
 	/* report ready to systemd */
 	sd_notify(0, "READY=1\nSTATUS=Waiting for requests to redirect...");
 
 	/* main loop */
-	while(!quit)
-		sleep(UINT_MAX);
+	while (quit == 0) {
+		update_interfaces();
+		update_hosts();
+		sleep(60);
+	}
 
 	/* report stopping to systemd */
 	sd_notify(0, "STOPPING=1\nSTATUS=Stopping...");
@@ -661,16 +922,16 @@ fail:
 	/* Cleanup things */
 	while (hosts->host != NULL) {
 		free(hosts->host);
-		tmphosts = hosts->next;
+		hosts_ptr = hosts->next;
 		free(hosts);
-		hosts = tmphosts;
+		hosts = hosts_ptr;
 	}
 
 	while (ignore_interfaces->interface != NULL) {
 		free(ignore_interfaces->interface);
-		tmp_ignore_interfaces = ignore_interfaces->next;
+		ignore_interfaces_ptr = ignore_interfaces->next;
 		free(ignore_interfaces);
-		ignore_interfaces = tmp_ignore_interfaces;
+		ignore_interfaces = ignore_interfaces_ptr;
 	}
 
 	sd_notify(0, "STATUS=Stopped. Bye!");

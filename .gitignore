@@ -3,7 +3,7 @@
 *.o
 pacredir
 config.h
-systemd/pacserve-announce.service
+systemd/pacserve.service
 version.h
 pacredir-*.tar.xz
 pacredir-*.tar.xz.asc

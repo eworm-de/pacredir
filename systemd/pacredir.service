@@ -8,7 +8,8 @@
 [Unit]
 Description=Redirect pacman requests via mDNS Service Discovery
 Documentation=https://pacredir.eworm.de/
-After=network.target network-online.target
+Requires=systemd-resolved.service
+After=network.target network-online.target systemd-resolved.service
 
 [Service]
 Type=notify

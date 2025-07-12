@@ -39,6 +39,7 @@
 
 /* mDNS service name */
 #define PACSERVE	"_pacserve._tcp"
+#define MDNS_DOMAIN	"local"
 
 /* path to the config file */
 #define CONFIGFILE	"/etc/pacredir.conf"

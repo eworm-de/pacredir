@@ -8,11 +8,15 @@
 [Unit]
 Description=Serve pacman database files and package archives
 Documentation=https://pacredir.eworm.de/
-After=systemd-tmpfiles-setup.service network.target
+Requires=systemd-resolved.service
+After=systemd-tmpfiles-setup.service network.target systemd-resolved.service
 
 [Service]
 EnvironmentFile=/etc/pacserve.conf
 ExecStart=/usr/bin/pacserve /run/pacserve/ --ipv6 --port ${PORT} --no-listing --index empty
+# magic numbers at the end represent TXT data: id=%ID% arch=%ARCH%
+ExecStartPost=+/usr/bin/busctl --quiet call org.freedesktop.resolve1 /org/freedesktop/resolve1 org.freedesktop.resolve1.Manager RegisterService sssqqqaa{say} pacserve 'pacserve on %l' _pacserve._tcp ${PORT} 0 0 1 2 id %ID_BYTES% arch %ARCH_BYTES%
+ExecStopPost=+/usr/bin/busctl --quiet call org.freedesktop.resolve1 /org/freedesktop/resolve1 org.freedesktop.resolve1.Manager UnregisterService o /org/freedesktop/resolve1/dnssd/pacserve
 BindReadOnlyPaths=/var/cache/pacman/pkg:/run/pacserve/pkg /var/lib/pacman/sync:/run/pacserve/db
 DynamicUser=on
 ProtectSystem=full
