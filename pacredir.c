@@ -32,7 +32,7 @@ const static struct option options_long[] = {
 struct hosts * hosts = NULL;
 struct ignore_interfaces * ignore_interfaces = NULL;
 int max_threads = 0;
-uint8_t quit = 0, verbose = 0;
+uint8_t quit = 0, update = 0, verbose = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
 /*** write_log ***/
@@ -732,6 +732,8 @@ static void sighup_callback(int signal) {
 		hosts_ptr->badcount = 0;
 		hosts_ptr = hosts_ptr->next;
 	}
+
+	update++;
 }
 
 /*** sigusr_callback ***/
@@ -782,7 +784,7 @@ int main(int argc, char ** argv) {
 	char * values, * value;
 	uint16_t port;
 	struct ignore_interfaces * ignore_interfaces_ptr;
-	int i, ret = 1;
+	int i, ret = 1, sleepsec = 0;
 	struct MHD_Daemon * mhd;
 	struct hosts * hosts_ptr;
 	struct sockaddr_in address;
@@ -939,9 +941,15 @@ int main(int argc, char ** argv) {
 
 	/* main loop */
 	while (quit == 0) {
+		sleepsec = sleep(sleepsec);
+
+		if (sleepsec > 0 && update == 0)
+			continue;
+
 		update_interfaces();
 		update_hosts();
-		sleep(60);
+		update = 0;
+		sleepsec = 60;
 	}
 
 	/* report stopping to systemd */
