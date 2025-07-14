@@ -146,6 +146,8 @@ static mhd_result ahc_echo(void * cls,
 static void sig_callback(int signal);
 /* sighup_callback */
 static void sighup_callback(int signal);
+/* sigusr_callback */
+static void sigusr_callback(int signal);
 
 #endif /* _PACREDIR_H */
 

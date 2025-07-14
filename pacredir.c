@@ -734,6 +734,42 @@ static void sighup_callback(int signal) {
 	}
 }
 
+/*** sigusr_callback ***/
+static void sigusr_callback(int signal) {
+	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
+	struct hosts * hosts_ptr = hosts;
+
+	write_log(stdout, "Received signal '%s', dumping state.\n", strsignal(signal));
+
+	write_log(stdout, "Ignored interfaces:\n");
+	while (ignore_interfaces_ptr->interface != NULL) {
+		if (ignore_interfaces_ptr->ifindex > 0)
+			write_log(stdout, " -> %s (link %d)\n",
+				ignore_interfaces_ptr->interface,  ignore_interfaces_ptr->ifindex);
+		else
+			write_log(stdout, " -> %s (N/A)\n", ignore_interfaces_ptr->interface);
+
+		ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+	}
+
+	write_log(stdout, "Known hosts:\n");
+	while (hosts_ptr->host != NULL) {
+		if (hosts_ptr->badcount > 0)
+			write_log(stdout, " -> %s (%s, %s, bad count: %d)\n",
+				hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
+				hosts_ptr->online ? "online" : "offline", hosts_ptr->badcount);
+		else
+			write_log(stdout, " -> %s (%s, %s)\n",
+				hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
+				hosts_ptr->online ? "online" : "offline");
+
+		hosts_ptr = hosts_ptr->next;
+	}
+
+	write_log(stdout, "%d redirects, %d not found.\n",
+		count_redirect, count_not_found);
+}
+
 /*** main ***/
 int main(int argc, char ** argv) {
 	dictionary * ini;
@@ -886,6 +922,12 @@ int main(int argc, char ** argv) {
 	sigaction(SIGINT,  &act, NULL);
 	sigaction(SIGKILL, &act, NULL);
 	sigaction(SIGTERM, &act, NULL);
+
+	/* register SIGUSR[12] signal callbacks */
+	struct sigaction act_usr = { 0 };
+	act_usr.sa_handler = sigusr_callback;
+	sigaction(SIGUSR1, &act_usr, NULL);
+	sigaction(SIGUSR2, &act_usr, NULL);
 
 	/* report ready to systemd */
 	sd_notify(0, "READY=1\nSTATUS=Waiting for requests to redirect...");
