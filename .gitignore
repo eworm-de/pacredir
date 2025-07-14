@@ -1,7 +1,6 @@
 *~
 *.html
 *.o
-arch
 pacredir
 config.h
 systemd/pacserve-announce.service
