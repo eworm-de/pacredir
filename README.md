@@ -53,6 +53,12 @@ documentation can be found in `/usr/share/doc/pacredir/`.
 Additionally systemd service files are installed to
 `/usr/lib/systemd/system/`.
 
+You can not have `systemd-resolved` and the *avahi* daemon announce services
+at the same time. If you really, *really* need the *avahi* daemon running
+install the compatibility files:
+
+    make install-avahi
+
 Usage
 -----
 

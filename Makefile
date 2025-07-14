@@ -32,7 +32,7 @@ VERSION := 0.6.0
 MARKDOWN = $(wildcard *.md)
 HTML = $(MARKDOWN:.md=.html)
 
-all: pacredir systemd/pacserve.service $(HTML)
+all: pacredir systemd/pacserve.service compat/pacserve-announce.service $(HTML)
 
 pacredir: pacredir.c pacredir.h config.h version.h
 	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -o $@
@@ -45,6 +45,9 @@ version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 
 systemd/pacserve.service: systemd/pacserve.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/; s/%ARCH_BYTES%/$(shell (printf $(ARCH) | wc -c; printf $(ARCH) | od -t d1 -A n) | tr -s " ")/; s/%ID%/$(ID)/; s/%ID_BYTES%/$(shell (printf $(ID) | wc -c; printf $(ID) | od -t d1 -A n) | tr -s " ")/' $< > $@
+
+compat/pacserve-announce.service: compat/pacserve-announce.service.in
+	$(SED) 's/%ARCH%/$(ARCH)/; s/%ID%/$(ID)/' $< > $@
 
 %.html: %.md Makefile
 	markdown $< | sed 's/href="\([-[:alnum:]]*\)\.md"/href="\1.html"/g' > $@
@@ -71,11 +74,16 @@ install-doc: $(HTML)
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
 	$(INSTALL) -D -m0644 $(wildcard FLOW/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
 
+install-avahi: compat/pacserve-announce.service
+	$(INSTALL) -D -m0644 compat/avahi.conf $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service.d/avahi.conf
+	$(INSTALL) -D -m0644 compat/pacserve-announce.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve-announce.service
+	$(INSTALL) -D -m0644 compat/02-pacredir-avahi-MulticastDNS-resolve.conf $(DESTDIR)/etc/systemd/resolved.conf.d/02-pacredir-avahi-MulticastDNS-resolve.conf
+
 clean:
-	$(RM) -f *.o *~ pacredir systemd/pacserve.service $(HTML) version.h
+	$(RM) -f *.o *~ pacredir systemd/pacserve.service compat/pacserve-announce.service $(HTML) version.h
 
 distclean:
-	$(RM) -f *.o *~ pacredir systemd/pacserve.service $(HTML) version.h config.h
+	$(RM) -f *.o *~ pacredir systemd/pacserve.service compat/pacserve-announce.service $(HTML) version.h config.h
 
 release:
 	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz

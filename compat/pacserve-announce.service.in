@@ -1,0 +1,23 @@
+# (C) 2013-2025 by Christian Hesse <mail@eworm.de>
+#                  Markus Weippert <markus@gekmihesg.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+[Unit]
+Description=Announce pacman database files and package archives
+Documentation=https://pacredir.eworm.de/
+After=avahi-daemon.service pacserve.service
+BindsTo=pacserve.service
+Requisite=avahi-daemon.service
+
+[Service]
+EnvironmentFile=/etc/pacserve.conf
+ExecStart=/usr/bin/avahi-publish -s "pacserve on %l" _pacserve._tcp ${PORT} id=%ID% arch=%ARCH%
+DynamicUser=on
+ProtectSystem=full
+ProtectHome=on
+PrivateDevices=on
+NoNewPrivileges=on
