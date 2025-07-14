@@ -481,7 +481,7 @@ static void * get_http_code(void * data) {
 
 /*** ahc_echo ***
  * called whenever a http request is received */
-static mhd_result ahc_echo(void * cls,
+static enum MHD_Result ahc_echo(void * cls,
 		struct MHD_Connection * connection,
 		const char * uri,
 		const char * method,

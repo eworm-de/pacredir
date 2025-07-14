@@ -60,13 +60,6 @@
 
 #define PROGNAME	"pacredir"
 
-/* libmicrohttpd compat */
-#if MHD_VERSION >= 0x00097002
-#  define mhd_result enum MHD_Result
-#else
-#  define mhd_result int
-#endif
-
 /* hosts */
 struct hosts {
 	/* host name */
@@ -133,7 +126,7 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns);
 /* get_http_code */
 static void * get_http_code(void * data);
 /* ahc_echo */
-static mhd_result ahc_echo(void * cls,
+static enum MHD_Result ahc_echo(void * cls,
 		struct MHD_Connection * connection,
 		const char * uri,
 		const char * method,
