@@ -119,7 +119,7 @@ static char* process_reply_record(const void *rr, size_t sz) {
 }
 
 /*** update_hosts ***/
-static void update_hosts(void) {
+static void update_hosts(const uint8_t refcnt) {
 	struct hosts *hosts_ptr = hosts;
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *reply_record = NULL;
@@ -147,6 +147,16 @@ static void update_hosts(void) {
 		if (verbose > 0)
 			write_log(stderr, "Failed to resolve record: %s\n", error.message);
 		sd_bus_error_free(&error);
+		goto finish;
+	}
+
+	/* On empty cache systemd-resolved returns just one record on first query,
+	   happened above. Similar delays are seen for new hosts.
+	   Wait a moment, call again for full update, then goto finish.
+	   TODO: Drop when continuous mDNS querying becomes available! */
+	if (refcnt == 0) {
+		usleep(250000);
+		update_hosts(refcnt + 1);
 		goto finish;
 	}
 
@@ -947,7 +957,7 @@ int main(int argc, char ** argv) {
 			continue;
 
 		update_interfaces();
-		update_hosts();
+		update_hosts(0);
 		update = 0;
 		sleepsec = 60;
 	}

@@ -116,7 +116,7 @@ static size_t get_name(const uint8_t* rr_ptr, char* name);
 /* process_reply_record */
 static char* process_reply_record(const void *rr, size_t sz);
 /* update_hosts */
-static void update_hosts(void);
+static void update_hosts(const uint8_t refcnt);
 
 /* add_host */
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns);
