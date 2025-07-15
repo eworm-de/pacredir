@@ -11,7 +11,7 @@ Description=Announce pacman database files and package archives
 Documentation=https://pacredir.eworm.de/
 After=avahi-daemon.service pacserve.service
 BindsTo=pacserve.service
-Requisite=avahi-daemon.service
+Requires=avahi-daemon.service
 
 [Service]
 EnvironmentFile=/etc/pacserve.conf
