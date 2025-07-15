@@ -755,13 +755,14 @@ static void sigusr_callback(int signal) {
 	write_log(stdout, "Known hosts:\n");
 	while (hosts_ptr->host != NULL) {
 		if (hosts_ptr->badcount > 0)
-			write_log(stdout, " -> %s (%s, %s, bad count: %d)\n",
+			write_log(stdout, " -> %s (%s, %s, port: %d, bad count: %d)\n",
 				hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
-				hosts_ptr->online ? "online" : "offline", hosts_ptr->badcount);
+				hosts_ptr->online ? "online" : "offline", hosts_ptr->port,
+				hosts_ptr->badcount);
 		else
-			write_log(stdout, " -> %s (%s, %s)\n",
+			write_log(stdout, " -> %s (%s, %s, port: %d)\n",
 				hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
-				hosts_ptr->online ? "online" : "offline");
+				hosts_ptr->online ? "online" : "offline", hosts_ptr->port);
 
 		hosts_ptr = hosts_ptr->next;
 	}
