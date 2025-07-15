@@ -51,6 +51,10 @@
 #define DNS_CLASS_IN 1U
 #define DNS_TYPE_PTR 12U
 
+#define DNS_SRV_TXT_MATCH_ARCH	 (1 << 0)
+#define DNS_SRV_TXT_MATCH_ID	 (1 << 1)
+#define DNS_SRV_TXT_MATCH_ALL	((1 << 2) - 1)
+
 #define SD_RESOLVED_NO_SYNTHESIZE	(UINT64_C(1) << 11)
 #define SD_RESOLVED_NO_ZONE		(UINT64_C(1) << 13)
 

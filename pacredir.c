@@ -273,9 +273,9 @@ static void update_hosts(void) {
 
 			/* does the TXT data match our architecture (arch) or distribution (id)? */
 			if (strncmp((char*)txt_data, "arch=" ARCH, txt_len) == 0)
-				match |= 1;
+				match |= DNS_SRV_TXT_MATCH_ARCH;
 			if (strncmp((char*)txt_data, "id=" ID, txt_len) == 0)
-				match |= 2;
+				match |= DNS_SRV_TXT_MATCH_ID;
 		}
 
 		r = sd_bus_message_exit_container(reply_service);
@@ -302,7 +302,7 @@ static void update_hosts(void) {
 			goto finish_service;
 		}
 
-		if (match != 3) {
+		if (match < DNS_SRV_TXT_MATCH_ALL) {
 			if (verbose > 0)
 				write_log(stdout, "Host %s does not match distribution and/or architecture.\n", canonical);
 			goto finish_service;
