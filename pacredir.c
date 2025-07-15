@@ -351,7 +351,6 @@ finish:
 /*** add_host ***/
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns) {
 	struct hosts * hosts_ptr = hosts;
-	struct request request;
 
 	while (hosts_ptr->host != NULL) {
 		if (strcmp(hosts_ptr->host, host) == 0) {
@@ -382,14 +381,6 @@ update:
 	hosts_ptr->port = port;
 	hosts_ptr->online = 1;
 	hosts_ptr->present = 1;
-
-	/* do a first request and let get_http_code() set the bad status */
-	request.host = hosts_ptr;
-	request.url = get_url(request.host->host, request.host->port, 0, "");
-	request.http_code = 0;
-	request.last_modified = 0;
-	get_http_code(&request);
-	free(request.url);
 
 	return EXIT_SUCCESS;
 }
