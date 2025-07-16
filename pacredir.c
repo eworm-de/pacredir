@@ -516,7 +516,7 @@ static enum MHD_Result ahc_echo(void * cls,
 	pthread_t * tid = NULL;
 	struct request ** requests = NULL;
 	struct request * request = NULL;
-	long http_code = 0;
+	long http_code = MHD_HTTP_NOT_FOUND;
 	double time_total = INFINITY;
 	char ctime[26];
 
@@ -548,7 +548,7 @@ static enum MHD_Result ahc_echo(void * cls,
 
 	/* redirect to website if no file given */
 	if (*basename == 0) {
-		http_code = MHD_HTTP_OK;
+		http_code = MHD_HTTP_TEMPORARY_REDIRECT;
 		/* duplicate string so we can free it later */
 		url = strdup(WEBSITE);
 		host = basename = "project site";
@@ -667,7 +667,7 @@ static enum MHD_Result ahc_echo(void * cls,
 				free(url);
 			url = request->url;
 			host = request->host->host;
-			http_code = MHD_HTTP_OK;
+			http_code = MHD_HTTP_TEMPORARY_REDIRECT;
 			last_modified = request->last_modified;
 			time_total = request->time_total;
 		} else
@@ -677,22 +677,21 @@ static enum MHD_Result ahc_echo(void * cls,
 
 	/* increase counters before reponse label,
 	   do not count redirects to project page */
-	if (http_code == MHD_HTTP_OK)
+	if (http_code == MHD_HTTP_TEMPORARY_REDIRECT)
 		count_redirect++;
 	else
 		count_not_found++;
 
 response:
 	/* give response */
-	if (http_code == MHD_HTTP_OK) {
+	if (http_code == MHD_HTTP_TEMPORARY_REDIRECT) {
 		write_log(stdout, "Redirecting to %s: %s\n", host, url);
 		page = malloc(strlen(PAGE307) + strlen(url) + strlen(basename) + 1);
 		sprintf(page, PAGE307, url, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
 		ret = MHD_add_response_header(response, "Location", url);
-		ret = MHD_queue_response(connection, MHD_HTTP_TEMPORARY_REDIRECT, response);
 		free(url);
-	} else {
+	} else { /* MHD_HTTP_NOT_FOUND */
 		if (req_count < 0)
 			write_log(stdout, "Currently no peers are available to check for %s.\n",
 					basename);
@@ -706,9 +705,9 @@ response:
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
-		ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
 	}
 
+	ret = MHD_queue_response(connection, http_code, response);
 	MHD_destroy_response(response);
 
 	/* report counts to systemd */
