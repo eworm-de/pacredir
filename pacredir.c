@@ -742,6 +742,8 @@ static void sigusr_callback(int signal) {
 	write_log(stdout, "Received signal '%s', dumping state.\n", strsignal(signal));
 
 	write_log(stdout, "Ignored interfaces:\n");
+	if (ignore_interfaces_ptr->interface == NULL)
+		write_log(stdout, " (none)\n");
 	while (ignore_interfaces_ptr->interface != NULL) {
 		if (ignore_interfaces_ptr->ifindex > 0)
 			write_log(stdout, " -> %s (link %d)\n",
@@ -753,6 +755,8 @@ static void sigusr_callback(int signal) {
 	}
 
 	write_log(stdout, "Known hosts:\n");
+	if (hosts_ptr->host == NULL)
+		write_log(stdout, " (none)\n");
 	while (hosts_ptr->host != NULL) {
 		if (hosts_ptr->badcount > 0)
 			write_log(stdout, " -> %s (%s, %s, port: %d, bad count: %d)\n",
