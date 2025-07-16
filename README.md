@@ -41,11 +41,11 @@ Build and install
 
 Building and installing is very easy. Just run:
 
-> make
+    make
 
 followed by:
 
-> make install
+    make install
 
 This will place an executable at `/usr/bin/pacredir`,
 documentation can be found in `/usr/share/doc/pacredir/`.
@@ -59,7 +59,7 @@ Enable systemd services `pacserve` and `pacredir`, open TCP
 port `7078` and add the following line to your repository
 definitions in `pacman.conf`:
 
-> Include = /etc/pacman.d/pacredir
+    Include = /etc/pacman.d/pacredir
 
 To get a better idea what happens in the background have a look at
 [the request flow chart](FLOW.md).
@@ -73,8 +73,7 @@ line.
 
 Do not worry if `pacman` reports the following after the change:
 
-> error: failed retrieving file 'core.db' from 127.0.0.1:7077 : The
-> requested URL returned error: 404 Not Found
+    error: failed retrieving file 'core.db' from 127.0.0.1:7077 : The requested URL returned error: 404 Not Found
 
 This is ok, it just tells `pacman` that `pacredir` could not find a file
 and downloading it from an official server is required.
