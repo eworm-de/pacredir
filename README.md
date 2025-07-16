@@ -59,6 +59,11 @@ install the compatibility files:
 
     make install-avahi
 
+> ℹ️ **Info**: This is packaged as `pacredir` (and `pacredir-avahi` for the
+> compatibility files) in [Arch Linux ↗️](https://archlinux.org/) and derived
+> distributions. Install with:  
+> `pacman -Syu pacredir`
+
 Usage
 -----
 
