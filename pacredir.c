@@ -436,9 +436,9 @@ static void * get_http_code(void * data) {
 		curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
 		/* ask for filetime */
 		curl_easy_setopt(curl, CURLOPT_FILETIME, 1L);
-		/* set connection timeout to 5 seconds
+		/* set connection timeout to 2 seconds
 		 * if the host needs longer we do not want to use it anyway ;) */
-		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2L);
 		/* time out if connection is established but transfer rate is low
 		 * this should make curl finish after a maximum of 8 seconds */
 		curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1L);
