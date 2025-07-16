@@ -28,4 +28,53 @@
 	"<html><head><title>404 Not Found</title>" \
 	"</head><body>404 Not Found: %s</body></html>"
 
+/* status page */
+#define STATUS_HEAD \
+	"<!DOCTYPE html><html lang=\"en\">" \
+	"<head><title>pacredir status</title>" \
+	"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">" \
+	"<meta http-equiv=\"refresh\" content=\"30\">" \
+	"<style>body { font-family: sans-serif; } " \
+	"a { color: black; text-decoration: none; } " \
+	"a:hover { text-decoration: underline; } " \
+	"th { background: #efefef; } " \
+	"td { text-align: center; padding: 1px 5px; } " \
+	"tr:nth-child(even) { background: #dfdfdf; } " \
+	"tr:nth-child(odd) { background: #efefef; } " \
+	"tr:hover { background: #dfefef; }</style>" \
+	"</head><body><h1>pacredir status</h1>" \
+	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on localhost. " \
+	"Visit <a href=\"" WEBURL "\">" WEBSITE "</a> for documentation.</p>" \
+	"<table>" \
+	"<tr><td>Distribution:</td><td><b>" ID "</b></td></tr>" \
+	"<tr><td>Architecture:</td><td><b>" ARCH "</b></td></tr>" \
+	"<tr><td>Redirects:</td><td><b>%d</b></td></tr>" \
+	"<tr><td>Not found:</td><td><b>%d</b></td></tr>" \
+	"</table>"
+
+#define STATUS_INT_HEAD \
+	"<h2 id=\"ignored-interfaces\"><a href=\"#ignored-interfaces\">Ignored interfaces</a></h2>" \
+	"<table><tr><th>interface</th><th>link</th></tr>"
+#define STATUS_INT_ONE \
+	"<tr><td>%s</td><td>%d</td></tr>"
+#define STATUS_INT_ONE_NA \
+	"<tr><td>%s</td><td>N/A</td></tr>"
+#define STATUS_INT_NONE \
+	"<tr><td colspan=2>(none)</td></tr>"
+#define STATUS_INT_FOOT \
+	"</table>"
+
+#define STATUS_HOST_HEAD \
+	"<h2 id=\"hosts\"><a href=\"#hosts\">Hosts</a></h2>" \
+	"<table><tr><th>host</th><th>type</th><th>state</th><th>port</th><th>bad</th></tr>"
+#define STATUS_HOST_ONE \
+	"<tr><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%d</td></tr>"
+#define STATUS_HOST_NONE \
+	"<tr><td colspan=5>(none)</td></tr>"
+#define STATUS_HOST_FOOT \
+	"</table>"
+
+#define STATUS_FOOT \
+	"</body></html>"
+
 #endif /* _HTML_H */

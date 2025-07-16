@@ -126,6 +126,10 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns);
 
 /* get_http_code */
 static void * get_http_code(void * data);
+/* append_string */
+static char * append_string(char * string, const char *format, ...);
+/* status_page */
+static char * status_page(void);
 /* ahc_echo */
 static enum MHD_Result ahc_echo(void * cls,
 		struct MHD_Connection * connection,

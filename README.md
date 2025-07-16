@@ -82,6 +82,11 @@ repository definitions in `pacman.conf`:
 To get a better idea what happens in the background have a look at
 [the request flow chart](FLOW.md).
 
+### Status page
+
+A simple status page is available when `pacredir` is running. Just point
+your browser to [your local instance](http://localhost:7077/).
+
 ### Databases from cache server
 
 By default databases are not fetched from cache servers. To make that

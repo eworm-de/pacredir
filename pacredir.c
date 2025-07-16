@@ -491,6 +491,69 @@ static void * get_http_code(void * data) {
 	return NULL;
 }
 
+/* append_string */
+static char * append_string(char * string, const char *format, ...) {
+	va_list args;
+	size_t string_len = 0, append_len;
+
+	if (string != NULL)
+		string_len = strlen(string);
+
+	va_start(args, format);
+	append_len = vsnprintf(NULL, 0, format, args) + 1;
+	va_end(args);
+
+	string = realloc(string, string_len + append_len);
+
+	va_start(args, format);
+	vsnprintf(string + string_len, append_len, format, args);
+	va_end(args);
+
+	return string;
+}
+/*** status_page ***/
+static char * status_page(void) {
+	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
+	struct hosts * hosts_ptr = hosts;
+	char *page = NULL;
+
+	page = append_string(page, STATUS_HEAD, count_redirect, count_not_found);
+
+	page = append_string(page, STATUS_INT_HEAD);
+	if (ignore_interfaces_ptr->interface == NULL)
+		page = append_string(page, STATUS_INT_NONE);
+	while (ignore_interfaces_ptr->interface != NULL) {
+		if (ignore_interfaces_ptr->ifindex > 0)
+			/* write_log(stdout, STATUS_INT_ONE,
+				ignore_interfaces_ptr->interface, ignore_interfaces_ptr->ifindex); */
+			page = append_string(page, STATUS_INT_ONE,
+				ignore_interfaces_ptr->interface, ignore_interfaces_ptr->ifindex);
+		else
+			page = append_string(page, STATUS_INT_ONE_NA,
+				ignore_interfaces_ptr->interface);
+
+		ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+	}
+	page = append_string(page, STATUS_INT_FOOT);
+	
+	page = append_string(page, STATUS_HOST_HEAD);
+	if (hosts_ptr->host == NULL)
+		page = append_string(page, STATUS_HOST_NONE);
+	while (hosts_ptr->host != NULL) {
+		page = append_string(page, STATUS_HOST_ONE,
+			hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
+			hosts_ptr->online ? "online" : "offline", hosts_ptr->port,
+			hosts_ptr->badcount);
+
+		hosts_ptr = hosts_ptr->next;
+	}
+	page = append_string(page, STATUS_HOST_FOOT);
+
+	page = append_string(page, STATUS_FOOT);
+
+	return page;
+}
+
 /*** ahc_echo ***
  * called whenever a http request is received */
 static enum MHD_Result ahc_echo(void * cls,
@@ -525,6 +588,12 @@ static enum MHD_Result ahc_echo(void * cls,
 	/* initialize struct timeval */
 	gettimeofday(&tv, NULL);
 
+	/* give status page */
+	if (strcmp(uri, "/") == 0) {
+		http_code = MHD_HTTP_OK;
+		goto response;
+	}
+
 	/* we want the filename, not the path */
 	basename = uri;
 	while (strstr(basename, "/") != NULL)
@@ -547,15 +616,6 @@ static enum MHD_Result ahc_echo(void * cls,
 
 	/* clear context pointer */
 	*ptr = NULL;
-
-	/* redirect to website if no file given */
-	if (*basename == 0) {
-		http_code = MHD_HTTP_TEMPORARY_REDIRECT;
-		/* duplicate string so we can free it later */
-		url = strdup(WEBURL);
-		host = basename = "project site";
-		goto response;
-	}
 
 	/* process db file request (*.db and *.files) */
 	if ((strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) ||
@@ -693,6 +753,11 @@ response:
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
 		ret = MHD_add_response_header(response, "Location", url);
 		free(url);
+	} else if (http_code == MHD_HTTP_OK) {
+		write_log(stdout, "Sending status page.\n");
+		page = status_page();
+		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
+		ret = MHD_add_response_header (response, "Content-Type", "text/html");
 	} else { /* MHD_HTTP_NOT_FOUND */
 		if (req_count < 0)
 			write_log(stdout, "Currently no peers are available to check for %s.\n",
