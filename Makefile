@@ -43,7 +43,7 @@ config.h: config.def.h
 	$(CP) $< $@
 
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
-	printf "#ifndef VERSION\n#define VERSION \"%s\"\n#endif\n#define ARCH \"%s\"\n#define ID   \"%s\"\n" $(shell git describe --long 2>/dev/null || echo ${VERSION}) $(ARCH) $(ID) > $@
+	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' $(shell git describe --long 2>/dev/null || echo ${VERSION}) $(ARCH) $(ID) > $@
 
 %.service: %.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/; s/%ARCH_BYTES%/$(shell (printf $(ARCH) | wc -c; printf $(ARCH) | od -t d1 -A n) | tr -s " ")/; s/%ID%/$(ID)/; s/%ID_BYTES%/$(shell (printf $(ID) | wc -c; printf $(ID) | od -t d1 -A n) | tr -s " ")/' $< > $@
