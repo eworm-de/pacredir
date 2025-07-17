@@ -48,6 +48,7 @@
 #include "config.h"
 #include "version.h"
 #include "html.h"
+#include "favicon.h"
 
 #define DNS_CLASS_IN 1U
 #define DNS_TYPE_PTR 12U

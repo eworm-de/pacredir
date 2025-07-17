@@ -609,6 +609,13 @@ static enum MHD_Result ahc_echo(void * cls,
 	/* give status page */
 	if (strcmp(uri, "/") == 0) {
 		http_code = MHD_HTTP_OK;
+		page = status_page();
+		goto response;
+	}
+
+	/* give favicon */
+	if (strcmp(uri, "/favicon.png") == 0) {
+		http_code = MHD_HTTP_OK;
 		goto response;
 	}
 
@@ -772,10 +779,15 @@ response:
 		ret = MHD_add_response_header(response, "Location", url);
 		free(url);
 	} else if (http_code == MHD_HTTP_OK) {
-		write_log(stdout, "Sending status page.\n");
-		page = status_page();
-		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
-		ret = MHD_add_response_header (response, "Content-Type", "text/html");
+		if (page != NULL) {
+			write_log(stdout, "Sending status page.\n");
+			response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
+			ret = MHD_add_response_header (response, "Content-Type", "text/html");
+		} else {
+			write_log(stdout, "Sending favicon.\n");
+			response = MHD_create_response_from_buffer(sizeof(favicon), favicon, MHD_RESPMEM_PERSISTENT);
+			ret = MHD_add_response_header (response, "Content-Type", "image/png");
+		}
 	} else { /* MHD_HTTP_NOT_FOUND */
 		if (req_count < 0)
 			write_log(stdout, "Currently no peers are available to check for %s.\n",

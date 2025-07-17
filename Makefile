@@ -36,7 +36,7 @@ HTML		= $(MARKDOWN:.md=.html)
 
 all: pacredir $(SERVICES) $(HTML)
 
-pacredir: pacredir.c pacredir.h config.h html.h version.h
+pacredir: pacredir.c pacredir.h config.h favicon.h html.h version.h
 	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -o $@
 
 config.h: config.def.h
@@ -44,6 +44,16 @@ config.h: config.def.h
 
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' $(shell git describe --long 2>/dev/null || echo ${VERSION}) $(ARCH) $(ID) > $@
+
+favicon.png: logo.svg Makefile
+	rsvg-convert --width 32 --height 32 $< > $@
+	oxipng $@
+
+favicon.h: favicon.png Makefile
+	printf '#ifndef FAVICON_H\n#define FAVICON_H\n' > $@
+	printf 'static unsigned char favicon[] = {\n' >> $@
+	od -t x1 -A n -v < $< | sed 's/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
+	printf '};\n#endif\n' >> $@
 
 %.service: %.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/; s/%ARCH_BYTES%/$(shell (printf $(ARCH) | wc -c; printf $(ARCH) | od -t d1 -A n) | tr -s " ")/; s/%ID%/$(ID)/; s/%ID_BYTES%/$(shell (printf $(ID) | wc -c; printf $(ID) | od -t d1 -A n) | tr -s " ")/' $< > $@
@@ -79,7 +89,7 @@ install-avahi: compat/pacserve-announce.service
 	$(INSTALL) -D -m0644 compat/02-pacredir-avahi-MulticastDNS-resolve.conf $(DESTDIR)/etc/systemd/resolved.conf.d/02-pacredir-avahi-MulticastDNS-resolve.conf
 
 clean:
-	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) version.h
+	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) favicon.png favicon.h version.h
 
 distclean:
 	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) version.h config.h

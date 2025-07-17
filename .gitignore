@@ -3,6 +3,8 @@
 *.o
 compat/pacserve-announce.service
 config.h
+favicon.h
+favicon.png
 pacredir
 pacredir-*.tar.xz
 pacredir-*.tar.xz.asc

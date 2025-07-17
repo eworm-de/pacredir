@@ -48,6 +48,7 @@
 	"tr:nth-child(even) { background: #dfdfdf; } " \
 	"tr:nth-child(odd) { background: #efefef; } " \
 	"tr:hover { background: #dfefef; }</style>" \
+	"<link rel=\"icon\" href=\"/favicon.png \" type=\"image/png\">" \
 	"</head><body><h1>pacredir status</h1>" \
 	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on localhost. " \
 	"Visit <a href=\"" WEBURL "\">" WEBSITE "</a> for documentation.</p>" \
