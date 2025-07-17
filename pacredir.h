@@ -47,6 +47,7 @@
 /* compile time configuration */
 #include "config.h"
 #include "version.h"
+#include "html.h"
 
 #define DNS_CLASS_IN 1U
 #define DNS_TYPE_PTR 12U

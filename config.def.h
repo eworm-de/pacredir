@@ -26,13 +26,6 @@
 /* website url */
 #define WEBSITE	"https://pacredir.eworm.de/"
 
-/* This is used for default documents. Usually you will not see this anyway. */
-#define PAGE307 "<html><head><title>307 temporary redirect</title>" \
-		"</head><body>307 temporary redirect: " \
-		"<a href=\"%s\">%s</a></body></html>"
-#define PAGE404 "<html><head><title>404 Not Found</title>" \
-		"</head><body>404 Not Found: %s</body></html>"
-
 /* the ports pacredir and pacserve listen to */
 #define PORT_PACREDIR	7077
 #define PORT_PACSERVE	7078

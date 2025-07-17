@@ -36,7 +36,7 @@ HTML		= $(MARKDOWN:.md=.html)
 
 all: pacredir $(SERVICES) $(HTML)
 
-pacredir: pacredir.c pacredir.h config.h version.h
+pacredir: pacredir.c pacredir.h config.h html.h version.h
 	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -o $@
 
 config.h: config.def.h
