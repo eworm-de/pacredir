@@ -38,9 +38,10 @@ unsigned int count_redirect = 0, count_not_found = 0;
 /*** write_log ***/
 static int write_log(FILE *stream, const char *format, ...) {
 	va_list args;
-	va_start(args, format);
 
+	va_start(args, format);
 	vfprintf(stream, format, args);
+	va_end(args);
 	fflush(stream);
 
 	return EXIT_SUCCESS;
