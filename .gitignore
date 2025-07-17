@@ -1,10 +1,10 @@
 *~
 *.html
 *.o
-pacredir
-config.h
 compat/pacserve-announce.service
-systemd/pacserve.service
-version.h
+config.h
+pacredir
 pacredir-*.tar.xz
 pacredir-*.tar.xz.asc
+systemd/pacserve.service
+version.h
