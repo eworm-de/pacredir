@@ -7,6 +7,8 @@ pacredir
 
 **pacredir - redirect pacman requests, assisted by mDNS Service Discovery**
 
+![pacredir logo](logo.svg)
+
 By default every [Arch Linux ↗️](https://archlinux.org/) installation
 downloads its package files from online mirrors, transferring all the
 bits via WAN connection.

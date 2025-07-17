@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   fill="#000000"
+   width="96"
+   height="96"
+   viewBox="0 0 2.88 2.88"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="logo.svg"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+   inkscape:export-filename="pacman-redir.png"
+   inkscape:export-xdpi="192"
+   inkscape:export-ydpi="192"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="8.8561223"
+     inkscape:cx="47.932942"
+     inkscape:cy="45.956908"
+     inkscape:window-width="1920"
+     inkscape:window-height="1047"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <g
+     id="g2">
+    <rect
+       style="fill:#ffffff;stroke-width:0.06;stroke-linecap:round;stroke-linejoin:round"
+       id="rect1"
+       x="0"
+       y="0"
+       height="2.8800001"
+       width="2.8800001"
+       rx="0.45000005"
+       ry="0.45000005" />
+    <path
+       style="fill:#ffcc00;fill-opacity:1;stroke:#000000;stroke-width:0.18;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
+       id="path2"
+       sodipodi:type="arc"
+       sodipodi:cx="1.35"
+       sodipodi:cy="1.3500063"
+       sodipodi:rx="1.17"
+       sodipodi:ry="1.17"
+       sodipodi:start="0.61086524"
+       sodipodi:end="5.6723201"
+       sodipodi:arc-type="slice"
+       d="M 2.3084079,2.0210907 A 1.17,1.17 0 0 1 0.99817424,2.4658551 1.17,1.17 0 0 1 0.18000007,1.3500063 1.17,1.17 0 0 1 0.99817428,0.23415754 1.17,1.17 0 0 1 2.3084079,0.67892197 L 1.35,1.3500063 Z" />
+    <circle
+       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.06;stroke-linecap:round;stroke-linejoin:round"
+       id="path3"
+       cx="1.08"
+       cy="0.81000006"
+       r="0.27000001" />
+    <g
+       id="g1">
+      <rect
+         style="fill:#dd55ff;fill-opacity:1;stroke:#000000;stroke-width:0.18;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-dasharray:none"
+         id="rect4"
+         width="1.2335274"
+         height="0.60436016"
+         x="1.4664726"
+         y="1.8063096"
+         ry="0.30218008" />
+      <path
+         sodipodi:type="star"
+         style="fill:#dd55ff;fill-opacity:1;stroke:#000000;stroke-width:0.06;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1;stroke-dasharray:none"
+         id="path4"
+         inkscape:flatsided="true"
+         sodipodi:sides="3"
+         sodipodi:cx="-0.16725793"
+         sodipodi:cy="0.41981158"
+         sodipodi:r1="0.22600283"
+         sodipodi:r2="0.2553075"
+         sodipodi:arg1="1.017775"
+         sodipodi:arg2="2.0649725"
+         inkscape:rounded="0.1"
+         inkscape:randomized="0"
+         d="m -0.04854756,0.61212674 c -0.03330996,0.0205612 -0.34346381,-0.14653865 -0.34461539,-0.18566654 -0.001152,-0.0391279 0.29863811,-0.22417907 0.33309965,-0.20561241 0.03446154,0.0185667 0.04482571,0.37071771 0.01151574,0.39127895 z"
+         transform="matrix(3.0000001,0,0,3.0000001,2.036195,0.85837623)" />
+    </g>
+  </g>
+</svg>
