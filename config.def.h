@@ -23,8 +23,9 @@
 #define DROP_PRIV_UID	65534
 #define DROP_PRIV_GID	65534
 
-/* website url */
-#define WEBSITE	"https://pacredir.eworm.de/"
+/* website & url */
+#define WEBSITE	"pacredir.eworm.de"
+#define WEBURL	"https://" WEBSITE "/"
 
 /* the ports pacredir and pacserve listen to */
 #define PORT_PACREDIR	7077

@@ -552,7 +552,7 @@ static enum MHD_Result ahc_echo(void * cls,
 	if (*basename == 0) {
 		http_code = MHD_HTTP_TEMPORARY_REDIRECT;
 		/* duplicate string so we can free it later */
-		url = strdup(WEBSITE);
+		url = strdup(WEBURL);
 		host = basename = "project site";
 		goto response;
 	}
