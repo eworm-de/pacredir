@@ -137,7 +137,7 @@ static void update_hosts(const uint8_t refcnt) {
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {
 		write_log(stderr, "Failed to open system bus: %s\n", strerror(-r));
-		goto finish;
+		goto fast_finish;
 	}
 
 	r = sd_bus_call_method(bus, "org.freedesktop.resolve1", "/org/freedesktop/resolve1",
@@ -158,7 +158,7 @@ static void update_hosts(const uint8_t refcnt) {
 	if (refcnt == 0) {
 		usleep(250000);
 		update_hosts(refcnt + 1);
-		goto finish;
+		goto fast_finish;
 	}
 
 	r = sd_bus_message_enter_container(reply_record, 'a', "(iqqay)");
@@ -338,6 +338,12 @@ finish_service:
 	if (r < 0)
 		goto parse_failure_record;
 
+	goto finish;
+
+parse_failure_record:
+	write_log(stderr, "Parse failure for record: %s\n", strerror(-r));
+
+finish:
 	/* mark hosts offline that did not show up in query */
 	hosts_ptr = hosts;
 	while (hosts_ptr->host != NULL) {
@@ -349,12 +355,7 @@ finish_service:
 		hosts_ptr = hosts_ptr->next;
 	}
 
-	goto finish;
-
-parse_failure_record:
-	write_log(stderr, "Parse failure for record: %s\n", strerror(-r));
-
-finish:
+fast_finish:
 	sd_bus_message_unref(reply_record);
 	sd_bus_flush_close_unref(bus);
 }
