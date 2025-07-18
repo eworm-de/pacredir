@@ -29,6 +29,12 @@
 	"</head><body>404 Not Found: %s</body></html>"
 
 /* status page */
+#define CIRCLE_GREEN	"&#x1F7E2;"
+#define CIRCLE_YELLOW	"&#x1F7E1;"
+#define CIRCLE_ORANGE	"&#x1F7E0;"
+#define CIRCLE_RED	"&#x1F534;"
+#define CIRCLE_BLUE	"&#x1F535;"
+
 #define STATUS_HEAD \
 	"<!DOCTYPE html><html lang=\"en\">" \
 	"<head><title>pacredir status</title>" \
@@ -50,6 +56,7 @@
 	"<tr><td>Architecture:</td><td><b>" ARCH "</b></td></tr>" \
 	"<tr><td>Redirects:</td><td><b>%d</b></td></tr>" \
 	"<tr><td>Not found:</td><td><b>%d</b></td></tr>" \
+	"<tr><td>Over all:</td><td><b>%s</b></td></tr>" \
 	"</table>"
 
 #define STATUS_INT_HEAD \
@@ -58,7 +65,7 @@
 #define STATUS_INT_ONE \
 	"<tr><td>%s</td><td>%d</td></tr>"
 #define STATUS_INT_ONE_NA \
-	"<tr><td>%s</td><td>N/A</td></tr>"
+	"<tr><td>%s</td><td>" CIRCLE_ORANGE "</td></tr>"
 #define STATUS_INT_NONE \
 	"<tr><td colspan=2>(none)</td></tr>"
 #define STATUS_INT_FOOT \
@@ -66,11 +73,11 @@
 
 #define STATUS_HOST_HEAD \
 	"<h2 id=\"hosts\"><a href=\"#hosts\">Hosts</a></h2>" \
-	"<table><tr><th>host</th><th>type</th><th>state</th><th>port</th><th>bad</th></tr>"
+	"<table><tr><th>host</th><th>type</th><th colspan=2>state</th><th>port</th><th colspan=2>bad</th></tr>"
 #define STATUS_HOST_ONE \
-	"<tr><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%d</td></tr>"
+	"<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%d</td></tr>"
 #define STATUS_HOST_NONE \
-	"<tr><td colspan=5>(none)</td></tr>"
+	"<tr><td colspan=7>(none)</td></tr>"
 #define STATUS_HOST_FOOT \
 	"</table>"
 

@@ -515,9 +515,25 @@ static char * append_string(char * string, const char *format, ...) {
 static char * status_page(void) {
 	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
 	struct hosts * hosts_ptr = hosts;
-	char *page = NULL;
+	char *page = NULL, *overall = CIRCLE_BLUE;
 
-	page = append_string(page, STATUS_HEAD, count_redirect, count_not_found);
+	if (count_redirect + count_not_found)
+		switch (count_redirect * 4 / (count_redirect + count_not_found)) {
+			case 0:
+				overall = CIRCLE_RED;
+				break;
+			case 1:
+				overall = CIRCLE_ORANGE;
+				break;
+			case 2:
+				overall = CIRCLE_YELLOW;
+				break;
+			default:
+				overall = CIRCLE_GREEN;
+				break;
+		}
+
+	page = append_string(page, STATUS_HEAD, count_redirect, count_not_found, overall);
 
 	page = append_string(page, STATUS_INT_HEAD);
 	if (ignore_interfaces_ptr->interface == NULL)
@@ -542,7 +558,9 @@ static char * status_page(void) {
 	while (hosts_ptr->host != NULL) {
 		page = append_string(page, STATUS_HOST_ONE,
 			hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
+			hosts_ptr->online ? CIRCLE_GREEN : CIRCLE_RED,
 			hosts_ptr->online ? "online" : "offline", hosts_ptr->port,
+			hosts_ptr->badcount ? CIRCLE_RED : CIRCLE_BLUE,
 			hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;
