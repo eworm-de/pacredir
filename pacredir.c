@@ -878,16 +878,10 @@ static void sigusr_callback(int signal) {
 	if (hosts_ptr->host == NULL)
 		write_log(stdout, " (none)\n");
 	while (hosts_ptr->host != NULL) {
-		if (hosts_ptr->badcount > 0)
-			write_log(stdout, " -> %s (%s, %s, port: %d, finds: %d, bad count: %d)\n",
-				hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
-				hosts_ptr->online ? "online" : "offline", hosts_ptr->port,
-				hosts_ptr->finds, hosts_ptr->badcount);
-		else
-			write_log(stdout, " -> %s (%s, %s, port: %d, finds: %d)\n",
-				hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
-				hosts_ptr->online ? "online" : "offline", hosts_ptr->port,
-				hosts_ptr->finds);
+		write_log(stdout, " -> %s (%s, %s, port: %d, finds: %d, bad: %d)\n",
+			hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
+			hosts_ptr->online ? "online" : "offline", hosts_ptr->port,
+			hosts_ptr->finds, hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;
 	}
