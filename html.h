@@ -89,7 +89,7 @@
 	"<td>%s</td><td>%d</td>" \
 	"<td>%s</td><td>%d</td></tr>"
 #define STATUS_HOST_NONE \
-	"<tr><td colspan=9>(none)</td></tr>"
+	"<tr><td colspan=8>(none)</td></tr>"
 #define STATUS_HOST_FOOT \
 	"</table>"
 
