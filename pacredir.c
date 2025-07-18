@@ -707,6 +707,7 @@ response:
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
 	}
 
+	ret = MHD_add_response_header(response, "Server", PROGNAME " v" VERSION " " ID "/" ARCH);
 	ret = MHD_queue_response(connection, http_code, response);
 	MHD_destroy_response(response);
 
