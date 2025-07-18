@@ -558,13 +558,11 @@ static char * status_page(void) {
 		page = append_string(page, STATUS_HOST_NONE);
 	while (hosts_ptr->host != NULL) {
 		page = append_string(page, STATUS_HOST_ONE,
-			hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
-			hosts_ptr->online ? CIRCLE_GREEN : CIRCLE_RED,
-			hosts_ptr->online ? "online" : "offline", hosts_ptr->port,
-			hosts_ptr->finds ? CIRCLE_GREEN : CIRCLE_BLUE,
-			hosts_ptr->finds,
-			hosts_ptr->badcount ? CIRCLE_RED : CIRCLE_BLUE,
-			hosts_ptr->badcount);
+			hosts_ptr->host, hosts_ptr->port,
+			hosts_ptr->mdns ? (hosts_ptr->online ? CIRCLE_GREEN : CIRCLE_RED) : CIRCLE_BLUE,
+			hosts_ptr->mdns ? (hosts_ptr->online ? "online" : "offline") : "static",
+			hosts_ptr->finds ? CIRCLE_GREEN : CIRCLE_BLUE, hosts_ptr->finds,
+			hosts_ptr->badcount ? CIRCLE_RED : CIRCLE_BLUE, hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;
 	}
