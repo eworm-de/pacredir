@@ -78,6 +78,8 @@ struct hosts {
 	__time_t badtime;
 	/* count the number of bad requests */
 	unsigned int badcount;
+	/* count finds */
+	unsigned int finds;
 	/* pointer to next struct element */
 	struct hosts * next;
 };

@@ -384,6 +384,7 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 	hosts_ptr->mdns = mdns;
 	hosts_ptr->badtime = 0;
 	hosts_ptr->badcount = 0;
+	hosts_ptr->finds = 0;
 
 	hosts_ptr->next = malloc(sizeof(struct hosts));
 	hosts_ptr->next->host = NULL;
@@ -757,6 +758,7 @@ static enum MHD_Result ahc_echo(void * cls,
 						   request->time_total < time_total))) ||
 				 /* for packages try to guess the fastest peer */
 				 (dbfile == 0 && request->time_total < time_total))) {
+			request->host->finds++;
 			if (url != NULL)
 				free(url);
 			url = request->url;
