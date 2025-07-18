@@ -619,6 +619,13 @@ static enum MHD_Result ahc_echo(void * cls,
 		goto response;
 	}
 
+	/* give a simple ok response for monitoring */
+	if (strcmp(uri, "/check") == 0) {
+		http_code = MHD_HTTP_OK;
+		page = strdup("OK");
+		goto response;
+	}
+
 	/* we want the filename, not the path */
 	basename = uri;
 	while (strstr(basename, "/") != NULL)
