@@ -41,6 +41,7 @@
 	"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">" \
 	"<meta http-equiv=\"refresh\" content=\"30\">" \
 	"<style>body { font-family: sans-serif; } " \
+	"h1 { padding-left: 36px; background-image: url(\"/favicon.png\"); background-repeat: no-repeat; } " \
 	"a { color: black; text-decoration: none; } " \
 	"a:hover { text-decoration: underline; } " \
 	"th { background: #efefef; } " \
