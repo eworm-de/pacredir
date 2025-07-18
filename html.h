@@ -75,9 +75,21 @@
 
 #define STATUS_HOST_HEAD \
 	"<h2 id=\"hosts\"><a href=\"#hosts\">Hosts</a></h2>" \
-	"<table><tr><th>host</th><th>type</th><th colspan=2>state</th><th>port</th><th colspan=2>finds</th><th colspan=2>bad</th></tr>"
+	"<table><tr>" \
+	"<th>host</th>" \
+	"<th>type</th>" \
+	"<th colspan=2>state</th>" \
+	"<th>port</th>" \
+	"<th colspan=2>finds</th>" \
+	"<th colspan=2>bad</th></tr>"
 #define STATUS_HOST_ONE \
-	"<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%d</td><td>%s</td><td>%d</td></tr>"
+	"<tr>" \
+	"<td>%s</td>" \
+	"<td>%s</td>" \
+	"<td>%s</td><td>%s</td>" \
+	"<td>%d</td>" \
+	"<td>%s</td><td>%d</td>" \
+	"<td>%s</td><td>%d</td></tr>"
 #define STATUS_HOST_NONE \
 	"<tr><td colspan=9>(none)</td></tr>"
 #define STATUS_HOST_FOOT \
