@@ -26,7 +26,8 @@ ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $$ID)
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
-VERSION := 0.7.2
+DISTVER := 0.7.2
+VERSION ?= $(shell it describe --long 2>/dev/null || echo $(DISTVER))
 
 SERVICESIN	= $(wildcard */*.service.in)
 SERVICES	= $(SERVICESIN:.in=)
@@ -42,7 +43,7 @@ config.h: config.def.h
 	$(CP) $< $@
 
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
-	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' "$(shell git describe --long 2>/dev/null || echo ${VERSION})" "$(ARCH)" "$(ID)" > $@
+	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' "${VERSION}" "$(ARCH)" "$(ID)" > $@
 
 favicon.png: logo.svg Makefile
 	rsvg-convert --width 32 --height 32 $< | oxipng - > $@
