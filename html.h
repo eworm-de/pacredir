@@ -42,7 +42,8 @@
 	"<meta http-equiv=\"refresh\" content=\"30\">" \
 	"<style>body { font-family: sans-serif; } " \
 	"h1 { padding-left: 36px; background-image: url(\"/favicon.png\"); background-repeat: no-repeat; } " \
-	"a { color: black; text-decoration: none; } " \
+	"h2 a { color: black; } " \
+	"a { text-decoration: none; } " \
 	"a:hover { text-decoration: underline; } " \
 	"th { background: #efefef; } " \
 	"td { text-align: center; padding: 1px 5px; } " \
