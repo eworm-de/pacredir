@@ -42,7 +42,7 @@ config.h: config.def.h
 	$(CP) $< $@
 
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
-	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' $(shell git describe --long 2>/dev/null || echo ${VERSION}) $(ARCH) $(ID) > $@
+	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' "$(shell git describe --long 2>/dev/null || echo ${VERSION})" "$(ARCH)" "$(ID)" > $@
 
 favicon.png: logo.svg Makefile
 	rsvg-convert --width 32 --height 32 $< > $@
@@ -52,7 +52,7 @@ favicon.h: favicon.png Makefile
 	printf '#ifndef FAVICON_H\n#define FAVICON_H\n' > $@
 	printf 'static unsigned char favicon[] = {\n' >> $@
 	od -t x1 -A n -v < $< | sed 's/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
-	printf '};\n#define FAVICON_SHA1 "%s"\n#endif\n' $(shell sha1sum $< | cut -d' ' -f1) >> $@
+	printf '};\n#define FAVICON_SHA1 "%s"\n#endif\n' "$(shell sha1sum $< | cut -d' ' -f1)" >> $@
 
 %.service: %.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/; s/%ARCH_BYTES%/$(shell (printf $(ARCH) | wc -c; printf $(ARCH) | od -t d1 -A n) | tr -s " ")/; s/%ID%/$(ID)/; s/%ID_BYTES%/$(shell (printf $(ID) | wc -c; printf $(ID) | od -t d1 -A n) | tr -s " ")/' $< > $@
