@@ -517,6 +517,7 @@ static char * status_page(void) {
 	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
 	struct hosts * hosts_ptr = hosts;
 	char *page = NULL, *overall = CIRCLE_BLUE;
+	char hostname[HOST_NAME_MAX];
 
 	if (count_redirect + count_not_found)
 		switch (count_redirect * 4 / (count_redirect + count_not_found)) {
@@ -534,7 +535,8 @@ static char * status_page(void) {
 				break;
 		}
 
-	page = append_string(page, STATUS_HEAD, count_redirect, count_not_found, overall);
+	gethostname(hostname, HOST_NAME_MAX);
+	page = append_string(page, STATUS_HEAD, hostname, count_redirect, count_not_found, overall);
 
 	page = append_string(page, STATUS_INT_HEAD);
 	if (ignore_interfaces_ptr->interface == NULL)

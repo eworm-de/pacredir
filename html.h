@@ -51,7 +51,7 @@
 	"tr:hover { background: #dfefef; }</style>" \
 	"<link rel=\"icon\" href=\"/favicon.png \" type=\"image/png\">" \
 	"</head><body><h1>pacredir status</h1>" \
-	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on localhost. " \
+	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on <i>%s</i>. " \
 	"Visit <a href=\"" WEBURL "\">" WEBSITE "</a> for documentation.</p>" \
 	"<table>" \
 	"<tr><td>Distribution:</td><td><b>" ID "</b></td></tr>" \
