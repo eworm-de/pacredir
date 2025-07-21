@@ -87,6 +87,14 @@ To get a better idea what happens in the background have a look at
 A simple status page is available when `pacredir` is running. Just point
 your browser to [your local instance](http://localhost:7077/).
 
+The instance is listening on `localhost` only. To access it from a different
+host you need to proxy (for example reverse proxy with `nginx`) or tunnel
+it. The latter can be used ad hoc, for example with `ssh` local forwarding:
+
+    ssh -L 17077:localhost:7077 host
+
+Then point your browser to `http://localhost:17077/`.
+
 ### Databases from cache server
 
 By default databases are not fetched from cache servers. To make that
