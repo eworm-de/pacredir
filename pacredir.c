@@ -518,6 +518,10 @@ static char * status_page(void) {
 	struct hosts * hosts_ptr = hosts;
 	char *page = NULL, *overall = CIRCLE_BLUE;
 	char hostname[HOST_NAME_MAX];
+	struct timeval tv;
+
+	/* initialize struct timeval */
+	gettimeofday(&tv, NULL);
 
 	if (count_redirect + count_not_found)
 		switch (count_redirect * 4 / (count_redirect + count_not_found)) {
@@ -559,12 +563,15 @@ static char * status_page(void) {
 	if (hosts_ptr->host == NULL)
 		page = append_string(page, STATUS_HOST_NONE);
 	while (hosts_ptr->host != NULL) {
+		time_t badtime = hosts_ptr->badtime + hosts_ptr->badcount * BADTIME;
+
 		page = append_string(page, STATUS_HOST_ONE,
 			hosts_ptr->host, hosts_ptr->port,
 			hosts_ptr->mdns ? (hosts_ptr->online ? CIRCLE_GREEN : CIRCLE_RED) : CIRCLE_BLUE,
 			hosts_ptr->mdns ? (hosts_ptr->online ? "online" : "offline") : "static",
 			hosts_ptr->finds ? CIRCLE_GREEN : CIRCLE_BLUE, hosts_ptr->finds,
-			hosts_ptr->badcount ? CIRCLE_RED : CIRCLE_BLUE, hosts_ptr->badcount);
+			hosts_ptr->badcount && badtime > tv.tv_sec ? CIRCLE_RED : CIRCLE_BLUE,
+			hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;
 	}
