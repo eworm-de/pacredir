@@ -45,8 +45,7 @@ version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' "$(shell git describe --long 2>/dev/null || echo ${VERSION})" "$(ARCH)" "$(ID)" > $@
 
 favicon.png: logo.svg Makefile
-	rsvg-convert --width 32 --height 32 $< > $@
-	oxipng $@
+	rsvg-convert --width 32 --height 32 $< | oxipng - > $@
 
 favicon.h: favicon.png Makefile
 	printf '#ifndef FAVICON_H\n#define FAVICON_H\nstatic unsigned char favicon[] = {\n' > $@
