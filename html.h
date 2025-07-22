@@ -59,7 +59,7 @@
 	"<tr><td>Architecture:</td><td><b>" ARCH "</b></td></tr>" \
 	"<tr><td>Redirects:</td><td><b>%d</b></td></tr>" \
 	"<tr><td>Not found:</td><td><b>%d</b></td></tr>" \
-	"<tr><td>Over all:</td><td><b>%s</b></td></tr>" \
+	"<tr><td>Over all:</td><td>%s</td></tr>" \
 	"</table>"
 
 #define STATUS_INT_HEAD \
