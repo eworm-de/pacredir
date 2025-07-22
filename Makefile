@@ -49,8 +49,7 @@ favicon.png: logo.svg Makefile
 	oxipng $@
 
 favicon.h: favicon.png Makefile
-	printf '#ifndef FAVICON_H\n#define FAVICON_H\n' > $@
-	printf 'static unsigned char favicon[] = {\n' >> $@
+	printf '#ifndef FAVICON_H\n#define FAVICON_H\nstatic unsigned char favicon[] = {\n' > $@
 	od -t x1 -A n -v < $< | sed 's/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
 	printf '};\n#define FAVICON_SHA1 "%s"\n#endif\n' "$(shell sha1sum $< | cut -d' ' -f1)" >> $@
 
