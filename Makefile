@@ -93,6 +93,6 @@ distclean:
 	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) version.h config.h
 
 release:
-	git archive --format=tar.xz --prefix=pacredir-$(VERSION)/ $(VERSION) > pacredir-$(VERSION).tar.xz
-	gpg --armor --detach-sign --comment pacredir-$(VERSION).tar.xz pacredir-$(VERSION).tar.xz
-	git notes --ref=refs/notes/signatures/tar add -C $$(git archive --format=tar --prefix=pacredir-$(VERSION)/ $(VERSION) | gpg --armor --detach-sign --comment pacredir-$(VERSION).tar | git hash-object -w --stdin) $(VERSION)
+	git archive --format=tar.xz --prefix=pacredir-$(DISTVER)/ $(DISTVER) > pacredir-$(DISTVER).tar.xz
+	gpg --armor --detach-sign --comment pacredir-$(DISTVER).tar.xz pacredir-$(DISTVER).tar.xz
+	git notes --ref=refs/notes/signatures/tar add -C $$(git archive --format=tar --prefix=pacredir-$(DISTVER)/ $(DISTVER) | gpg --armor --detach-sign --comment pacredir-$(DISTVER).tar | git hash-object -w --stdin) $(DISTVER)
