@@ -26,7 +26,7 @@ ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $$ID)
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
-DISTVER := 0.7.3
+DISTVER := 0.7.4
 VERSION ?= $(shell git describe --long 2>/dev/null || echo $(DISTVER))
 
 SERVICESIN	= $(wildcard */*.service.in)
