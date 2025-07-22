@@ -80,6 +80,7 @@ install-doc: $(HTML)
 	$(INSTALL) -D -m0644 $(MARKDOWN) $(HTML) logo.svg logo.png -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
 	$(INSTALL) -D -m0644 $(wildcard FLOW/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
+	$(INSTALL) -D -m0644 desktop/pacredir-status.desktop $(DESTDIR)$(PREFIX)/share/applications/pacredir-status.desktop
 
 install-avahi: compat/pacserve-announce.service
 	$(INSTALL) -D -m0644 compat/avahi.conf $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service.d/avahi.conf

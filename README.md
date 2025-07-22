@@ -93,7 +93,8 @@ it. The latter can be used ad hoc, for example with `ssh` local forwarding:
 
     ssh -L 17077:localhost:7077 host
 
-Then point your browser to `http://localhost:17077/`.
+Then point your browser to `http://localhost:17077/`. A desktop file for
+that url is installed, so your desktop environment has a shortcut.
 
 ### Databases from cache server
 
