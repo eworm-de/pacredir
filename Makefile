@@ -1,7 +1,6 @@
 # pacredir - redirect pacman requests, assisted by mDNS Service Discovery
 
 PREFIX		:= /usr
-REPRODUCIBLE	:= 0
 
 # commands
 CC	:= gcc
@@ -37,7 +36,7 @@ HTML		= $(MARKDOWN:.md=.html)
 all: pacredir $(SERVICES) $(HTML)
 
 pacredir: pacredir.c pacredir.h config.h favicon.h html.h version.h
-	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -DREPRODUCIBLE=$(REPRODUCIBLE) -o $@
+	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -o $@
 
 config.h: config.def.h
 	$(CP) $< $@

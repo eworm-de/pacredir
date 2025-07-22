@@ -932,10 +932,7 @@ int main(int argc, char ** argv) {
 
 	if (verbose > 0)
 		write_log(stdout, "%s: " PROGNAME " v" VERSION " " ID "/" ARCH
-#if REPRODUCIBLE == 0
-				" (compiled: " __DATE__ ", " __TIME__ ")"
-#endif
-				"\n", argv[0]);
+				" (built: " __DATE__ ", " __TIME__ ")\n", argv[0]);
 
 	if (help > 0)
 		write_log(stdout, "usage: %s [-h] [-v] [-V]\n", argv[0]);
