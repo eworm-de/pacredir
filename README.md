@@ -131,9 +131,13 @@ This will list all instances:
 
     resolvectl query --legend=false --protocol=mdns --type=PTR --synthesize=false --zone=false '_pacserve._tcp.local'
 
+![resolvectl query](README.d/resolvectl-query.png)
+
 For details on the services you can query each:
 
     resolvectl service --legend=false 'pacserve on host._pacserve._tcp.local'
+
+![resolvectl service](README.d/resolvectl-service.png)
 
 License and warranty
 --------------------

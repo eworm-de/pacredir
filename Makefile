@@ -81,6 +81,8 @@ install-bin: pacredir systemd/pacserve.service
 install-doc: $(HTML)
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/
 	$(INSTALL) -D -m0644 $(MARKDOWN) $(HTML) logo.svg -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/
+	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.d/
+	$(INSTALL) -D -m0644 $(wildcard README.d/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.d/
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
 	$(INSTALL) -D -m0644 $(wildcard FLOW/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
 
