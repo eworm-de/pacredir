@@ -72,16 +72,17 @@ install-bin: pacredir systemd/pacserve.service
 	$(INSTALL) -D -m0644 systemd/pacserve.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service
 	$(INSTALL) -D -m0644 systemd/sysusers.conf $(DESTDIR)$(PREFIX)/lib/sysusers.d/pacredir.conf
 	$(INSTALL) -D -m0644 systemd/tmpfiles.conf $(DESTDIR)$(PREFIX)/lib/tmpfiles.d/pacredir.conf
+	$(INSTALL) -D -m0644 desktop/pacredir-status.desktop $(DESTDIR)$(PREFIX)/share/applications/pacredir-status.desktop
+	$(INSTALL) -D -m0644 logo.png $(DESTDIR)$(PREFIX)/share/pixmaps/pacredir.png
 	$(INSTALL) -D -m0644 dispatch/dhcpcd $(DESTDIR)$(PREFIX)/lib/dhcpcd/dhcpcd-hooks/80-pacredir
 	$(INSTALL) -D -m0755 dispatch/networkd $(DESTDIR)$(PREFIX)/lib/networkd-dispatcher/routable.d/80-pacredir
 	$(INSTALL) -D -m0755 dispatch/networkmanager $(DESTDIR)$(PREFIX)/lib/NetworkManager/dispatcher.d/80-pacredir
 
 install-doc: $(HTML)
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/
-	$(INSTALL) -D -m0644 $(MARKDOWN) $(HTML) logo.svg logo.png -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/
+	$(INSTALL) -D -m0644 $(MARKDOWN) $(HTML) logo.svg -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
 	$(INSTALL) -D -m0644 $(wildcard FLOW/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
-	$(INSTALL) -D -m0644 desktop/pacredir-status.desktop $(DESTDIR)$(PREFIX)/share/applications/pacredir-status.desktop
 
 install-avahi: compat/pacserve-announce.service
 	$(INSTALL) -D -m0644 compat/avahi.conf $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service.d/avahi.conf
