@@ -1094,6 +1094,7 @@ fail:
 		free(hosts);
 		hosts = hosts_ptr;
 	}
+	free(hosts);
 
 	while (ignore_interfaces->interface != NULL) {
 		free(ignore_interfaces->interface);
@@ -1101,6 +1102,7 @@ fail:
 		free(ignore_interfaces);
 		ignore_interfaces = ignore_interfaces_ptr;
 	}
+	free(ignore_interfaces);
 
 	sd_notify(0, "STATUS=Stopped. Bye!");
 
