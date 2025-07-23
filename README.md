@@ -123,6 +123,18 @@ broken and/or malicious files to you, but this is by design. So make
 sure `pacman` is configured to check signatures! It will then detect if
 anything goes wrong.
 
+Querying `systemd-resolved`
+---------------------------
+
+You may want to query `systemd-resolved` directly to verify the results.
+This will list all instances:
+
+    resolvectl query --legend=false --protocol=mdns --type=PTR --synthesize=false --zone=false '_pacserve._tcp.local'
+
+For details on the services you can query each:
+
+    resolvectl service --legend=false 'pacserve on host._pacserve._tcp.local'
+
 License and warranty
 --------------------
 
