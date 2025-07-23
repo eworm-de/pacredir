@@ -170,6 +170,7 @@ static void update_hosts(const uint8_t refcnt) {
 		uint16_t class, type, port;
 		const void *data;
 		size_t length;
+		char *peer;
 		const char *canonical, *discard;
 		uint8_t match = 0, ignore = 0;
 
@@ -189,7 +190,7 @@ static void update_hosts(const uint8_t refcnt) {
 			goto parse_failure_record;
 
 		/* process the data received */
-		char *peer = process_reply_record(data, length);
+		peer = process_reply_record(data, length);
 
 		sd_bus_message *reply_service = NULL;
 		/* service START */
@@ -328,6 +329,7 @@ parse_failure_service:
 		write_log(stderr, "Parse failure for service: %s\n", strerror(-r));
 
 finish_service:
+		free(peer);
 		sd_bus_message_unref(reply_service);
 	}
 
