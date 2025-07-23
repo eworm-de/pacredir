@@ -3,9 +3,7 @@
 case "${reason}" in
 	BOUND|REBIND|REBOOT|RENEW|TIMEOUT|STATIC)
 		# inform pacredir about reestablished connection
-		if systemctl is-active -q pacredir.service; then
-			systemctl reload pacredir.service
-		fi
+		systemctl try-reload-or-restart pacredir.service
 		;;
 	PREINIT|EXPIRE|INFORM|FAIL|IPV4LL|NAK|NOCARRIER|RELEASE|STOP)
 		# do nothing here...
