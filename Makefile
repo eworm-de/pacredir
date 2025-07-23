@@ -73,6 +73,7 @@ install-bin: pacredir systemd/pacserve.service
 	$(INSTALL) -D -m0644 systemd/sysusers.conf $(DESTDIR)$(PREFIX)/lib/sysusers.d/pacredir.conf
 	$(INSTALL) -D -m0644 systemd/tmpfiles.conf $(DESTDIR)$(PREFIX)/lib/tmpfiles.d/pacredir.conf
 	$(INSTALL) -D -m0644 dispatch/dhcpcd $(DESTDIR)$(PREFIX)/lib/dhcpcd/dhcpcd-hooks/80-pacredir
+	$(INSTALL) -D -m0755 dispatch/networkd $(DESTDIR)$(PREFIX)/lib/networkd-dispatcher/routable.d/80-pacredir
 	$(INSTALL) -D -m0755 dispatch/networkmanager $(DESTDIR)$(PREFIX)/lib/NetworkManager/dispatcher.d/80-pacredir
 
 install-doc: $(HTML)
