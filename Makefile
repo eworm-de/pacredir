@@ -83,8 +83,8 @@ install-doc: $(HTML)
 	$(INSTALL) -D -m0644 $(MARKDOWN) $(HTML) logo.svg -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.d/
 	$(INSTALL) -D -m0644 $(wildcard README.d/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/README.d/
-	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
-	$(INSTALL) -D -m0644 $(wildcard FLOW/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW/
+	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW.d/
+	$(INSTALL) -D -m0644 $(wildcard FLOW.d/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW.d/
 
 install-avahi: compat/pacserve-announce.service
 	$(INSTALL) -D -m0644 compat/avahi.conf $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service.d/avahi.conf

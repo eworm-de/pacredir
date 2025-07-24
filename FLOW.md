@@ -17,7 +17,7 @@ For database files the decision on what return code (`307` vs. `404`) to
 send is made on the file age. The local file's timestamp is compared to
 what timestamp `pacman` sends in its request.
 
-![OK - serving from local network](FLOW/ok.svg)
+![OK - serving from local network](FLOW.d/ok.svg)
 
 After the initial request `pacman` is redirected to `host B` and gets the
 file there. No request is sent to the mirror.
@@ -28,7 +28,7 @@ FAIL - fallback to mirror
 In this example no host has the file or the local database files are older
 than what `pacman` requested.
 
-![FAIL - fallback to mirror](FLOW/fail.svg)
+![FAIL - fallback to mirror](FLOW.d/fail.svg)
 
 All requests made by `pacredir` are answered with http code `404`, thus
 `pacman` receives the same. Finally `pacman` falls back to the next mirror.
