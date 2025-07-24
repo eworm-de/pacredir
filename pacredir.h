@@ -66,6 +66,11 @@
 struct hosts {
 	/* host name */
 	char * host;
+
+	/*  /\   Every now and then I think about adding ip addresses here. We have
+	   /\7\  these from mDNS query anyway, but: pacman has to succeed with the
+	  /_()_\ url we send it, so do roughly the same, including resolving. */
+
 	/* network port */
 	uint16_t port;
 	/* true for hosts from mDNS (vs. static) */
