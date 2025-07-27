@@ -34,7 +34,12 @@ To compile and run `pacredir` you need:
 * [curl ↗️](https://curl.haxx.se/)
 * [iniparser ↗️](https://github.com/ndevilla/iniparser)
 * [darkhttpd ↗️](https://unix4lyfe.org/darkhttpd/)
+
+And these are build time or make dependencies:
+
 * [markdown ↗️](https://daringfireball.net/projects/markdown/) (HTML documentation)
+* [librsvg ↗️](https://wiki.gnome.org/Projects/LibRsvg) (render the favicon)
+* [oxipng ↗️](https://github.com/shssoichiro/oxipng) (optimize the favicon)
 
 `Arch Linux` installs development files for the packages by default, so
 no additional development packages are required.
