@@ -135,6 +135,8 @@ This will list all instances:
 
 ![resolvectl query](README.d/resolvectl-query.png)
 
+(The escape sequence `\032` represents a space.)
+
 For details on the services you can query each:
 
     resolvectl service --legend=false 'pacserve on host._pacserve._tcp.local'
