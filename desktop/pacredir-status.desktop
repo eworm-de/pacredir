@@ -3,6 +3,7 @@ Type=Link
 Version=1.0
 Name=pacredir status
 GenericName=Status and statistics for pacredir
+Comment=Show status and statistics for pacredir
 Icon=/usr/share/pixmaps/pacredir.png
 URL=http://localhost:7077/
 Categories=System;PackageManager
