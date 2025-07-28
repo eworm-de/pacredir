@@ -38,7 +38,7 @@ To compile and run `pacredir` you need:
 And these are build time or make dependencies:
 
 * [markdown ↗️](https://daringfireball.net/projects/markdown/) (HTML documentation)
-* [librsvg ↗️](https://wiki.gnome.org/Projects/LibRsvg) (render the favicon)
+* [resvg ↗️](https://github.com/linebender/resvg) (render the favicon)
 * [oxipng ↗️](https://github.com/shssoichiro/oxipng) (optimize the favicon)
 
 `Arch Linux` installs development files for the packages by default, so
