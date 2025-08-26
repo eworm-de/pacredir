@@ -121,6 +121,7 @@ static char* process_reply_record(const void *rr, size_t sz) {
 
 /*** update_hosts ***/
 static void update_hosts(void) {
+	struct if_nameindex *if_nidxs, *intf;
 	struct hosts *hosts_ptr = hosts;
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *reply = NULL;
@@ -155,7 +156,30 @@ static void update_hosts(void) {
 	   Wait a moment, call again for full update, then goto finish.
 	   TODO: Drop when continuous mDNS querying becomes available! */
 	usleep(250000);
-	update_hosts_real(bus);
+
+	if ((if_nidxs = if_nameindex()) == NULL) {
+		write_log(stderr, "Failed to get list of interfaces.\n");
+		goto finish;
+	}
+
+	for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
+		struct ignore_interfaces *ignore_interfaces_ptr = ignore_interfaces;
+		uint8_t ignore = 0;
+
+		while (ignore_interfaces_ptr->interface != NULL) {
+			if (ignore_interfaces_ptr->ifindex == intf->if_index) {
+				ignore++;
+				break;
+			}
+
+			ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+		}
+
+		if (!ignore)
+			update_hosts_on_interface(bus, intf->if_index);
+	}
+
+	if_freenameindex(if_nidxs);
 
 finish:
 	/* mark hosts offline that did not show up in query */
@@ -174,8 +198,8 @@ fast_finish:
 	sd_bus_flush_close_unref(bus);
 }
 
-/*** update_hosts_real ***/
-static void update_hosts_real(sd_bus *bus) {
+/*** update_hosts_on_interface ***/
+static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) {
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *reply_record = NULL;
 	uint64_t flags;
@@ -183,7 +207,7 @@ static void update_hosts_real(sd_bus *bus) {
 
 	r = sd_bus_call_method(bus, "org.freedesktop.resolve1", "/org/freedesktop/resolve1",
 		"org.freedesktop.resolve1.Manager", "ResolveRecord", &error,
-		&reply_record, "isqqt", 0 /* any */, PACSERVE "." MDNS_DOMAIN,
+		&reply_record, "isqqt", if_index, PACSERVE "." MDNS_DOMAIN,
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
 		if (verbose > 0)
@@ -260,7 +284,6 @@ static void update_hosts_real(sd_bus *bus) {
 				int ifindex, family;
 				const void *data;
 				size_t length;
-				struct ignore_interfaces *ignore_interfaces_ptr = ignore_interfaces;
 
 				r = sd_bus_message_enter_container(reply_service, 'r', "iiay");
 				if (r < 0)
@@ -276,14 +299,6 @@ static void update_hosts_real(sd_bus *bus) {
 				r = sd_bus_message_exit_container(reply_service);
 				if (r < 0)
 					goto parse_failure_service;
-
-				while (ignore_interfaces_ptr->interface != NULL) {
-					if (ignore_interfaces_ptr->ifindex == ifindex) {
-						ignore++;
-						break;
-					}
-					ignore_interfaces_ptr = ignore_interfaces_ptr->next;
-				}
 			}
 			r = sd_bus_message_exit_container(reply_service);
 			if (r < 0)

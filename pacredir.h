@@ -126,8 +126,8 @@ static size_t get_name(const uint8_t* rr_ptr, char* name);
 static char* process_reply_record(const void *rr, size_t sz);
 /* update_hosts */
 static void update_hosts(void);
-/* update_hosts_real */
-static void update_hosts_real(sd_bus *bus);
+/* update_hosts_on_interface */
+static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index);
 
 /* add_host */
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns);
