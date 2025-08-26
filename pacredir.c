@@ -566,13 +566,15 @@ static char * status_page(void) {
 		page = append_string(page, STATUS_HOST_NONE);
 	while (hosts_ptr->host != NULL) {
 		time_t badtime = hosts_ptr->badtime + hosts_ptr->badcount * BADTIME;
+		uint8_t bad = hosts_ptr->badcount && badtime > tv.tv_sec ? 1 : 0;
 
 		page = append_string(page, STATUS_HOST_ONE,
+			(hosts_ptr->mdns && !hosts_ptr->online) || bad ? " class=\"grey\"" : "",
 			hosts_ptr->host, hosts_ptr->port,
 			hosts_ptr->mdns ? (hosts_ptr->online ? CIRCLE_GREEN : CIRCLE_RED) : CIRCLE_BLUE,
 			hosts_ptr->mdns ? (hosts_ptr->online ? "online" : "offline") : "static",
 			hosts_ptr->finds ? CIRCLE_GREEN : CIRCLE_BLUE, hosts_ptr->finds,
-			hosts_ptr->badcount && badtime > tv.tv_sec ? CIRCLE_RED : CIRCLE_BLUE,
+			bad ? CIRCLE_RED : CIRCLE_BLUE,
 			hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;

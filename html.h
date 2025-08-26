@@ -49,7 +49,8 @@
 	"td { text-align: center; padding: 1px 5px; } " \
 	"tr:nth-child(even) { background: #dfdfdf; } " \
 	"tr:nth-child(odd) { background: #efefef; } " \
-	"tr:hover { background: #dfefef; }</style>" \
+	"tr:hover { background: #dfefef; }" \
+	"tr.grey { color: grey; }</style>" \
 	"<link rel=\"icon\" href=\"/favicon.png \" type=\"image/png\">" \
 	"</head><body><h1>pacredir status</h1>" \
 	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on <i>%s</i>. " \
@@ -83,7 +84,7 @@
 	"<th colspan=2>finds</th>" \
 	"<th colspan=2>bad</th></tr>"
 #define STATUS_HOST_ONE \
-	"<tr>" \
+	"<tr%s>" \
 	"<td>%s</td>" \
 	"<td>%d</td>" \
 	"<td>%s</td><td>%s</td>" \
