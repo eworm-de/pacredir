@@ -802,14 +802,14 @@ response:
 		if (page != NULL) {
 			write_log(stdout, "Sending status page.\n");
 			response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
-			ret = MHD_add_response_header (response, "Content-Type", "text/html");
+			ret = MHD_add_response_header(response, "Content-Type", "text/html");
 		} else {
 			write_log(stdout, "Sending favicon.\n");
 			response = MHD_create_response_from_buffer(sizeof(favicon), favicon, MHD_RESPMEM_PERSISTENT);
 			ret = MHD_add_response_header(response, "ETag", FAVICON_SHA1);
 			ret = MHD_add_response_header(response, "Last-Modified", FAVICON_DATE);
 			ret = MHD_add_response_header(response, "Cache-Control", "max-age=86400");
-			ret = MHD_add_response_header (response, "Content-Type", "image/png");
+			ret = MHD_add_response_header(response, "Content-Type", "image/png");
 		}
 	} else { /* MHD_HTTP_NOT_FOUND */
 		if (req_count < 0)
