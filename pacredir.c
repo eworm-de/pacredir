@@ -126,7 +126,7 @@ static void update_hosts(void) {
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *reply = NULL;
 	sd_bus *bus = NULL;
-	int r;
+	int r, sock;
 
 	/* set 'present' to 0, so we later know which hosts were available, and which were not */
 	while (hosts_ptr->host != NULL) {
@@ -162,9 +162,33 @@ static void update_hosts(void) {
 		goto finish;
 	}
 
+	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		write_log(stderr, "Failed to open control socket.\n");
+		goto finish;
+	}
+
 	for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
+		struct ifreq ifr;
 		struct ignore_interfaces *ignore_interfaces_ptr = ignore_interfaces;
 		uint8_t ignore = 0;
+
+		memset(&ifr, 0, sizeof(struct ifreq));
+		strncpy(ifr.ifr_name, intf->if_name, IFNAMSIZ);
+		ifr.ifr_name[IFNAMSIZ-1] = 0;
+
+		if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0) {
+			write_log(stderr, "Failed to get flags for interface %s.\n", intf->if_name);
+			continue;
+		}
+
+		if ((ifr.ifr_flags & IFF_UP) == 0)
+			continue;
+
+		if ((ifr.ifr_flags & IFF_LOOPBACK) > 0)
+			continue;
+
+		if ((ifr.ifr_flags & IFF_RUNNING) == 0)
+			continue;
 
 		while (ignore_interfaces_ptr->interface != NULL) {
 			if (ignore_interfaces_ptr->ifindex == intf->if_index) {
@@ -179,6 +203,7 @@ static void update_hosts(void) {
 			update_hosts_on_interface(bus, intf->if_index);
 	}
 
+	close(sock);
 	if_freenameindex(if_nidxs);
 
 finish:
