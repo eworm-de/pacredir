@@ -69,7 +69,7 @@
 #define STATUS_INT_ONE \
 	"<tr><td>%s</td><td>%d</td></tr>"
 #define STATUS_INT_ONE_NA \
-	"<tr><td>%s</td><td>" CIRCLE_ORANGE "</td></tr>"
+	"<tr class=\"grey\"><td>%s</td><td>-</td></tr>"
 #define STATUS_INT_NONE \
 	"<tr><td colspan=2>(none)</td></tr>"
 #define STATUS_INT_FOOT \
