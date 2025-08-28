@@ -120,12 +120,11 @@ static char* process_reply_record(const void *rr, size_t sz) {
 }
 
 /*** update_hosts ***/
-static void update_hosts(const uint8_t refcnt) {
+static void update_hosts(void) {
 	struct hosts *hosts_ptr = hosts;
 	sd_bus_error error = SD_BUS_ERROR_NULL;
-	sd_bus_message *reply_record = NULL;
+	sd_bus_message *reply = NULL;
 	sd_bus *bus = NULL;
-	uint64_t flags;
 	int r;
 
 	/* set 'present' to 0, so we later know which hosts were available, and which were not */
@@ -142,7 +141,7 @@ static void update_hosts(const uint8_t refcnt) {
 
 	r = sd_bus_call_method(bus, "org.freedesktop.resolve1", "/org/freedesktop/resolve1",
 		"org.freedesktop.resolve1.Manager", "ResolveRecord", &error,
-		&reply_record, "isqqt", 0 /* any */, PACSERVE "." MDNS_DOMAIN,
+		&reply, "isqqt", 0 /* any */, PACSERVE "." MDNS_DOMAIN,
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
 		if (verbose > 0)
@@ -155,10 +154,42 @@ static void update_hosts(const uint8_t refcnt) {
 	   happened above. Similar delays are seen for new hosts.
 	   Wait a moment, call again for full update, then goto finish.
 	   TODO: Drop when continuous mDNS querying becomes available! */
-	if (refcnt == 0) {
-		usleep(250000);
-		update_hosts(refcnt + 1);
-		goto fast_finish;
+	usleep(250000);
+	update_hosts_real(bus);
+
+finish:
+	/* mark hosts offline that did not show up in query */
+	hosts_ptr = hosts;
+	while (hosts_ptr->host != NULL) {
+		if (hosts_ptr->mdns == 1 && hosts_ptr->online == 1 && hosts_ptr->present == 0) {
+			if (verbose > 0)
+				write_log(stdout, "Marking host %s offline\n", hosts_ptr->host);
+			hosts_ptr->online = 0;
+		}
+		hosts_ptr = hosts_ptr->next;
+	}
+
+fast_finish:
+	sd_bus_message_unref(reply);
+	sd_bus_flush_close_unref(bus);
+}
+
+/*** update_hosts_real ***/
+static void update_hosts_real(sd_bus *bus) {
+	sd_bus_error error = SD_BUS_ERROR_NULL;
+	sd_bus_message *reply_record = NULL;
+	uint64_t flags;
+	int r;
+
+	r = sd_bus_call_method(bus, "org.freedesktop.resolve1", "/org/freedesktop/resolve1",
+		"org.freedesktop.resolve1.Manager", "ResolveRecord", &error,
+		&reply_record, "isqqt", 0 /* any */, PACSERVE "." MDNS_DOMAIN,
+		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
+	if (r < 0) {
+		if (verbose > 0)
+			write_log(stderr, "Failed to resolve record: %s\n", error.message);
+		sd_bus_error_free(&error);
+		goto finish;
 	}
 
 	r = sd_bus_message_enter_container(reply_record, 'a', "(iqqay)");
@@ -346,20 +377,7 @@ parse_failure_record:
 	write_log(stderr, "Parse failure for record: %s\n", strerror(-r));
 
 finish:
-	/* mark hosts offline that did not show up in query */
-	hosts_ptr = hosts;
-	while (hosts_ptr->host != NULL) {
-		if (hosts_ptr->mdns == 1 && hosts_ptr->online == 1 && hosts_ptr->present == 0) {
-			if (verbose > 0)
-				write_log(stdout, "Marking host %s offline\n", hosts_ptr->host);
-			hosts_ptr->online = 0;
-		}
-		hosts_ptr = hosts_ptr->next;
-	}
-
-fast_finish:
 	sd_bus_message_unref(reply_record);
-	sd_bus_flush_close_unref(bus);
 }
 
 /*** add_host ***/
@@ -1071,7 +1089,7 @@ int main(int argc, char ** argv) {
 			continue;
 
 		update_interfaces();
-		update_hosts(0);
+		update_hosts();
 		update = 0;
 		sleepsec = 60;
 	}
