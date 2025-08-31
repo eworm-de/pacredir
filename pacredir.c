@@ -201,6 +201,9 @@ static void update_hosts(void) {
 
 		if (!ignore)
 			update_hosts_on_interface(bus, intf->if_index);
+
+		if (quit)
+			break;
 	}
 
 	close(sock);
