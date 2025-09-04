@@ -933,6 +933,10 @@ static void sighup_callback(int signal) {
 static void sigusr_callback(int signal) {
 	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
 	struct hosts * hosts_ptr = hosts;
+	struct timeval tv;
+
+	/* initialize struct timeval */
+	gettimeofday(&tv, NULL);
 
 	write_log(stdout, "Received signal '%s', dumping state.\n", strsignal(signal));
 
@@ -953,10 +957,13 @@ static void sigusr_callback(int signal) {
 	if (hosts_ptr->host == NULL)
 		write_log(stdout, " (none)\n");
 	while (hosts_ptr->host != NULL) {
-		write_log(stdout, " -> %s (%s, %s, port: %d, finds: %d, bad: %d)\n",
-			hosts_ptr->host, hosts_ptr->mdns ? "mdns" : "static",
-			hosts_ptr->online ? "online" : "offline", hosts_ptr->port,
-			hosts_ptr->finds, hosts_ptr->badcount);
+		uint8_t not_avail = (hosts_ptr->mdns && !hosts_ptr->online) || (hosts_ptr->badcount &&
+			(hosts_ptr->badtime + hosts_ptr->badcount * BADTIME) > tv.tv_sec) ? 1 : 0;
+
+		write_log(stdout, " -> %s%s%s (%s, %s, port: %d, finds: %d, bad: %d)\n",
+			not_avail ? "[" : "", hosts_ptr->host, not_avail ? "]" : "",
+			hosts_ptr->mdns ? "mdns" : "static", hosts_ptr->online ? "online" : "offline",
+			hosts_ptr->port, hosts_ptr->finds, hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;
 	}
