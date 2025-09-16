@@ -51,7 +51,7 @@
 	"tr:nth-child(odd) { background: #efefef; } " \
 	"tr:hover { background: #dfefef; }" \
 	"tr.grey { color: grey; }</style>" \
-	"<link rel=\"icon\" href=\"/favicon.png \" type=\"image/png\">" \
+	"<link rel=\"icon\" href=\"/favicon.png\" type=\"image/png\">" \
 	"</head><body><h1>pacredir status</h1>" \
 	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on <i>%s</i>. " \
 	"Visit <a href=\"" WEBURL "\">" WEBSITE "</a> for documentation.</p>" \
