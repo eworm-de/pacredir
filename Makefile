@@ -43,7 +43,7 @@ config.h: config.def.h
 	$(CP) $< $@
 
 version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
-	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' "${VERSION}" "$(ARCH)" "$(ID)" > $@
+	printf '#ifndef VERSION_H\n#define VERSION_H\n#define VERSION\t"%s"\n#define ARCH\t"%s"\n#define ID\t"%s"\n#endif\n' "$(VERSION)" "$(ARCH)" "$(ID)" > $@
 
 favicon.png: logo.svg Makefile
 	resvg --width=32 --height=32 $< -c | oxipng - > $@
