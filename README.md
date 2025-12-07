@@ -136,7 +136,7 @@ Querying `systemd-resolved`
 You may want to query `systemd-resolved` directly to verify the results.
 This will list all instances:
 
-    resolvectl query --legend=false --protocol=mdns --type=PTR --synthesize=false --zone=false '_pacserve._tcp.local'
+    resolvectl query --legend='false' --protocol='mdns' --type='PTR' --synthesize='false' --zone='false' '_pacserve._tcp.local'
 
 ![resolvectl query](README.d/resolvectl-query.png)
 
@@ -144,7 +144,7 @@ This will list all instances:
 
 For details on the services you can query each:
 
-    resolvectl service --legend=false 'pacserve on host._pacserve._tcp.local'
+    resolvectl service --legend='false' 'pacserve on host._pacserve._tcp.local'
 
 ![resolvectl service](README.d/resolvectl-service.png)
 
