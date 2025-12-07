@@ -255,7 +255,7 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) 
 		size_t length;
 		char *peer;
 		const char *canonical, *discard;
-		uint8_t match = 0, ignore = 0;
+		uint8_t match = 0;
 
 		r = sd_bus_message_enter_container(reply_record, 'r', "iqqay");
 		if (r < 0)
@@ -381,12 +381,6 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) 
 		r = sd_bus_message_read(reply_service, "t", &flags);
 		if (r < 0)
 			goto parse_failure_service;
-
-		if (ignore > 0) {
-			if (verbose > 0)
-				write_log(stdout, "Host %s is on an ignored interface.\n", canonical);
-			goto finish_service;
-		}
 
 		if (match < DNS_SRV_TXT_MATCH_ALL) {
 			if (verbose > 0)
