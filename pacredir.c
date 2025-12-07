@@ -281,7 +281,7 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) 
 		/* service START */
 		r = sd_bus_call_method(bus, "org.freedesktop.resolve1", "/org/freedesktop/resolve1",
 			"org.freedesktop.resolve1.Manager", "ResolveService", &error,
-			&reply_service, "isssit", 0 /* any */, "", "", peer, AF_UNSPEC, UINT64_C(0));
+			&reply_service, "isssit", if_index, "", "", peer, AF_UNSPEC, UINT64_C(0));
 		if (r < 0) {
 			write_log(stderr, "Failed to resolve service '%s': %s (%s)\n",
 				peer, error.message, strerror(errno));
