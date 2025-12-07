@@ -131,8 +131,6 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index);
 
 /* add_host */
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns);
-/* remove_host */
-/* static int remove_host(const char * host); */
 
 /* get_http_code */
 static void * get_http_code(void * data);

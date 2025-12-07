@@ -455,25 +455,6 @@ update:
 	return EXIT_SUCCESS;
 }
 
-/*** remove_host ***/
-/* currently unused, but could become important if continuous
-   mDNS querying becomes available again on day...
-static int remove_host(const char * host) {
-	struct hosts * hosts_ptr = hosts;
-
-	while (hosts_ptr->host != NULL) {
-		if (strcmp(hosts_ptr->host, host) == 0) {
-			if (verbose > 0)
-				write_log(stdout, "Marking host %s offline\n", host);
-			hosts_ptr->online = 0;
-			break;
-		}
-		hosts_ptr = hosts_ptr->next;
-	}
-
-	return EXIT_SUCCESS;
-} */
-
 /*** get_http_code ***/
 static void * get_http_code(void * data) {
 	struct request * request = (struct request *)data;
