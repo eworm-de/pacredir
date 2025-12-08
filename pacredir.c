@@ -284,7 +284,8 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) 
 			&reply_service, "isssit", 0 /* any */, "", "", peer, AF_UNSPEC, UINT64_C(0));
 		if (r < 0) {
 			if (verbose > 0)
-				write_log(stderr, "Failed to resolve service '%s': %s\n", peer, error.message);
+				write_log(stderr, "Failed to resolve service '%s': %s (%s)\n",
+					peer, error.message, strerror(errno));
 			sd_bus_error_free(&error);
 			goto finish_service;
 		}
