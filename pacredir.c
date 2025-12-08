@@ -146,7 +146,8 @@ static void update_hosts(void) {
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
 		if (verbose > 0)
-			write_log(stderr, "Failed to resolve record: %s\n", error.message);
+			write_log(stderr, "Failed to resolve record: %s (%s)\n",
+				error.message, strerror(errno));
 		sd_bus_error_free(&error);
 		goto finish;
 	}
@@ -239,7 +240,8 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) 
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
 		if (verbose > 0)
-			write_log(stderr, "Failed to resolve record: %s\n", error.message);
+			write_log(stderr, "Failed to resolve record: %s (%s)\n",
+				error.message, strerror(errno));
 		sd_bus_error_free(&error);
 		goto finish;
 	}
