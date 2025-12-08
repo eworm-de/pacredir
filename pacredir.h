@@ -127,7 +127,7 @@ static char* process_reply_record(const void *rr, size_t sz);
 /* update_hosts */
 static void update_hosts(void);
 /* update_hosts_on_interface */
-static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index);
+static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, const char *if_name);
 
 /* add_host */
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns);

@@ -201,7 +201,7 @@ static void update_hosts(void) {
 		}
 
 		if (!ignore)
-			update_hosts_on_interface(bus, intf->if_index);
+			update_hosts_on_interface(bus, intf->if_index, intf->if_name);
 
 		if (quit)
 			break;
@@ -228,7 +228,7 @@ fast_finish:
 }
 
 /*** update_hosts_on_interface ***/
-static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) {
+static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, const char *if_name) {
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *reply_record = NULL;
 	uint64_t flags;
@@ -240,8 +240,8 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) 
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
 		if (errno != EAGAIN || verbose > 0)
-			write_log(stderr, "Failed to resolve record: %s (%s)\n",
-				error.message, strerror(errno));
+			write_log(stderr, "Failed to resolve record on %s: %s (%s)\n",
+				if_name, error.message, strerror(errno));
 		sd_bus_error_free(&error);
 		goto finish;
 	}
@@ -283,8 +283,8 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index) 
 			"org.freedesktop.resolve1.Manager", "ResolveService", &error,
 			&reply_service, "isssit", if_index, "", "", peer, AF_UNSPEC, UINT64_C(0));
 		if (r < 0) {
-			write_log(stderr, "Failed to resolve service '%s': %s (%s)\n",
-				peer, error.message, strerror(errno));
+			write_log(stderr, "Failed to resolve service '%s' on %s: %s (%s)\n",
+				peer, if_name, error.message, strerror(errno));
 			sd_bus_error_free(&error);
 			goto finish_service;
 		}
