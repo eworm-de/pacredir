@@ -142,6 +142,9 @@ This will list all instances:
 
 (The escape sequence `\032` represents a space.)
 
+Optionally add `--interface='interface'` here if you want to query on a
+specific interface only.
+
 For details on the services you can query each:
 
     resolvectl service --legend='false' --interface='interface' 'pacserve on host._pacserve._tcp.local'
