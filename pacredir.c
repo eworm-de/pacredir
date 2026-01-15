@@ -1155,5 +1155,3 @@ fail:
 
 	return ret;
 }
-
-// vim: set syntax=c:

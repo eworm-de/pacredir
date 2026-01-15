@@ -156,5 +156,3 @@ static void sighup_callback(int signal);
 static void sigusr_callback(int signal);
 
 #endif /* _PACREDIR_H */
-
-// vim: set syntax=c:
