@@ -45,6 +45,7 @@
 	"h2 a { color: black; } " \
 	"a { text-decoration: none; } " \
 	"a:hover { text-decoration: underline; } " \
+	"code { margin: 0 2px; padding: 2px 5px; border: 1px solid #ccc; background-color: #f8f8f8; border-radius: 3px; } " \
 	"th { background: #efefef; } " \
 	"td { text-align: center; padding: 1px 5px; } " \
 	"tr:nth-child(even) { background: #dfdfdf; } " \
