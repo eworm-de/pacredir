@@ -41,11 +41,13 @@
 	"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">" \
 	"<meta http-equiv=\"refresh\" content=\"30\">" \
 	"<style>body { font-family: sans-serif; } " \
-	"h1 { padding-left: 36px; background-image: url(\"/favicon.png\"); background-repeat: no-repeat; } " \
+	"h1 { padding-left: 36px; background-image: url(\"/favicon.png\"); " \
+		"background-repeat: no-repeat; } " \
 	"h2 a { color: black; } " \
 	"a { text-decoration: none; } " \
 	"a:hover { text-decoration: underline; } " \
-	"code { margin: 0 2px; padding: 2px 5px; border: 1px solid #ccc; background-color: #f8f8f8; border-radius: 3px; } " \
+	"code { margin: 0 2px; padding: 2px 5px; border: 1px solid #ccc; " \
+		"background-color: #f8f8f8; border-radius: 3px; } " \
 	"th { background: #efefef; } " \
 	"td { text-align: center; padding: 1px 5px; } " \
 	"tr:nth-child(even) { background: #dfdfdf; } " \
