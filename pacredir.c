@@ -486,6 +486,8 @@ static void * get_http_code(void * data) {
 		 * this should make curl finish after a maximum of 8 seconds */
 		curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1L);
 		curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 3L);
+		/* skip all signal handling */
+		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 		/* provide a buffer to store errors in */
 		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
 		*errbuf = '\0';
