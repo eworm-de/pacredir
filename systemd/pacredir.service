@@ -20,6 +20,8 @@ ProtectSystem=full
 ProtectHome=on
 PrivateDevices=on
 NoNewPrivileges=on
+Restart=on-failure
+RestartSec=2s
 
 [Install]
 WantedBy=multi-user.target
