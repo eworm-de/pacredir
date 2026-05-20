@@ -41,7 +41,7 @@
 	"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">" \
 	"<meta http-equiv=\"refresh\" content=\"30\">" \
 	"<style>body { font-family: sans-serif; } " \
-	"h1 { padding-left: 36px; background-image: url(\"/favicon.png\"); " \
+	"h1 { padding-left: 36px; background-image: url(\"favicon.png\"); " \
 		"background-repeat: no-repeat; } " \
 	"h2 a { color: black; } " \
 	"a { text-decoration: none; } " \
@@ -54,7 +54,7 @@
 	"tr:nth-child(odd) { background: #efefef; } " \
 	"tr:hover { background: #dfefef; }" \
 	"tr.grey { color: grey; }</style>" \
-	"<link rel=\"icon\" href=\"/favicon.png\" type=\"image/png\">" \
+	"<link rel=\"icon\" href=\"favicon.png\" type=\"image/png\">" \
 	"</head><body><h1>pacredir status</h1>" \
 	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on <i>%s</i>. " \
 	"Visit <a href=\"" WEBURL "\">" WEBSITE "</a> for documentation.</p>" \
