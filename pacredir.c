@@ -31,7 +31,6 @@ const static struct option options_long[] = {
 /* global variables */
 struct hosts * hosts = NULL;
 struct ignore_interfaces * ignore_interfaces = NULL;
-int max_threads = 0;
 uint8_t quit = 0, update = 0, verbose = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
@@ -456,17 +455,77 @@ update:
 	return EXIT_SUCCESS;
 }
 
-/*** get_http_code ***/
-static void * get_http_code(void * data) {
-	struct request * request = (struct request *)data;
-	CURL *curl;
-	CURLcode res;
-	char errbuf[CURL_ERROR_SIZE];
+/*** find_best_redirect ***/
+static struct request * find_best_redirect(const char * basename, uint8_t dbfile, time_t last_modified) {
+	struct hosts * hosts_ptr = hosts;
+
+	int req_idx = -1;
+	struct request * best = NULL,
+		** requests = NULL,
+		* request = NULL;
+	double best_time = INFINITY;
+	char ctime[26];
 	struct timeval tv;
+
+	CURLM *curlm;
+	CURLMsg *msg;
+	int msgs_left, still_running = 1;
 
 	gettimeofday(&tv, NULL);
 
-	if ((curl = curl_easy_init()) != NULL) {
+	if ((curlm = curl_multi_init()) == NULL) {
+		write_log(stderr, "Failed initializing curl multi handle.\n");
+		return NULL;
+	}
+
+	/* prepare the requests */
+	while (hosts_ptr->host != NULL) {
+		CURL *curl = NULL;
+		time_t badtime = hosts_ptr->badtime + hosts_ptr->badcount * BADTIME;
+
+		/* skip host if offline */
+		if (hosts_ptr->online == 0) {
+			if (verbose > 0)
+				write_log(stdout, "Host %s is offline, skipping\n",
+						hosts_ptr->host);
+			hosts_ptr = hosts_ptr->next;
+			continue;
+		}
+
+		/* skip host if had a bad request within last BADTIME seconds */
+		if (badtime > tv.tv_sec) {
+			if (verbose > 0) {
+				/* write the time to buffer ctime, then strip the line break */
+				ctime_r(&badtime, ctime);
+				ctime[strlen(ctime) - 1] = '\0';
+
+				write_log(stdout, "Host %s is marked bad until %s, skipping.\n",
+						hosts_ptr->host, ctime);
+			}
+			hosts_ptr = hosts_ptr->next;
+			continue;
+		}
+
+		req_idx++;
+		requests = realloc(requests, sizeof(size_t) * (req_idx + 1));
+		request = requests[req_idx] = malloc(sizeof(struct request));
+
+		/* prepare request struct */
+		request->host = hosts_ptr;
+		request->url = get_url(request->host->host, request->host->port, dbfile, basename);
+		request->http_code = 0;
+		request->last_modified = 0;
+		request->curl = curl_easy_init();
+		*request->errbuf = 0;
+
+		if ((curl = request->curl)  == NULL) {
+			write_log(stderr, "Failed initializing curl_easy!\n");
+			goto curl_easy_fail;
+		}
+
+		if (verbose > 0)
+			write_log(stdout, "Trying %s: %s\n", request->host->host, request->url);
+
 		curl_easy_setopt(curl, CURLOPT_URL, request->url);
 		/* try to resolve addresses to all IP versions that your system allows */
 		curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
@@ -488,49 +547,138 @@ static void * get_http_code(void * data) {
 		/* skip all signal handling */
 		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 		/* provide a buffer to store errors in */
-		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
-		*errbuf = '\0';
+		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, request->errbuf);
 
-		/* perform the request */
-		if ((res = curl_easy_perform(curl)) != CURLE_OK) {
+		/* add easy handle to multi handle */
+		curl_multi_add_handle(curlm, curl);
+
+		hosts_ptr = hosts_ptr->next;
+	}
+
+	/* perform all the requests */
+	while (still_running) {
+		CURLMcode mresult = curl_multi_perform(curlm, &still_running);
+
+		if (still_running)
+			/* wait for activity, timeout or "nothing" */
+			mresult = curl_multi_poll(curlm, NULL, 0, 1000, NULL);
+
+		if (mresult)
+			break;
+	}
+
+	/* see how the transfers went */
+	while ((msg = curl_multi_info_read(curlm, &msgs_left)) != NULL) {
+		CURL *curl = NULL;
+		CURLcode res;
+
+		if (msg->msg != CURLMSG_DONE)
+			continue;
+
+		/* Find out which handle this message is about */
+		for (int idx = 0; idx <= req_idx; idx++) {
+			request = requests[idx];
+			curl = request->curl;
+			if (msg->easy_handle == curl)
+				break;
+		}
+
+		/* something went wrong... */
+		if (msg->data.result != CURLE_OK) {
 			write_log(stderr, "Could not connect to peer %s on port %d: %s\n",
-					request->host->host, request->host->port,
-					*errbuf != 0 ? errbuf : curl_easy_strerror(res));
-			request->http_code = 0;
-			request->last_modified = 0;
+				request->host->host, request->host->port,
+				*request->errbuf != 0 ? request->errbuf : curl_easy_strerror(msg->data.result));
 			request->host->badtime = tv.tv_sec;
 			request->host->badcount++;
-			return NULL;
-		} else {
-			request->host->badtime = 0;
-			request->host->badcount = 0;
+			goto request_free;
 		}
+
+		request->host->badtime = 0;
+		request->host->badcount = 0;
 
 		/* get http status code */
 		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &(request->http_code))) != CURLE_OK) {
 			write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
-			return NULL;
+			goto request_free;
 		}
 
+		/* get total time */
 		if ((res = curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &(request->time_total))) != CURLE_OK) {
 			write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
-			return NULL;
+			goto request_free;
 		}
 
 		/* get last modified time */
 		if (request->http_code == MHD_HTTP_OK) {
 			if ((res = curl_easy_getinfo(curl, CURLINFO_FILETIME, &(request->last_modified))) != CURLE_OK) {
 				write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
-				return NULL;
+				goto request_free;
 			}
-		} else
-			request->last_modified = 0;
+		}
 
-		/* always cleanup */
+		/* skip if http code not OK, but clean up */
+		if (request->http_code != MHD_HTTP_OK) {
+			if (verbose > 0)
+				write_log(stderr, "Received HTTP status code %d for %s\n",
+						request->http_code, request->url);
+			goto request_free;
+		}
+
+		/* found the file! */
+		request->host->finds++;
+		if (verbose > 0) {
+			/* write the time to buffer ctime, then strip the line break */
+			ctime_r(&request->last_modified, ctime);
+			ctime[strlen(ctime) - 1] = '\0';
+
+			write_log(stdout, "Found: %s (%f sec, modified: %s)\n",
+				request->url, request->time_total, ctime);
+		}
+
+		if	/* for db files choose the most recent peer when not too old */
+			((dbfile == 1 && ((request->last_modified > last_modified &&
+					   request->last_modified + 86400 > time(NULL)) ||
+			/* but use a faster peer if available */
+					  (best->url != NULL &&
+					   request->last_modified >= last_modified &&
+					   request->time_total < best_time))) ||
+			/* for packages try to guess the fastest peer */
+			 (dbfile == 0 && request->time_total < best_time)) {
+			best_time = request->time_total;
+			if (best != NULL) {
+				free(best->url);
+				free(best);
+			}
+			best = request;
+		}
+
+request_free:
+		curl_multi_remove_handle(curlm, curl);
 		curl_easy_cleanup(curl);
+
+		if (request != best) {
+			free(request->url);
+			free(request);
+		}
 	}
 
-	return NULL;
+	if (verbose > 0 && best == NULL) {
+		if (req_idx < 0)
+			write_log(stdout, "Currently no peers are available to check for %s.\n",
+					basename);
+		else if (dbfile > 0)
+			write_log(stdout, "No more recent version of %s found on %d peers.\n",
+					basename, req_idx + 1);
+		else
+			write_log(stdout, "File %s not found on %d peers, giving up.\n",
+					basename, req_idx + 1);
+	}
+
+curl_easy_fail:
+	free(requests);
+	curl_multi_cleanup(curlm);
+
+	return best;
 }
 
 /* append_string */
@@ -599,7 +747,7 @@ static char * status_page(void) {
 		ignore_interfaces_ptr = ignore_interfaces_ptr->next;
 	}
 	page = append_string(page, STATUS_INT_FOOT);
-	
+
 	page = append_string(page, STATUS_HOST_HEAD);
 	if (hosts_ptr->host == NULL)
 		page = append_string(page, STATUS_HOST_NONE);
@@ -636,24 +784,18 @@ static enum MHD_Result ahc_echo(void * cls,
 	static int dummy;
 	struct MHD_Response * response;
 	int ret;
-	struct hosts * hosts_ptr = hosts;
 
-	char * url = NULL, * page = NULL;
+	struct request * request = NULL;
+	char * page = NULL;
 	static_file * file = NULL;
-	const char * basename, * host = NULL;
+	const char * basename;
 	struct timeval tv;
 
 	struct tm tm;
 	const char * if_modified_since = NULL;
 	time_t last_modified = 0;
 	uint8_t dbfile = 0;
-	int i, error, req_count = -1;
-	pthread_t * tid = NULL;
-	struct request ** requests = NULL;
-	struct request * request = NULL;
 	long http_code = MHD_HTTP_NOT_FOUND;
-	double time_total = INFINITY;
-	char ctime[26];
 
 	/* initialize struct timeval */
 	gettimeofday(&tv, NULL);
@@ -712,7 +854,6 @@ static enum MHD_Result ahc_echo(void * cls,
 	/* process db file request (*.db and *.files) */
 	if ((strlen(basename) > 3 && strcmp(basename + strlen(basename) - 3, ".db") == 0) ||
 			(strlen(basename) > 6 && strcmp(basename + strlen(basename) - 6, ".files") == 0)) {
-
 		dbfile = 1;
 
 		/* get timestamp from request */
@@ -724,128 +865,23 @@ static enum MHD_Result ahc_echo(void * cls,
 		}
 	}
 
-	/* try to find a peer with most recent file */
-	while (hosts_ptr->host != NULL) {
-		time_t badtime = hosts_ptr->badtime + hosts_ptr->badcount * BADTIME;
-
-		/* skip host if offline or had a bad request within last BADTIME seconds */
-		if (hosts_ptr->online == 0) {
-			if (verbose > 0)
-				write_log(stdout, "Host %s is offline, skipping\n",
-						hosts_ptr->host);
-			hosts_ptr = hosts_ptr->next;
-			continue;
-		} else if (badtime > tv.tv_sec) {
-			if (verbose > 0) {
-				/* write the time to buffer ctime, then strip the line break */
-				ctime_r(&badtime, ctime);
-				ctime[strlen(ctime) - 1] = '\0';
-
-				write_log(stdout, "Host %s is marked bad until %s, skipping\n",
-						hosts_ptr->host, ctime);
-			}
-			hosts_ptr = hosts_ptr->next;
-			continue;
-		}
-
-		/* Check for limit on threads */
-		if (max_threads > 0 && req_count + 1 >= max_threads) {
-			if (verbose > 0)
-				write_log(stdout, "Hit hard limit for max threads (%d), not doing more requests\n",
-						max_threads);
-			break;
-		}
-
-		/* throttle requests - do not send all request at the same time
-		 * but wait for a short moment (10.000 us = 0.01 s) */
-		usleep(10000);
-
-		/* This is multi-threading code!
-		 * Pointer to struct request does not work as realloc can relocate the data.
-		 * We need a pointer to pointer to struct request, store the addresses in
-		 * an array and give get_http_code() a struct the does not change! */
-		req_count++;
-		tid = realloc(tid, sizeof(pthread_t) * (req_count + 1));
-		requests = realloc(requests, sizeof(size_t) * (req_count + 1));
-		requests[req_count] = malloc(sizeof(struct request));
-		request = requests[req_count];
-
-		/* prepare request struct */
-		request->host = hosts_ptr;
-		request->url = get_url(request->host->host, request->host->port, dbfile, basename);
-		request->http_code = 0;
-		request->last_modified = 0;
-
-		if (verbose > 0)
-			write_log(stdout, "Trying %s: %s\n", request->host->host, request->url);
-
-		if ((error = pthread_create(&tid[req_count], NULL, get_http_code, (void *)request)) != 0)
-			write_log(stderr, "Could not run thread number %d, errno %d\n", req_count, error);
-
-		hosts_ptr = hosts_ptr->next;
-	}
-
-	/* try to find a suitable response */
-	for (i = 0; i <= req_count; i++) {
-		if ((error = pthread_join(tid[i], NULL)) != 0)
-			write_log(stderr, "Could not join thread number %d, errno %d\n", i, error);
-
-		request = requests[i];
-
-		if (request->http_code == MHD_HTTP_OK) {
-			if (verbose > 0) {
-				/* write the time to buffer ctime, then strip the line break */
-				ctime_r(&request->last_modified, ctime);
-				ctime[strlen(ctime) - 1] = '\0';
-
-				write_log(stdout, "Found: %s (%f sec, modified: %s)\n",
-						request->url, request->time_total, ctime);
-			}
-		} else if (verbose > 0 && request->http_code > 0) {
-			if (verbose > 0)
-				write_log(stderr, "Received HTTP status code %d for %s\n",
-						request->http_code, request->url);
-		}
-
-		if (request->http_code == MHD_HTTP_OK &&
-				/* for db files choose the most recent peer when not too old */
-				((dbfile == 1 && ((request->last_modified > last_modified &&
-						   request->last_modified + 86400 > time(NULL)) ||
-				/* but use a faster peer if available */
-						  (url != NULL &&
-						   request->last_modified >= last_modified &&
-						   request->time_total < time_total))) ||
-				 /* for packages try to guess the fastest peer */
-				 (dbfile == 0 && request->time_total < time_total))) {
-			request->host->finds++;
-			if (url != NULL)
-				free(url);
-			url = request->url;
-			host = request->host->host;
-			http_code = MHD_HTTP_TEMPORARY_REDIRECT;
-			last_modified = request->last_modified;
-			time_total = request->time_total;
-		} else
-			free(request->url);
-		free(request);
-	}
-
-	/* increase counters before reponse label,
-	   do not count redirects to project page */
-	if (http_code == MHD_HTTP_TEMPORARY_REDIRECT)
+	/* try to find the best redirect, and count */
+	if ((request = find_best_redirect(basename, dbfile, last_modified)) != NULL) {
+		http_code = MHD_HTTP_TEMPORARY_REDIRECT;
 		count_redirect++;
-	else
+	} else {
 		count_not_found++;
+	}
 
 response:
 	/* give response */
 	if (http_code == MHD_HTTP_TEMPORARY_REDIRECT) {
-		write_log(stdout, "Redirecting to %s: %s\n", host, url);
-		page = malloc(strlen(PAGE307) + strlen(url) + strlen(basename) + 1);
-		sprintf(page, PAGE307, url, basename);
+		write_log(stdout, "Redirecting to %s: %s\n", request->host->host, request->url);
+		page = malloc(strlen(PAGE307) + strlen(request->url) + strlen(basename) + 1);
+		sprintf(page, PAGE307, request->url, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
-		ret = MHD_add_response_header(response, "Location", url);
-		free(url);
+		ret = MHD_add_response_header(response, "Location", request->url);
+		free(request);
 	} else if (http_code == MHD_HTTP_OK) {
 		if (page != NULL) {
 			write_log(stdout, "Sending status page.\n");
@@ -860,16 +896,7 @@ response:
 			ret = MHD_add_response_header(response, "Cache-Control", "max-age=86400");
 		}
 	} else { /* MHD_HTTP_NOT_FOUND */
-		if (req_count < 0)
-			write_log(stdout, "Currently no peers are available to check for %s.\n",
-					basename);
-		else if (dbfile > 0)
-			write_log(stdout, "No more recent version of %s found on %d peers.\n",
-					basename, req_count + 1);
-		else
-			write_log(stdout, "File %s not found on %d peers, giving up.\n",
-					basename, req_count + 1);
-
+		write_log(stdout, "Sending 'Not Found' for: %s\n", basename);
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
@@ -882,11 +909,6 @@ response:
 	/* report counts to systemd */
 	sd_notifyf(0, "STATUS=%d redirects, %d not found, waiting...",
 			count_redirect, count_not_found);
-
-	if (req_count > -1) {
-		free(tid);
-		free(requests);
-	}
 
 	return ret;
 }
@@ -1034,11 +1056,6 @@ int main(int argc, char ** argv) {
 		/* extra verbosity from config */
 		ini_verbose = iniparser_getint(ini, "general:verbose", 0);
 		verbose += ini_verbose;
-
-		/* get max threads */
-		max_threads = iniparser_getint(ini, "general:max threads", max_threads);
-		if (verbose > 0 && max_threads > 0)
-			write_log(stdout, "Limiting number of threads to a maximum of %d\n", max_threads);
 
 		/* store interfaces to ignore */
 		if ((inistring = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
