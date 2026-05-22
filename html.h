@@ -52,8 +52,8 @@
 	"td { text-align: center; padding: 1px 5px; } " \
 	"tr:nth-child(even) { background: #dfdfdf; } " \
 	"tr:nth-child(odd) { background: #efefef; } " \
-	"tr:hover { background: #dfefef; }" \
-	"tr.grey { color: grey; }</style>" \
+	"tr:hover { background: #dfefef; } " \
+	"tr.offline { color: grey; }</style>" \
 	"<link rel=\"icon\" href=\"favicon.png\" type=\"image/png\">" \
 	"</head><body><h1>pacredir status</h1>" \
 	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on <i>%s</i>. " \
@@ -70,11 +70,11 @@
 	"<h2 id=\"ignored-interfaces\"><a href=\"#ignored-interfaces\">Ignored interfaces</a></h2>" \
 	"<table><tr><th>interface</th><th>link</th></tr>"
 #define STATUS_INT_ONE \
-	"<tr><td>%s</td><td>%d</td></tr>"
+	"<tr class=\"online\"><td>%s</td><td>%d</td></tr>"
 #define STATUS_INT_ONE_NA \
-	"<tr class=\"grey\"><td>%s</td><td>-</td></tr>"
+	"<tr class=\"offline\"><td>%s</td><td>-</td></tr>"
 #define STATUS_INT_NONE \
-	"<tr><td colspan=2>(none)</td></tr>"
+	"<tr class=\"none\"><td colspan=2>(none)</td></tr>"
 #define STATUS_INT_FOOT \
 	"</table>"
 
@@ -87,14 +87,14 @@
 	"<th colspan=2>finds</th>" \
 	"<th colspan=2>bad</th></tr>"
 #define STATUS_HOST_ONE \
-	"<tr%s>" \
+	"<tr class=\"%s\">" \
 	"<td>%s</td>" \
 	"<td>%d</td>" \
 	"<td>%s</td><td>%s</td>" \
 	"<td>%s</td><td>%d</td>" \
 	"<td>%s</td><td>%d</td></tr>"
 #define STATUS_HOST_NONE \
-	"<tr><td colspan=8>(none)</td></tr>"
+	"<tr class=\"none\"><td colspan=8>(none)</td></tr>"
 #define STATUS_HOST_FOOT \
 	"</table>"
 

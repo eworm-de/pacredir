@@ -608,14 +608,12 @@ static char * status_page(void) {
 		time_t badtime = hosts_ptr->badtime + hosts_ptr->badcount * BADTIME;
 		uint8_t bad = hosts_ptr->badcount && badtime > tv.tv_sec ? 1 : 0;
 
+		const char *state = hosts_ptr->mdns ? (hosts_ptr->online ? "online" : "offline") : "static";
 		page = append_string(page, STATUS_HOST_ONE,
-			(hosts_ptr->mdns && !hosts_ptr->online) || bad ? " class=\"grey\"" : "",
-			hosts_ptr->host, hosts_ptr->port,
+			state, hosts_ptr->host, hosts_ptr->port,
 			hosts_ptr->mdns ? (hosts_ptr->online ? CIRCLE_GREEN : CIRCLE_RED) : CIRCLE_BLUE,
-			hosts_ptr->mdns ? (hosts_ptr->online ? "online" : "offline") : "static",
-			hosts_ptr->finds ? CIRCLE_GREEN : CIRCLE_BLUE, hosts_ptr->finds,
-			bad ? CIRCLE_RED : CIRCLE_BLUE,
-			hosts_ptr->badcount);
+			state, hosts_ptr->finds ? CIRCLE_GREEN : CIRCLE_BLUE, hosts_ptr->finds,
+			bad ? CIRCLE_RED : CIRCLE_BLUE, hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;
 	}
