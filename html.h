@@ -40,20 +40,7 @@
 	"<head><title>pacredir status</title>" \
 	"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">" \
 	"<meta http-equiv=\"refresh\" content=\"30\">" \
-	"<style>body { font-family: sans-serif; } " \
-	"h1 { padding-left: 36px; background-image: url(\"favicon.png\"); " \
-		"background-repeat: no-repeat; } " \
-	"h2 a { color: black; } " \
-	"a { text-decoration: none; } " \
-	"a:hover { text-decoration: underline; } " \
-	"code { margin: 0 2px; padding: 2px 5px; border: 1px solid #ccc; " \
-		"background-color: #f8f8f8; border-radius: 3px; } " \
-	"th { background: #efefef; } " \
-	"td { text-align: center; padding: 1px 5px; } " \
-	"tr:nth-child(even) { background: #dfdfdf; } " \
-	"tr:nth-child(odd) { background: #efefef; } " \
-	"tr:hover { background: #dfefef; } " \
-	"tr.offline { color: grey; }</style>" \
+	"<link rel=\"stylesheet\" type=\"text/css\" media=\"all\" href=\"style.css\">" \
 	"<link rel=\"icon\" href=\"favicon.png\" type=\"image/png\">" \
 	"</head><body><h1>pacredir status</h1>" \
 	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on <i>%s</i>. " \

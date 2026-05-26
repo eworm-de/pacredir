@@ -8,5 +8,6 @@ favicon.png
 pacredir
 pacredir-*.tar.xz
 pacredir-*.tar.xz.asc
+style.h
 systemd/pacserve.service
 version.h

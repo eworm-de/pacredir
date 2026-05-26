@@ -37,7 +37,7 @@ HTML		= $(MARKDOWN:.md=.html)
 
 all: pacredir $(SERVICES) $(HTML)
 
-pacredir: pacredir.c pacredir.h config.h favicon.h html.h version.h
+pacredir: pacredir.c pacredir.h config.h favicon.h html.h style.h version.h
 	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -o $@
 
 config.h: config.def.h
@@ -49,10 +49,17 @@ version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 favicon.png: logo.svg Makefile
 	resvg --width=32 --height=32 $< -c | oxipng - > $@
 
-favicon.h: favicon.png Makefile
-	printf '#ifndef FAVICON_H\n#define FAVICON_H\nstatic unsigned char favicon[] = {\n' > $@
-	od -t x1 -A n -v < $< | sed 's/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
-	printf '};\n#define FAVICON_SHA1 "%s"\n#define FAVICON_DATE "%s"\n#endif\n' "$(shell sha1sum $< | cut -d' ' -f1)" "$(DATE)" >> $@
+favicon.h: favicon.png static_file.h Makefile
+	printf '#ifndef FAVICON_H\n#define FAVICON_H\n#include "static_file.h"\nstatic_file favicon = {\n' > $@
+	printf '  .date = "%s",\n  .mime = "%s",\n  .sha1 = "%s",\n  .size = %d,\n  .content = {\n' "$(DATE)" "image/png" "$(shell sha1sum $< | cut -d' ' -f1)" "$(shell stat --format=%s $<)" >> $@
+	od -t x1 -A n -v < $< | sed 's/^/    /; s/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
+	printf '  }\n};\n#endif\n' >> $@
+
+style.h: style.css static_file.h Makefile
+	printf '#ifndef STYLE_H\n#define STYLE_H\n#include "static_file.h"\nstatic_file style = {\n' > $@
+	printf '  .date = "%s",\n  .mime = "%s",\n  .sha1 = "%s",\n  .size = %d,\n  .content = {\n' "$(DATE)" "text/css" "$(shell sha1sum $< | cut -d' ' -f1)" "$(shell stat --format=%s $<)" >> $@
+	od -t x1 -A n -v < $< | sed 's/^/    /; s/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
+	printf '  }\n};\n#endif\n' >> $@
 
 %.service: %.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/; s/%ARCH_BYTES%/$(shell (printf $(ARCH) | wc -c; printf $(ARCH) | od -t d1 -A n) | tr -s " ")/; s/%ID%/$(ID)/; s/%ID_BYTES%/$(shell (printf $(ID) | wc -c; printf $(ID) | od -t d1 -A n) | tr -s " ")/' $< > $@
@@ -93,7 +100,7 @@ install-avahi: compat/pacserve-announce.service
 	$(INSTALL) -D -m0644 compat/02-pacredir-avahi-MulticastDNS-resolve.conf $(DESTDIR)/etc/systemd/resolved.conf.d/02-pacredir-avahi-MulticastDNS-resolve.conf
 
 clean:
-	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) favicon.png favicon.h version.h
+	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) favicon.png favicon.h style.h version.h
 
 distclean:
 	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) version.h config.h

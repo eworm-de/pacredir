@@ -640,6 +640,7 @@ static enum MHD_Result ahc_echo(void * cls,
 	struct hosts * hosts_ptr = hosts;
 
 	char * url = NULL, * page = NULL;
+	static_file * file = NULL;
 	const char * basename, * host = NULL;
 	struct timeval tv;
 
@@ -675,6 +676,14 @@ static enum MHD_Result ahc_echo(void * cls,
 	/* give favicon */
 	if (strcmp(uri, "/favicon.png") == 0) {
 		http_code = MHD_HTTP_OK;
+		file = &favicon;
+		goto response;
+	}
+
+	/* give style */
+	if (strcmp(uri, "/style.css") == 0) {
+		http_code = MHD_HTTP_OK;
+		file = &style;
 		goto response;
 	}
 
@@ -844,12 +853,12 @@ response:
 			response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
 			ret = MHD_add_response_header(response, "Content-Type", "text/html");
 		} else {
-			write_log(stdout, "Sending favicon.\n");
-			response = MHD_create_response_from_buffer(sizeof(favicon), favicon, MHD_RESPMEM_PERSISTENT);
-			ret = MHD_add_response_header(response, "ETag", FAVICON_SHA1);
-			ret = MHD_add_response_header(response, "Last-Modified", FAVICON_DATE);
+			write_log(stdout, "Sending static file: %s\n", uri);
+			response = MHD_create_response_from_buffer(file->size, file->content, MHD_RESPMEM_PERSISTENT);
+			ret = MHD_add_response_header(response, "ETag", file->sha1);
+			ret = MHD_add_response_header(response, "Last-Modified", file->date);
+			ret = MHD_add_response_header(response, "Content-Type", file->mime);
 			ret = MHD_add_response_header(response, "Cache-Control", "max-age=86400");
-			ret = MHD_add_response_header(response, "Content-Type", "image/png");
 		}
 	} else { /* MHD_HTTP_NOT_FOUND */
 		if (req_count < 0)
