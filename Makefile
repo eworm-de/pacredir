@@ -23,6 +23,7 @@ LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
 # the distribution ID
 ARCH	:= $(shell shopt -u extglob && source /etc/makepkg.conf && echo $$CARCH)
 ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $$ID)
+DATE	:= $(shell date --utc --date=@$(SOURCE_DATE_EPOCH) '+%a, %d %b %Y %H:%M:%S GMT')
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
@@ -51,7 +52,7 @@ favicon.png: logo.svg Makefile
 favicon.h: favicon.png Makefile
 	printf '#ifndef FAVICON_H\n#define FAVICON_H\nstatic unsigned char favicon[] = {\n' > $@
 	od -t x1 -A n -v < $< | sed 's/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
-	printf '};\n#define FAVICON_SHA1 "%s"\n#define FAVICON_DATE "%s"\n#endif\n' "$(shell sha1sum $< | cut -d' ' -f1)" "$(shell date --utc --date=@$(SOURCE_DATE_EPOCH) '+%a, %d %b %Y %H:%M:%S GMT')" >> $@
+	printf '};\n#define FAVICON_SHA1 "%s"\n#define FAVICON_DATE "%s"\n#endif\n' "$(shell sha1sum $< | cut -d' ' -f1)" "$(DATE)" >> $@
 
 %.service: %.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/; s/%ARCH_BYTES%/$(shell (printf $(ARCH) | wc -c; printf $(ARCH) | od -t d1 -A n) | tr -s " ")/; s/%ID%/$(ID)/; s/%ID_BYTES%/$(shell (printf $(ID) | wc -c; printf $(ID) | od -t d1 -A n) | tr -s " ")/' $< > $@
