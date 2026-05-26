@@ -665,16 +665,16 @@ static enum MHD_Result ahc_echo(void * cls,
 		goto response;
 	}
 
-	/* give favicon */
-	if (strcmp(uri, "/favicon.png") == 0) {
-		http_code = MHD_HTTP_OK;
-		goto response;
-	}
-
 	/* give a simple ok response for monitoring */
 	if (strcmp(uri, "/check") == 0) {
 		http_code = MHD_HTTP_OK;
 		page = strdup("OK");
+		goto response;
+	}
+
+	/* give favicon */
+	if (strcmp(uri, "/favicon.png") == 0) {
+		http_code = MHD_HTTP_OK;
 		goto response;
 	}
 
