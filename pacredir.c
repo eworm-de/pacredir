@@ -528,7 +528,8 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 
 		curl_easy_setopt(curl, CURLOPT_URL, request->url);
 		/* try to resolve addresses to all IP versions that your system allows */
-		curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
+		curl_easy_setopt(curl, CURLOPT_IPRESOLVE,
+			request->host->mdns ? CURL_IPRESOLVE_V4 : CURL_IPRESOLVE_WHATEVER);
 		/* tell libcurl to follow redirection */
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 		/* set user agent */
