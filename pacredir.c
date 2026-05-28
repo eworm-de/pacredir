@@ -426,9 +426,8 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 	while (hosts_ptr->host != NULL) {
 		if (strcmp(hosts_ptr->host, host) == 0) {
 			/* host already exists */
-			if (verbose > 0)
-				write_log(stdout, "Updating host %s with port %d\n",
-						host, port);
+			if (verbose > 0 && hosts_ptr->online < 1)
+				write_log(stdout, "Marking host %s online\n", host);
 			goto update;
 		}
 		hosts_ptr = hosts_ptr->next;
