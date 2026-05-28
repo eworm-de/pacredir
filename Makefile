@@ -27,7 +27,7 @@ DATE	:= $(shell date --utc --date=@$(SOURCE_DATE_EPOCH) '+%a, %d %b %Y %H:%M:%S 
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
-DISTVER := 0.7.8
+DISTVER := 0.7.9
 VERSION ?= $(shell git describe --long 2>/dev/null || echo $(DISTVER))
 
 SERVICESIN	= $(wildcard */*.service.in)
