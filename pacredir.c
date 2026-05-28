@@ -620,8 +620,8 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 		/* skip if http code not OK, but clean up */
 		if (request->http_code != MHD_HTTP_OK) {
 			if (verbose > 0)
-				write_log(stderr, "Received HTTP status code %d for %s\n",
-						request->http_code, request->url);
+				write_log(stderr, "Received HTTP status code %d from %s\n",
+						request->http_code, request->host->host);
 			goto request_free;
 		}
 
@@ -632,8 +632,8 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 			ctime_r(&request->last_modified, ctime);
 			ctime[strlen(ctime) - 1] = '\0';
 
-			write_log(stdout, "Found: %s (%f sec, modified: %s)\n",
-				request->url, request->time_total, ctime);
+			write_log(stdout, "Found on %s (%f sec, modified: %s)\n",
+				request->host->host, request->time_total, ctime);
 		}
 
 		if	/* for db files choose the most recent peer when not too old */
