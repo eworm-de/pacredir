@@ -737,8 +737,6 @@ static char * status_page(void) {
 		page = append_string(page, STATUS_INT_NONE);
 	while (ignore_interfaces_ptr->interface != NULL) {
 		if (ignore_interfaces_ptr->ifindex > 0)
-			/* write_log(stdout, STATUS_INT_ONE,
-				ignore_interfaces_ptr->interface, ignore_interfaces_ptr->ifindex); */
 			page = append_string(page, STATUS_INT_ONE,
 				ignore_interfaces_ptr->interface, ignore_interfaces_ptr->ifindex);
 		else
