@@ -217,8 +217,7 @@ finish:
 	hosts_ptr = hosts;
 	while (hosts_ptr->host != NULL) {
 		if (hosts_ptr->mdns == 1 && hosts_ptr->online == 1 && hosts_ptr->present == 0) {
-			if (verbose > 0)
-				write_log(1, stdout, "Marking host %s offline\n", hosts_ptr->host);
+			write_log(verbose, stdout, "Marking host %s offline\n", hosts_ptr->host);
 			hosts_ptr->online = 0;
 		}
 		hosts_ptr = hosts_ptr->next;
@@ -387,8 +386,7 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, 
 			goto parse_failure_service;
 
 		if (match < DNS_SRV_TXT_MATCH_ALL) {
-			if (verbose > 0)
-				write_log(1, stdout, "Host %s does not match distribution and/or architecture.\n", canonical);
+			write_log(verbose, stdout, "Host %s does not match distribution and/or architecture.\n", canonical);
 			goto finish_service;
 		}
 
@@ -428,17 +426,15 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 	while (hosts_ptr->host != NULL) {
 		if (strcmp(hosts_ptr->host, host) == 0) {
 			/* host already exists */
-			if (verbose > 0 && hosts_ptr->online < 1)
-				write_log(1, stdout, "Marking host %s online\n", host);
+			if (hosts_ptr->online < 1)
+				write_log(verbose, stdout, "Marking host %s online\n", host);
 			goto update;
 		}
 		hosts_ptr = hosts_ptr->next;
 	}
 
 	/* host not found, adding a new one */
-	if (verbose > 0)
-		write_log(1, stdout, "Adding host %s with port %d\n",
-				host, port);
+	write_log(verbose, stdout, "Adding host %s with port %d\n", host, port);
 
 	hosts_ptr->host = strdup(host);
 	hosts_ptr->mdns = mdns;
@@ -488,23 +484,20 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 
 		/* skip host if offline */
 		if (hosts_ptr->online == 0) {
-			if (verbose > 0)
-				write_log(1, stdout, "Host %s is offline, skipping\n",
-						hosts_ptr->host);
+			write_log(verbose, stdout, "Host %s is offline, skipping\n", hosts_ptr->host);
 			hosts_ptr = hosts_ptr->next;
 			continue;
 		}
 
 		/* skip host if had a bad request within last BADTIME seconds */
 		if (badtime > tv.tv_sec) {
-			if (verbose > 0) {
-				/* write the time to buffer ctime, then strip the line break */
-				ctime_r(&badtime, ctime);
-				ctime[strlen(ctime) - 1] = '\0';
+			/* write the time to buffer ctime, then strip the line break */
+			ctime_r(&badtime, ctime);
+			ctime[strlen(ctime) - 1] = '\0';
 
-				write_log(1, stdout, "Host %s is marked bad until %s, skipping.\n",
-						hosts_ptr->host, ctime);
-			}
+			write_log(verbose, stdout, "Host %s is marked bad until %s, skipping.\n",
+					hosts_ptr->host, ctime);
+
 			hosts_ptr = hosts_ptr->next;
 			continue;
 		}
@@ -526,8 +519,7 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 			goto curl_easy_fail;
 		}
 
-		if (verbose > 0)
-			write_log(1, stdout, "Trying %s: %s\n", request->host->host, request->url);
+		write_log(verbose, stdout, "Trying %s: %s\n", request->host->host, request->url);
 
 		curl_easy_setopt(curl, CURLOPT_URL, request->url);
 		/* try to resolve addresses to all IP versions that your system allows */
@@ -622,22 +614,19 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 
 		/* skip if http code not OK, but clean up */
 		if (request->http_code != MHD_HTTP_OK) {
-			if (verbose > 0)
-				write_log(1, stderr, "Received HTTP status code %d from %s\n",
-						request->http_code, request->host->host);
+			write_log(verbose, stderr, "Received HTTP status code %d from %s\n",
+					request->http_code, request->host->host);
 			goto request_free;
 		}
 
 		/* found the file! */
 		request->host->finds++;
-		if (verbose > 0) {
-			/* write the time to buffer ctime, then strip the line break */
-			ctime_r(&request->last_modified, ctime);
-			ctime[strlen(ctime) - 1] = '\0';
+		/* write the time to buffer ctime, then strip the line break */
+		ctime_r(&request->last_modified, ctime);
+		ctime[strlen(ctime) - 1] = '\0';
 
-			write_log(1, stdout, "Found on %s (%f sec, modified: %s)\n",
+		write_log(verbose, stdout, "Found on %s (%f sec, modified: %s)\n",
 				request->host->host, request->time_total, ctime);
-		}
 
 		if	/* for db files choose the most recent peer when not too old */
 			((dbfile == 1 && ((request->last_modified > last_modified &&
@@ -666,15 +655,15 @@ request_free:
 		}
 	}
 
-	if (verbose > 0 && best == NULL) {
+	if (best == NULL) {
 		if (req_idx < 0)
-			write_log(1, stdout, "Currently no peers are available to check for %s.\n",
+			write_log(verbose, stdout, "Currently no peers are available to check for %s.\n",
 					basename);
 		else if (dbfile > 0)
-			write_log(1, stdout, "No more recent version of %s found on %d peers.\n",
+			write_log(verbose, stdout, "No more recent version of %s found on %d peers.\n",
 					basename, req_idx + 1);
 		else
-			write_log(1, stdout, "File %s not found on %d peers, giving up.\n",
+			write_log(verbose, stdout, "File %s not found on %d peers, giving up.\n",
 					basename, req_idx + 1);
 	}
 
@@ -1011,9 +1000,8 @@ int main(int argc, char ** argv) {
 		}
 	}
 
-	if (verbose > 0)
-		write_log(1, stdout, "%s: " PROGNAME " v" VERSION " " ID "/" ARCH
-				" (built: " __DATE__ ", " __TIME__ ")\n", argv[0]);
+	write_log(verbose, stdout, "%s: " PROGNAME " v" VERSION " " ID "/" ARCH
+			" (built: " __DATE__ ", " __TIME__ ")\n", argv[0]);
 
 	if (help > 0)
 		write_log(1, stdout, "usage: %s [-h] [-v] [-V]\n", argv[0]);
@@ -1023,8 +1011,7 @@ int main(int argc, char ** argv) {
 
 	if (getuid() == 0) {
 		/* process is running as root, drop privileges */
-		if (verbose > 0)
-			write_log(1, stdout, "Running as root, meh! Dropping privileges.\n");
+		write_log(verbose, stdout, "Running as root, meh! Dropping privileges.\n");
 		if (setgid(DROP_PRIV_GID) != 0 || setuid(DROP_PRIV_UID) != 0)
 			write_log(1, stderr, "Unable to drop user privileges!\n");
 	}
@@ -1066,8 +1053,7 @@ int main(int argc, char ** argv) {
 
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
-				if (verbose > 0)
-					write_log(1, stdout, "Ignoring interface: %s\n", value);
+				write_log(verbose, stdout, "Ignoring interface: %s\n", value);
 				ignore_interfaces_ptr->interface = strdup(value);
 				ignore_interfaces_ptr->next = malloc(sizeof(struct ignore_interfaces));
 				ignore_interfaces_ptr = ignore_interfaces_ptr->next;
@@ -1083,8 +1069,7 @@ int main(int argc, char ** argv) {
 			values = strdup(inistring);
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
-				if (verbose > 0)
-					write_log(1, stdout, "Adding static host: %s\n", value);
+				write_log(verbose, stdout, "Adding static host: %s\n", value);
 
 				if (strchr(value, ':') != NULL) {
 					port = atoi(strchr(value, ':') + 1);
@@ -1113,8 +1098,7 @@ int main(int argc, char ** argv) {
 		goto fail;
 	}
 
-	if (verbose > 0)
-		write_log(1, stdout, "Listening on port %d\n", PORT_PACREDIR);
+	write_log(verbose, stdout, "Listening on port %d\n", PORT_PACREDIR);
 
 	/* initialize curl */
 	curl_global_init(CURL_GLOBAL_ALL);
