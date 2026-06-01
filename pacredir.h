@@ -34,9 +34,14 @@
 #include <sys/socket.h>
 #include <time.h>
 
+/* syslog names */
+#define SYSLOG_NAMES
+#include <sys/syslog.h>
+
 /* systemd headers */
 #include <systemd/sd-bus.h>
 #include <systemd/sd-daemon.h>
+#include <systemd/sd-journal.h>
 
 /* various headers needing linker options */
 #include <curl/curl.h>
@@ -119,7 +124,7 @@ struct request {
 };
 
 /* write_log */
-static int write_log(uint8_t show, FILE *stream, const char *format, ...);
+static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
 /* get_url */
 static char * get_url(const char * hostname, const uint16_t port, const uint8_t dbfile, const char * uri);
 /* update_interfaces */
