@@ -31,7 +31,7 @@ const static struct option options_long[] = {
 /* global variables */
 struct hosts * hosts = NULL;
 struct ignore_interfaces * ignore_interfaces = NULL;
-uint8_t quit = 0, update = 0, verbose = 0;
+uint8_t quit = 0, systemd = 0, update = 0, verbose = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
 /*** write_log ***/
@@ -999,6 +999,10 @@ int main(int argc, char ** argv) {
 				break;
 		}
 	}
+
+	/* are we running from systemd? */
+	if (sd_notify(0, "READY=0") > 0)
+		systemd = 1;
 
 	write_log(verbose, stdout, "%s: " PROGNAME " v" VERSION " " ID "/" ARCH
 			" (built: " __DATE__ ", " __TIME__ ")\n", argv[0]);
