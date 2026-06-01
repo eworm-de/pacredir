@@ -179,9 +179,10 @@ static void update_hosts(void) {
 		&reply, "isqqt", 0 /* any */, PACSERVE "." MDNS_DOMAIN,
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
-		if (errno != EAGAIN || verbose > 0)
-			write_log(1, LOG_ERR, "Failed to trigger caching record: %s (%s)",
-				error.message, strerror(errno));
+		/* EAGAIN is returned when no mDNS hosts are available - so harmless */
+		write_log((errno ^ EAGAIN) | verbose, errno ^ EAGAIN ? LOG_ERR : LOG_DEBUG,
+			"Failed to trigger caching record: %s (%s)",
+			error.message, strerror(errno));
 		sd_bus_error_free(&error);
 		goto finish;
 	}
@@ -272,9 +273,10 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, 
 		&reply_record, "isqqt", if_index, PACSERVE "." MDNS_DOMAIN,
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
-		if (errno != EAGAIN || verbose > 0)
-			write_log(1, LOG_ERR, "Failed to resolve record on %s: %s (%s)",
-				if_name, error.message, strerror(errno));
+		/* EAGAIN is returned when no mDNS hosts are available - so harmless */
+		write_log((errno ^ EAGAIN) | verbose, errno ^ EAGAIN ? LOG_ERR : LOG_DEBUG,
+			"Failed to resolve record on %s: %s (%s)",
+			if_name, error.message, strerror(errno));
 		sd_bus_error_free(&error);
 		goto finish;
 	}
