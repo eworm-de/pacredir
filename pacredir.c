@@ -35,8 +35,11 @@ uint8_t quit = 0, update = 0, verbose = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
 /*** write_log ***/
-static int write_log(FILE *stream, const char *format, ...) {
+static int write_log(uint8_t show, FILE *stream, const char *format, ...) {
 	va_list args;
+
+	if (show == 0)
+		return EXIT_SUCCESS;
 
 	va_start(args, format);
 	vfprintf(stream, format, args);
@@ -135,7 +138,7 @@ static void update_hosts(void) {
 
 	r = sd_bus_open_system(&bus);
 	if (r < 0) {
-		write_log(stderr, "Failed to open system bus: %s\n", strerror(-r));
+		write_log(1, stderr, "Failed to open system bus: %s\n", strerror(-r));
 		goto fast_finish;
 	}
 
@@ -145,7 +148,7 @@ static void update_hosts(void) {
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
 		if (errno != EAGAIN || verbose > 0)
-			write_log(stderr, "Failed to trigger caching record: %s (%s)\n",
+			write_log(1, stderr, "Failed to trigger caching record: %s (%s)\n",
 				error.message, strerror(errno));
 		sd_bus_error_free(&error);
 		goto finish;
@@ -158,12 +161,12 @@ static void update_hosts(void) {
 	usleep(250000);
 
 	if ((if_nidxs = if_nameindex()) == NULL) {
-		write_log(stderr, "Failed to get list of interfaces.\n");
+		write_log(1, stderr, "Failed to get list of interfaces.\n");
 		goto finish;
 	}
 
 	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		write_log(stderr, "Failed to open control socket.\n");
+		write_log(1, stderr, "Failed to open control socket.\n");
 		goto finish;
 	}
 
@@ -177,7 +180,7 @@ static void update_hosts(void) {
 		ifr.ifr_name[IFNAMSIZ-1] = 0;
 
 		if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0) {
-			write_log(stderr, "Failed to get flags for interface %s.\n", intf->if_name);
+			write_log(1, stderr, "Failed to get flags for interface %s.\n", intf->if_name);
 			continue;
 		}
 
@@ -215,7 +218,7 @@ finish:
 	while (hosts_ptr->host != NULL) {
 		if (hosts_ptr->mdns == 1 && hosts_ptr->online == 1 && hosts_ptr->present == 0) {
 			if (verbose > 0)
-				write_log(stdout, "Marking host %s offline\n", hosts_ptr->host);
+				write_log(1, stdout, "Marking host %s offline\n", hosts_ptr->host);
 			hosts_ptr->online = 0;
 		}
 		hosts_ptr = hosts_ptr->next;
@@ -239,7 +242,7 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, 
 		DNS_CLASS_IN, DNS_TYPE_PTR, SD_RESOLVED_NO_SYNTHESIZE|SD_RESOLVED_NO_ZONE);
 	if (r < 0) {
 		if (errno != EAGAIN || verbose > 0)
-			write_log(stderr, "Failed to resolve record on %s: %s (%s)\n",
+			write_log(1, stderr, "Failed to resolve record on %s: %s (%s)\n",
 				if_name, error.message, strerror(errno));
 		sd_bus_error_free(&error);
 		goto finish;
@@ -282,7 +285,7 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, 
 			"org.freedesktop.resolve1.Manager", "ResolveService", &error,
 			&reply_service, "isssit", if_index, "", "", peer, AF_UNSPEC, UINT64_C(0));
 		if (r < 0) {
-			write_log(stderr, "Failed to resolve service '%s' on %s: %s (%s)\n",
+			write_log(1, stderr, "Failed to resolve service '%s' on %s: %s (%s)\n",
 				peer, if_name, error.message, strerror(errno));
 			sd_bus_error_free(&error);
 			goto finish_service;
@@ -385,7 +388,7 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, 
 
 		if (match < DNS_SRV_TXT_MATCH_ALL) {
 			if (verbose > 0)
-				write_log(stdout, "Host %s does not match distribution and/or architecture.\n", canonical);
+				write_log(1, stdout, "Host %s does not match distribution and/or architecture.\n", canonical);
 			goto finish_service;
 		}
 
@@ -395,7 +398,7 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, 
 		goto finish_service;
 
 parse_failure_service:
-		write_log(stderr, "Parse failure for service: %s\n", strerror(-r));
+		write_log(1, stderr, "Parse failure for service: %s\n", strerror(-r));
 
 finish_service:
 		free(peer);
@@ -412,7 +415,7 @@ finish_service:
 	goto finish;
 
 parse_failure_record:
-	write_log(stderr, "Parse failure for record: %s\n", strerror(-r));
+	write_log(1, stderr, "Parse failure for record: %s\n", strerror(-r));
 
 finish:
 	sd_bus_message_unref(reply_record);
@@ -426,7 +429,7 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 		if (strcmp(hosts_ptr->host, host) == 0) {
 			/* host already exists */
 			if (verbose > 0 && hosts_ptr->online < 1)
-				write_log(stdout, "Marking host %s online\n", host);
+				write_log(1, stdout, "Marking host %s online\n", host);
 			goto update;
 		}
 		hosts_ptr = hosts_ptr->next;
@@ -434,7 +437,7 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 
 	/* host not found, adding a new one */
 	if (verbose > 0)
-		write_log(stdout, "Adding host %s with port %d\n",
+		write_log(1, stdout, "Adding host %s with port %d\n",
 				host, port);
 
 	hosts_ptr->host = strdup(host);
@@ -474,7 +477,7 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 	gettimeofday(&tv, NULL);
 
 	if ((curlm = curl_multi_init()) == NULL) {
-		write_log(stderr, "Failed initializing curl multi handle.\n");
+		write_log(1, stderr, "Failed initializing curl multi handle.\n");
 		return NULL;
 	}
 
@@ -486,7 +489,7 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 		/* skip host if offline */
 		if (hosts_ptr->online == 0) {
 			if (verbose > 0)
-				write_log(stdout, "Host %s is offline, skipping\n",
+				write_log(1, stdout, "Host %s is offline, skipping\n",
 						hosts_ptr->host);
 			hosts_ptr = hosts_ptr->next;
 			continue;
@@ -499,7 +502,7 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 				ctime_r(&badtime, ctime);
 				ctime[strlen(ctime) - 1] = '\0';
 
-				write_log(stdout, "Host %s is marked bad until %s, skipping.\n",
+				write_log(1, stdout, "Host %s is marked bad until %s, skipping.\n",
 						hosts_ptr->host, ctime);
 			}
 			hosts_ptr = hosts_ptr->next;
@@ -519,12 +522,12 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 		*request->errbuf = 0;
 
 		if ((curl = request->curl)  == NULL) {
-			write_log(stderr, "Failed initializing curl_easy!\n");
+			write_log(1, stderr, "Failed initializing curl_easy!\n");
 			goto curl_easy_fail;
 		}
 
 		if (verbose > 0)
-			write_log(stdout, "Trying %s: %s\n", request->host->host, request->url);
+			write_log(1, stdout, "Trying %s: %s\n", request->host->host, request->url);
 
 		curl_easy_setopt(curl, CURLOPT_URL, request->url);
 		/* try to resolve addresses to all IP versions that your system allows */
@@ -586,7 +589,7 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 
 		/* something went wrong... */
 		if (msg->data.result != CURLE_OK) {
-			write_log(stderr, "Could not connect to peer %s on port %d: %s\n",
+			write_log(1, stderr, "Could not connect to peer %s on port %d: %s\n",
 				request->host->host, request->host->port,
 				*request->errbuf != 0 ? request->errbuf : curl_easy_strerror(msg->data.result));
 			request->host->badtime = tv.tv_sec;
@@ -599,20 +602,20 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 
 		/* get http status code */
 		if ((res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &(request->http_code))) != CURLE_OK) {
-			write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
+			write_log(1, stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
 			goto request_free;
 		}
 
 		/* get total time */
 		if ((res = curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &(request->time_total))) != CURLE_OK) {
-			write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
+			write_log(1, stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
 			goto request_free;
 		}
 
 		/* get last modified time */
 		if (request->http_code == MHD_HTTP_OK) {
 			if ((res = curl_easy_getinfo(curl, CURLINFO_FILETIME, &(request->last_modified))) != CURLE_OK) {
-				write_log(stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
+				write_log(1, stderr, "curl_easy_getinfo() failed: %s\n", curl_easy_strerror(res));
 				goto request_free;
 			}
 		}
@@ -620,7 +623,7 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 		/* skip if http code not OK, but clean up */
 		if (request->http_code != MHD_HTTP_OK) {
 			if (verbose > 0)
-				write_log(stderr, "Received HTTP status code %d from %s\n",
+				write_log(1, stderr, "Received HTTP status code %d from %s\n",
 						request->http_code, request->host->host);
 			goto request_free;
 		}
@@ -632,7 +635,7 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 			ctime_r(&request->last_modified, ctime);
 			ctime[strlen(ctime) - 1] = '\0';
 
-			write_log(stdout, "Found on %s (%f sec, modified: %s)\n",
+			write_log(1, stdout, "Found on %s (%f sec, modified: %s)\n",
 				request->host->host, request->time_total, ctime);
 		}
 
@@ -665,13 +668,13 @@ request_free:
 
 	if (verbose > 0 && best == NULL) {
 		if (req_idx < 0)
-			write_log(stdout, "Currently no peers are available to check for %s.\n",
+			write_log(1, stdout, "Currently no peers are available to check for %s.\n",
 					basename);
 		else if (dbfile > 0)
-			write_log(stdout, "No more recent version of %s found on %d peers.\n",
+			write_log(1, stdout, "No more recent version of %s found on %d peers.\n",
 					basename, req_idx + 1);
 		else
-			write_log(stdout, "File %s not found on %d peers, giving up.\n",
+			write_log(1, stdout, "File %s not found on %d peers, giving up.\n",
 					basename, req_idx + 1);
 	}
 
@@ -875,7 +878,7 @@ static enum MHD_Result ahc_echo(void * cls,
 response:
 	/* give response */
 	if (http_code == MHD_HTTP_TEMPORARY_REDIRECT) {
-		write_log(stdout, "Redirecting to %s: %s\n", request->host->host, request->url);
+		write_log(1, stdout, "Redirecting to %s: %s\n", request->host->host, request->url);
 		page = malloc(strlen(PAGE307) + strlen(request->url) + strlen(basename) + 1);
 		sprintf(page, PAGE307, request->url, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
@@ -883,11 +886,11 @@ response:
 		free(request);
 	} else if (http_code == MHD_HTTP_OK) {
 		if (page != NULL) {
-			write_log(stdout, "Sending status page.\n");
+			write_log(1, stdout, "Sending status page.\n");
 			response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
 			ret = MHD_add_response_header(response, "Content-Type", "text/html");
 		} else {
-			write_log(stdout, "Sending static file: %s\n", uri);
+			write_log(1, stdout, "Sending static file: %s\n", uri);
 			response = MHD_create_response_from_buffer(file->size, file->content, MHD_RESPMEM_PERSISTENT);
 			ret = MHD_add_response_header(response, "ETag", file->sha1);
 			ret = MHD_add_response_header(response, "Last-Modified", file->date);
@@ -895,7 +898,7 @@ response:
 			ret = MHD_add_response_header(response, "Cache-Control", "max-age=86400");
 		}
 	} else { /* MHD_HTTP_NOT_FOUND */
-		write_log(stdout, "Sending 'Not Found' for: %s\n", basename);
+		write_log(1, stdout, "Sending 'Not Found' for: %s\n", basename);
 		page = malloc(strlen(PAGE404) + strlen(basename) + 1);
 		sprintf(page, PAGE404, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
@@ -914,7 +917,7 @@ response:
 
 /*** sig_callback ***/
 static void sig_callback(int signal) {
-	write_log(stdout, "Received signal '%s', quitting.\n", strsignal(signal));
+	write_log(1, stdout, "Received signal '%s', quitting.\n", strsignal(signal));
 
 	quit++;
 }
@@ -923,7 +926,7 @@ static void sig_callback(int signal) {
 static void sighup_callback(int signal) {
 	struct hosts * hosts_ptr = hosts;
 
-	write_log(stdout, "Received signal '%s', resetting bad counts, updating interfaces and hosts.\n",
+	write_log(1, stdout, "Received signal '%s', resetting bad counts, updating interfaces and hosts.\n",
 		strsignal(signal));
 
 	while (hosts_ptr->host != NULL) {
@@ -944,29 +947,29 @@ static void sigusr_callback(int signal) {
 	/* initialize struct timeval */
 	gettimeofday(&tv, NULL);
 
-	write_log(stdout, "Received signal '%s', dumping state.\n", strsignal(signal));
+	write_log(1, stdout, "Received signal '%s', dumping state.\n", strsignal(signal));
 
-	write_log(stdout, "Ignored interfaces:\n");
+	write_log(1, stdout, "Ignored interfaces:\n");
 	if (ignore_interfaces_ptr->interface == NULL)
-		write_log(stdout, " (none)\n");
+		write_log(1, stdout, " (none)\n");
 	while (ignore_interfaces_ptr->interface != NULL) {
 		if (ignore_interfaces_ptr->ifindex > 0)
-			write_log(stdout, " -> %s (link %d)\n",
+			write_log(1, stdout, " -> %s (link %d)\n",
 				ignore_interfaces_ptr->interface,  ignore_interfaces_ptr->ifindex);
 		else
-			write_log(stdout, " -> %s (N/A)\n", ignore_interfaces_ptr->interface);
+			write_log(1, stdout, " -> %s (N/A)\n", ignore_interfaces_ptr->interface);
 
 		ignore_interfaces_ptr = ignore_interfaces_ptr->next;
 	}
 
-	write_log(stdout, "Known hosts:\n");
+	write_log(1, stdout, "Known hosts:\n");
 	if (hosts_ptr->host == NULL)
-		write_log(stdout, " (none)\n");
+		write_log(1, stdout, " (none)\n");
 	while (hosts_ptr->host != NULL) {
 		uint8_t not_avail = (hosts_ptr->mdns && !hosts_ptr->online) || (hosts_ptr->badcount &&
 			(hosts_ptr->badtime + hosts_ptr->badcount * BADTIME) > tv.tv_sec) ? 1 : 0;
 
-		write_log(stdout, " -> %s%s%s (%s, %s, port: %d, finds: %d, bad: %d)\n",
+		write_log(1, stdout, " -> %s%s%s (%s, %s, port: %d, finds: %d, bad: %d)\n",
 			not_avail ? "[" : "", hosts_ptr->host, not_avail ? "]" : "",
 			hosts_ptr->mdns ? "mdns" : "static", hosts_ptr->online ? "online" : "offline",
 			hosts_ptr->port, hosts_ptr->finds, hosts_ptr->badcount);
@@ -974,7 +977,7 @@ static void sigusr_callback(int signal) {
 		hosts_ptr = hosts_ptr->next;
 	}
 
-	write_log(stdout, "%d redirects, %d not found.\n",
+	write_log(1, stdout, "%d redirects, %d not found.\n",
 		count_redirect, count_not_found);
 }
 
@@ -1009,11 +1012,11 @@ int main(int argc, char ** argv) {
 	}
 
 	if (verbose > 0)
-		write_log(stdout, "%s: " PROGNAME " v" VERSION " " ID "/" ARCH
+		write_log(1, stdout, "%s: " PROGNAME " v" VERSION " " ID "/" ARCH
 				" (built: " __DATE__ ", " __TIME__ ")\n", argv[0]);
 
 	if (help > 0)
-		write_log(stdout, "usage: %s [-h] [-v] [-V]\n", argv[0]);
+		write_log(1, stdout, "usage: %s [-h] [-v] [-V]\n", argv[0]);
 
 	if (version > 0 || help > 0)
 		return EXIT_SUCCESS;
@@ -1021,9 +1024,9 @@ int main(int argc, char ** argv) {
 	if (getuid() == 0) {
 		/* process is running as root, drop privileges */
 		if (verbose > 0)
-			write_log(stdout, "Running as root, meh! Dropping privileges.\n");
+			write_log(1, stdout, "Running as root, meh! Dropping privileges.\n");
 		if (setgid(DROP_PRIV_GID) != 0 || setuid(DROP_PRIV_UID) != 0)
-			write_log(stderr, "Unable to drop user privileges!\n");
+			write_log(1, stderr, "Unable to drop user privileges!\n");
 	}
 
 	/* allocate first struct element as dummy */
@@ -1047,7 +1050,7 @@ int main(int argc, char ** argv) {
 
 	/* parse config file */
 	if ((ini = iniparser_load(CONFIGFILE)) == NULL) {
-		write_log(stderr, "cannot parse file " CONFIGFILE ", continue anyway\n");
+		write_log(1, stderr, "cannot parse file " CONFIGFILE ", continue anyway\n");
 		/* continue anyway, there is nothing essential in the config file */
 	} else {
 		int ini_verbose;
@@ -1064,7 +1067,7 @@ int main(int argc, char ** argv) {
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				if (verbose > 0)
-					write_log(stdout, "Ignoring interface: %s\n", value);
+					write_log(1, stdout, "Ignoring interface: %s\n", value);
 				ignore_interfaces_ptr->interface = strdup(value);
 				ignore_interfaces_ptr->next = malloc(sizeof(struct ignore_interfaces));
 				ignore_interfaces_ptr = ignore_interfaces_ptr->next;
@@ -1081,7 +1084,7 @@ int main(int argc, char ** argv) {
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				if (verbose > 0)
-					write_log(stdout, "Adding static host: %s\n", value);
+					write_log(1, stdout, "Adding static host: %s\n", value);
 
 				if (strchr(value, ':') != NULL) {
 					port = atoi(strchr(value, ':') + 1);
@@ -1106,12 +1109,12 @@ int main(int argc, char ** argv) {
 	/* start http server */
 	if ((mhd = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION | MHD_USE_TCP_FASTOPEN, PORT_PACREDIR,
 			NULL, NULL, &ahc_echo, NULL, MHD_OPTION_SOCK_ADDR, &address, MHD_OPTION_END)) == NULL) {
-		write_log(stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
+		write_log(1, stderr, "Could not start daemon on port %d.\n", PORT_PACREDIR);
 		goto fail;
 	}
 
 	if (verbose > 0)
-		write_log(stdout, "Listening on port %d\n", PORT_PACREDIR);
+		write_log(1, stdout, "Listening on port %d\n", PORT_PACREDIR);
 
 	/* initialize curl */
 	curl_global_init(CURL_GLOBAL_ALL);

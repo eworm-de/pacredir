@@ -119,7 +119,7 @@ struct request {
 };
 
 /* write_log */
-static int write_log(FILE *stream, const char *format, ...);
+static int write_log(uint8_t show, FILE *stream, const char *format, ...);
 /* get_url */
 static char * get_url(const char * hostname, const uint16_t port, const uint8_t dbfile, const char * uri);
 /* update_interfaces */
