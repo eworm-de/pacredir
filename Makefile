@@ -24,7 +24,7 @@ LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
 ARCH	:= $(shell shopt -u extglob && source /etc/makepkg.conf && echo $$CARCH)
 ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $$ID)
 DATE	:= $(shell date --utc --date=@$(SOURCE_DATE_EPOCH) '+%a, %d %b %Y %H:%M:%S GMT')
-export DATE
+export ARCH ID DATE
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
@@ -56,8 +56,8 @@ favicon.h: favicon.png static_file.h contrib/static_file.sh
 style.h: style.css static_file.h contrib/static_file.sh
 	contrib/static_file.sh $< > $@
 
-%.service: %.service.in
-	$(SED) 's/%ARCH%/$(ARCH)/; s/%ARCH_BYTES%/$(shell (printf $(ARCH) | wc -c; printf $(ARCH) | od -t d1 -A n) | tr -s " ")/; s/%ID%/$(ID)/; s/%ID_BYTES%/$(shell (printf $(ID) | wc -c; printf $(ID) | od -t d1 -A n) | tr -s " ")/' $< > $@
+%.service: %.service.in contrib/service.sh
+	contrib/service.sh $< > $@
 
 %.html: %.md Makefile
 	markdown $< | sed 's/href="\([-[:alnum:]]*\)\.md"/href="\1.html"/g' > $@
