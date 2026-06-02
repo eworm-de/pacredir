@@ -24,6 +24,7 @@ LDFLAGS	+= -Wl,-z,now -Wl,-z,relro -pie
 ARCH	:= $(shell shopt -u extglob && source /etc/makepkg.conf && echo $$CARCH)
 ID	:= $(shell shopt -u extglob && source /etc/os-release && echo $$ID)
 DATE	:= $(shell date --utc --date=@$(SOURCE_DATE_EPOCH) '+%a, %d %b %Y %H:%M:%S GMT')
+export DATE
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
@@ -49,17 +50,11 @@ version.h: $(wildcard .git/HEAD .git/index .git/refs/tags/*) Makefile
 favicon.png: logo.svg Makefile
 	resvg --width=32 --height=32 $< -c | oxipng - > $@
 
-favicon.h: favicon.png static_file.h Makefile
-	printf '#ifndef FAVICON_H\n#define FAVICON_H\n#include "static_file.h"\nstatic_file favicon = {\n' > $@
-	printf '  .date = "%s",\n  .mime = "%s",\n  .sha1 = "%s",\n  .size = %d,\n  .content = {\n' "$(DATE)" "image/png" "$(shell sha1sum $< | cut -d' ' -f1)" "$(shell stat --format=%s $<)" >> $@
-	od -t x1 -A n -v < $< | sed 's/^/    /; s/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
-	printf '  }\n};\n#endif\n' >> $@
+favicon.h: favicon.png static_file.h contrib/static_file.sh
+	contrib/static_file.sh $< > $@
 
-style.h: style.css static_file.h Makefile
-	printf '#ifndef STYLE_H\n#define STYLE_H\n#include "static_file.h"\nstatic_file style = {\n' > $@
-	printf '  .date = "%s",\n  .mime = "%s",\n  .sha1 = "%s",\n  .size = %d,\n  .content = {\n' "$(DATE)" "text/css" "$(shell sha1sum $< | cut -d' ' -f1)" "$(shell stat --format=%s $<)" >> $@
-	od -t x1 -A n -v < $< | sed 's/^/    /; s/\([0-9a-f]\{2\}\)/0x\1,/g' >> $@
-	printf '  }\n};\n#endif\n' >> $@
+style.h: style.css static_file.h contrib/static_file.sh
+	contrib/static_file.sh $< > $@
 
 %.service: %.service.in
 	$(SED) 's/%ARCH%/$(ARCH)/; s/%ARCH_BYTES%/$(shell (printf $(ARCH) | wc -c; printf $(ARCH) | od -t d1 -A n) | tr -s " ")/; s/%ID%/$(ID)/; s/%ID_BYTES%/$(shell (printf $(ID) | wc -c; printf $(ID) | od -t d1 -A n) | tr -s " ")/' $< > $@

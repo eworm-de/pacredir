@@ -19,6 +19,9 @@
 #ifndef _STATIC_FILE_H
 #define _STATIC_FILE_H
 
+#define MIME_CSS "text/css"
+#define MIME_PNG "image/png"
+
 typedef struct {
 	char* date;
 	char* mime;
