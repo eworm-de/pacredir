@@ -455,18 +455,48 @@ finish:
 
 /*** add_host ***/
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns) {
-	struct hosts * hosts_ptr = hosts;
+	struct hosts * hosts_ptr = hosts, * previous = NULL;
 
 	while (hosts_ptr->host != NULL) {
-		if (strcmp(hosts_ptr->host, host) == 0) {
-			/* host already exists */
+		int cmp = strcmp(hosts_ptr->host, host);
+
+		/* skip to next */
+		if (cmp < 0) {
+			previous = hosts_ptr;
+			hosts_ptr = hosts_ptr->next;
+			continue;
+		}
+
+		/* host already exists */
+		if (cmp == 0) {
 			if (hosts_ptr->online < 1)
 				write_log(verbose, LOG_NOTICE, "Marking host %s online", host);
 			goto update;
 		}
-		hosts_ptr = hosts_ptr->next;
+
+		/* insert before, or first */
+		if (cmp > 0) {
+			struct hosts * new = malloc(sizeof(struct hosts));
+			new->next = hosts_ptr;
+
+			/* first! */
+			if (hosts_ptr == hosts) {
+				hosts_ptr = hosts = new;
+				goto new;
+			}
+
+			/* before, but not first */
+			hosts_ptr = previous->next = new;
+			goto new;
+		}
 	}
 
+	/* append at the end */
+	hosts_ptr->next = malloc(sizeof(struct hosts));
+	hosts_ptr->next->host = NULL;
+	hosts_ptr->next->next = NULL;
+
+new:
 	/* host not found, adding a new one */
 	write_log(verbose, mdns ? LOG_NOTICE : LOG_INFO, "Adding host %s with port %d", host, port);
 
@@ -475,10 +505,6 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 	hosts_ptr->badtime = 0;
 	hosts_ptr->badcount = 0;
 	hosts_ptr->finds = 0;
-
-	hosts_ptr->next = malloc(sizeof(struct hosts));
-	hosts_ptr->next->host = NULL;
-	hosts_ptr->next->next = NULL;
 
 update:
 	hosts_ptr->port = port;
