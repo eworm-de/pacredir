@@ -469,6 +469,13 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 
 		/* host already exists */
 		if (cmp == 0) {
+			/* ... but with different port */
+			if (hosts_ptr->port != port) {
+				previous = hosts_ptr;
+				hosts_ptr = hosts_ptr->next;
+				continue;
+			}
+
 			if (hosts_ptr->online < 1)
 				write_log(verbose, LOG_NOTICE, "Marking host %s online", host);
 			goto update;
@@ -501,13 +508,13 @@ new:
 	write_log(verbose, mdns ? LOG_NOTICE : LOG_INFO, "Adding host %s with port %d", host, port);
 
 	hosts_ptr->host = strdup(host);
+	hosts_ptr->port = port;
 	hosts_ptr->mdns = mdns;
 	hosts_ptr->badtime = 0;
 	hosts_ptr->badcount = 0;
 	hosts_ptr->finds = 0;
 
 update:
-	hosts_ptr->port = port;
 	hosts_ptr->online = 1;
 	hosts_ptr->present = 1;
 
