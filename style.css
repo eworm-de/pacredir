@@ -23,6 +23,10 @@ code {
   background-color: #f8f8f8;
   border-radius: 3px;
 }
+p.foot {
+  color: #777;
+  text-align: center;
+}
 th {
   background: #efefef;
 }

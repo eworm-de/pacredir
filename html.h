@@ -88,6 +88,8 @@
 	"</table>"
 
 #define STATUS_FOOT \
+	"<p class=\"foot\">" PROGNAME " v" VERSION " (built: " __DATE__ ", " __TIME__ ")<br>" \
+	"Copyright &copy; 2013-2026 Christian Hesse &lt;mail@eworm.de&gt;</p>" \
 	"</body></html>"
 
 #endif /* _HTML_H */
