@@ -42,3 +42,9 @@ tr:hover {
 tr.offline {
   color: grey;
 }
+@media only screen and (orientation: landscape) {
+  body {
+    margin-left: 10vw;
+    margin-right: 10vw;
+  }
+}
