@@ -44,7 +44,7 @@
 	"<link rel=\"icon\" href=\"favicon.png\" type=\"image/png\">" \
 	"</head><body><h1>pacredir status</h1>" \
 	"<p>This is <code>pacredir</code> version <i>" VERSION "</i> running on <i>%s</i>.</p>" \
-	"<p>&#x2139;&#xfe0f; Visit <a href=\"" WEBURL "\">" WEBSITE "</a> for documentation.</p>" \
+	"<p>&#x2139;&#xfe0f; Visit <a href=\"" WEBURL "\">" WEBSITE " &#x2197;&#xfe0f;</a> for documentation.</p>" \
 	"<table>" \
 	"<tr><td>Distribution:</td><td><b>" ID "</b></td></tr>" \
 	"<tr><td>Architecture:</td><td><b>" ARCH "</b></td></tr>" \
