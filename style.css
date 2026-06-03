@@ -6,6 +6,10 @@ h1 {
   padding-left: 36px;
   background-image: url("favicon.png");
   background-repeat: no-repeat;
+  border-bottom: 1px solid #ccc;
+}
+h2 {
+  border-bottom: 1px solid #ccc;
 }
 h2 a {
   color: black;
