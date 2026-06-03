@@ -513,6 +513,7 @@ new:
 	hosts_ptr->badtime = 0;
 	hosts_ptr->badcount = 0;
 	hosts_ptr->finds = 0;
+	hosts_ptr->redir = 0;
 
 update:
 	hosts_ptr->online = 1;
@@ -817,7 +818,8 @@ static char * status_page(void) {
 		page = append_string(page, STATUS_HOST_ONE,
 			state, hosts_ptr->host, hosts_ptr->port,
 			hosts_ptr->mdns ? (hosts_ptr->online ? CIRCLE_GREEN : CIRCLE_RED) : CIRCLE_BLUE,
-			state, hosts_ptr->finds ? CIRCLE_GREEN : CIRCLE_BLUE, hosts_ptr->finds,
+			state, hosts_ptr->redir ? CIRCLE_GREEN : CIRCLE_BLUE, hosts_ptr->redir,
+			hosts_ptr->finds ? CIRCLE_GREEN : CIRCLE_BLUE, hosts_ptr->finds,
 			bad ? CIRCLE_RED : CIRCLE_BLUE, hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;
@@ -935,6 +937,7 @@ response:
 	/* give response */
 	if (http_code == MHD_HTTP_TEMPORARY_REDIRECT) {
 		write_log(1, LOG_NOTICE, "Redirecting to %s: %s", request->host->host, request->url);
+		request->host->redir++;
 		page = malloc(strlen(PAGE307) + strlen(request->url) + strlen(basename) + 1);
 		sprintf(page, PAGE307, request->url, basename);
 		response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_MUST_FREE);
@@ -1025,10 +1028,10 @@ static void sigusr_callback(int signal) {
 		uint8_t not_avail = (hosts_ptr->mdns && !hosts_ptr->online) || (hosts_ptr->badcount &&
 			(hosts_ptr->badtime + hosts_ptr->badcount * BADTIME) > tv.tv_sec) ? 1 : 0;
 
-		write_log(1, LOG_INFO, " -> %s%s%s (%s, %s, port: %d, finds: %d, bad: %d)",
+		write_log(1, LOG_INFO, " -> %s%s%s (%s, %s, port: %d, redir: %d, finds: %d, bad: %d)",
 			not_avail ? "[" : "", hosts_ptr->host, not_avail ? "]" : "",
 			hosts_ptr->mdns ? "mdns" : "static", hosts_ptr->online ? "online" : "offline",
-			hosts_ptr->port, hosts_ptr->finds, hosts_ptr->badcount);
+			hosts_ptr->port, hosts_ptr->redir, hosts_ptr->finds, hosts_ptr->badcount);
 
 		hosts_ptr = hosts_ptr->next;
 	}

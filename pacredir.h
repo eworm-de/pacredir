@@ -91,6 +91,8 @@ struct hosts {
 	unsigned int badcount;
 	/* count finds */
 	unsigned int finds;
+	/* count redirects */
+	unsigned int redir;
 	/* pointer to next struct element */
 	struct hosts * next;
 };

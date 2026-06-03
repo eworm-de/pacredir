@@ -71,6 +71,7 @@
 	"<th>host</th>" \
 	"<th>port</th>" \
 	"<th colspan=2>state</th>" \
+	"<th colspan=2>redir</th>" \
 	"<th colspan=2>finds</th>" \
 	"<th colspan=2>bad</th></tr>"
 #define STATUS_HOST_ONE \
@@ -79,9 +80,10 @@
 	"<td>%d</td>" \
 	"<td>%s</td><td>%s</td>" \
 	"<td>%s</td><td>%d</td>" \
+	"<td>%s</td><td>%d</td>" \
 	"<td>%s</td><td>%d</td></tr>"
 #define STATUS_HOST_NONE \
-	"<tr class=\"none\"><td colspan=8>(none)</td></tr>"
+	"<tr class=\"none\"><td colspan=10>(none)</td></tr>"
 #define STATUS_HOST_FOOT \
 	"</table>"
 
