@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # (C) 2013-2026 by Christian Hesse <mail@eworm.de>
 #                  Markus Weippert <markus@gekmihesg.de>
 #
@@ -6,11 +8,6 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 
-[Unit]
-After=avahi-daemon.service
-Requires=avahi-daemon.service
+PORT="$(grep -E '^PORT=' /etc/pacserve.conf | cut -d= -f2 | tr -d '[:space:]')"
 
-[Service]
-Type=simple
-ExecStart=
-ExecStart=/usr/lib/pacredir/pacserve-announce-avahi
+exec avahi-publish -s "pacserve on %l" "_pacserve._tcp" "${PORT}" "id=%ID%" "arch=%ARCH%"

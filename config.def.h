@@ -35,8 +35,9 @@
 #define PACSERVE	"_pacserve._tcp"
 #define MDNS_DOMAIN	"local"
 
-/* path to the config file */
+/* path to the config files */
 #define PACREDIR_CONF	"/etc/pacredir.conf"
+#define PACSERVE_CONF	"/etc/pacserve.conf"
 /* these characters are used as delimiter in config file */
 #define DELIMITER	" ,;"
 

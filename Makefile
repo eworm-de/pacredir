@@ -31,15 +31,20 @@ export ARCH ID DATE
 DISTVER := 0.7.10
 VERSION ?= $(shell git describe --long 2>/dev/null || echo $(DISTVER))
 
-SERVICESIN	= $(wildcard */*.service.in)
-SERVICES	= $(SERVICESIN:.in=)
+HELPERS		= pacserve-announce compat/pacserve-announce-avahi
 MARKDOWN	= $(wildcard *.md)
 HTML		= $(MARKDOWN:.md=.html)
 
-all: pacredir $(SERVICES) $(HTML)
+all: pacredir $(HELPERS) $(HTML)
 
 pacredir: pacredir.c pacredir.h config.h favicon.h html.h style.h version.h
 	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -o $@
+
+pacserve-announce: pacserve-announce.c pacserve-announce.h config.h version.h
+	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -o $@
+
+compat/pacserve-announce-avahi: compat/pacserve-announce-avahi.in
+	$(SED) -e "s/%ARCH%/${ARCH}/" -e "s/%ID%/${ID}/" $< > $@
 
 config.h: config.def.h
 	$(CP) $< $@
@@ -56,16 +61,14 @@ favicon.h: favicon.png static_file.h contrib/static_file.sh
 style.h: style.css static_file.h contrib/static_file.sh
 	contrib/static_file.sh $< > $@
 
-%.service: %.service.in contrib/service.sh
-	contrib/service.sh $< > $@
-
 %.html: %.md Makefile
 	markdown $< | $(SED) 's/href="\([-[:alnum:]]*\)\.md"/href="\1.html"/g' > $@
 
 install: install-bin install-doc
 
-install-bin: pacredir systemd/pacserve.service
+install-bin: pacredir pacserve-announce
 	$(INSTALL) -D -m0755 pacredir $(DESTDIR)$(PREFIX)/bin/pacredir
+	$(INSTALL) -D -m0755 pacserve-announce $(DESTDIR)$(PREFIX)/lib/pacredir/pacserve-announce
 	$(LN) -s darkhttpd $(DESTDIR)$(PREFIX)/bin/pacserve
 	$(INSTALL) -D -m0644 etc/pacredir.conf $(DESTDIR)/etc/pacredir.conf
 	$(INSTALL) -D -m0644 etc/pacserve.conf $(DESTDIR)/etc/pacserve.conf
@@ -73,6 +76,7 @@ install-bin: pacredir systemd/pacserve.service
 	$(INSTALL) -D -m0644 pacman/pacredir $(DESTDIR)/etc/pacman.d/pacredir
 	$(INSTALL) -D -m0644 systemd/pacredir.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacredir.service
 	$(INSTALL) -D -m0644 systemd/pacserve.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service
+	$(INSTALL) -D -m0644 systemd/pacserve-announce.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve-announce.service
 	$(INSTALL) -D -m0644 systemd/sysusers.conf $(DESTDIR)$(PREFIX)/lib/sysusers.d/pacredir.conf
 	$(INSTALL) -D -m0644 systemd/tmpfiles.conf $(DESTDIR)$(PREFIX)/lib/tmpfiles.d/pacredir.conf
 	$(INSTALL) -D -m0644 desktop/pacredir-status.desktop $(DESTDIR)$(PREFIX)/share/applications/pacredir-status.desktop
@@ -89,16 +93,16 @@ install-doc: $(HTML)
 	$(INSTALL) -d -m0755 $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW.d/
 	$(INSTALL) -D -m0644 $(wildcard FLOW.d/*) -t $(DESTDIR)$(PREFIX)/share/doc/pacredir/FLOW.d/
 
-install-avahi: compat/pacserve-announce.service
-	$(INSTALL) -D -m0644 compat/avahi.conf $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve.service.d/avahi.conf
-	$(INSTALL) -D -m0644 compat/pacserve-announce.service $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve-announce.service
+install-avahi: compat/pacserve-announce-avahi
+	$(INSTALL) -D -m0755 compat/pacserve-announce-avahi $(DESTDIR)$(PREFIX)/lib/pacredir/pacserve-announce-avahi
+	$(INSTALL) -D -m0644 compat/avahi.conf $(DESTDIR)$(PREFIX)/lib/systemd/system/pacserve-announce.service.d/avahi.conf
 	$(INSTALL) -D -m0644 compat/02-pacredir-avahi-MulticastDNS-resolve.conf $(DESTDIR)/etc/systemd/resolved.conf.d/02-pacredir-avahi-MulticastDNS-resolve.conf
 
 clean:
-	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) favicon.png favicon.h style.h version.h
+	$(RM) -f *.o *~ pacredir $(HELPERS) $(HTML) favicon.png favicon.h style.h version.h
 
 distclean:
-	$(RM) -f *.o *~ pacredir $(SERVICES) $(HTML) version.h config.h
+	$(RM) -f *.o *~ pacredir $(HELPERS) $(HTML) version.h config.h
 
 release:
 	git archive --format=tar.xz --prefix=pacredir-$(DISTVER)/ $(DISTVER) > pacredir-$(DISTVER).tar.xz

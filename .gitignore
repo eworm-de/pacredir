@@ -1,13 +1,13 @@
 *~
 *.html
 *.o
-compat/pacserve-announce.service
+compat/pacserve-announce-avahi
 config.h
 favicon.h
 favicon.png
 pacredir
 pacredir-*.tar.xz
 pacredir-*.tar.xz.asc
+pacserve-announce
 style.h
-systemd/pacserve.service
 version.h
