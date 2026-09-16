@@ -1110,8 +1110,8 @@ int main(int argc, char ** argv) {
 	sigaction(SIGHUP, &act_hup, NULL);
 
 	/* parse config file */
-	if ((ini = iniparser_load(CONFIGFILE)) == NULL) {
-		write_log(1, LOG_WARNING, "cannot parse file " CONFIGFILE ", continue anyway");
+	if ((ini = iniparser_load(PACREDIR_CONF)) == NULL) {
+		write_log(1, LOG_WARNING, "cannot parse file " PACREDIR_CONF ", continue anyway");
 		/* continue anyway, there is nothing essential in the config file */
 	} else {
 		int ini_verbose;

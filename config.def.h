@@ -36,7 +36,7 @@
 #define MDNS_DOMAIN	"local"
 
 /* path to the config file */
-#define CONFIGFILE	"/etc/pacredir.conf"
+#define PACREDIR_CONF	"/etc/pacredir.conf"
 /* these characters are used as delimiter in config file */
 #define DELIMITER	" ,;"
 
