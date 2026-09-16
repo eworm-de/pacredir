@@ -60,7 +60,7 @@ style.h: style.css static_file.h contrib/static_file.sh
 	contrib/service.sh $< > $@
 
 %.html: %.md Makefile
-	markdown $< | sed 's/href="\([-[:alnum:]]*\)\.md"/href="\1.html"/g' > $@
+	markdown $< | $(SED) 's/href="\([-[:alnum:]]*\)\.md"/href="\1.html"/g' > $@
 
 install: install-bin install-doc
 
