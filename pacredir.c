@@ -1177,11 +1177,10 @@ int main(int argc, char ** argv) {
 	/* initialize curl */
 	curl_global_init(CURL_GLOBAL_ALL);
 
-	/* register SIG{INT,KILL,TERM} signal callbacks */
+	/* register SIG{INT,TERM} signal callbacks */
 	struct sigaction act = { 0 };
 	act.sa_handler = sig_callback;
 	sigaction(SIGINT,  &act, NULL);
-	sigaction(SIGKILL, &act, NULL);
 	sigaction(SIGTERM, &act, NULL);
 
 	/* register SIGUSR[12] signal callbacks */
