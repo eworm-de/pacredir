@@ -28,7 +28,7 @@ export ARCH ID DATE
 
 # this is just a fallback in case you do not use git but downloaded
 # a release tarball...
-DISTVER := 0.7.11
+DISTVER := 0.7.12
 VERSION ?= $(shell git describe --long 2>/dev/null || echo $(DISTVER))
 
 HELPERS		= pacserve-announce compat/pacserve-announce-avahi
