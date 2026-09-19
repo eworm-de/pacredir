@@ -25,7 +25,6 @@ uint8_t quit = 0;
 static void sig_callback(int signal) {
 	switch (signal) {
 		case SIGINT:
-		case SIGKILL:
 		case SIGTERM:
 			break;
 		default:
@@ -149,7 +148,6 @@ int main(int argc, char ** argv) {
 	act.sa_handler = sig_callback;
 	sigaction(SIGHUP,  &act, NULL);
 	sigaction(SIGINT,  &act, NULL);
-	sigaction(SIGKILL, &act, NULL);
 	sigaction(SIGTERM, &act, NULL);
 	sigaction(SIGUSR1, &act, NULL);
 	sigaction(SIGUSR2, &act, NULL);
