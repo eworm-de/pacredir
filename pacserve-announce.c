@@ -142,7 +142,7 @@ int main(int argc, char ** argv) {
 	sd_bus *bus = NULL;
 	int ret = EXIT_FAILURE, r;
 	uint16_t port = PORT_PACSERVE;
-	char *path = NULL;
+	char *tmp, *path = NULL;
 
 	/* register signal callbacks */
 	struct sigaction act = { 0 };
@@ -201,9 +201,10 @@ int main(int argc, char ** argv) {
 	sd_notify(0, "READY=1\nSTATUS=Announced!");
 
 	/* read the reply for unregister */
-	r = sd_bus_message_read(reply, "o", &path);
+	r = sd_bus_message_read(reply, "o", &tmp);
 	if (r < 0) 
 		goto fail;
+	path = strdup(tmp);
 	sd_bus_message_unref(reply);
 
 	/* main loop */
@@ -228,6 +229,7 @@ int main(int argc, char ** argv) {
 	ret = EXIT_SUCCESS;
 
 fail:
+	free(path);
 	sd_bus_flush_close_unref(bus);
 
 	sd_notify(0, "STATUS=Stopped. Bye!");
