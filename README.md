@@ -147,7 +147,7 @@ specific interface only.
 
 For details on the services you can query each:
 
-    resolvectl service --legend='false' --interface='interface' 'pacserve on host._pacserve._tcp.local'
+    resolvectl service --legend='false' --service-txt='true' --interface='interface' 'pacserve on host._pacserve._tcp.local'
 
 ![resolvectl service](README.d/resolvectl-service.png)
 
