@@ -77,7 +77,7 @@ static int prepare_message(sd_bus_message *message, uint16_t port) {
 		sd_bus_error_free(&error);
 		return r;
 	}
-	r = sd_bus_message_append_array(message, 'y', ID, sizeof(ID));
+	r = sd_bus_message_append_array(message, 'y', ID, sizeof(ID) - 1);
 	if (r < 0) {
 		fprintf(stderr, "Failed to append array to bus message: %s (%s)\n", error.message, strerror(errno));
 		sd_bus_error_free(&error);
@@ -103,7 +103,7 @@ static int prepare_message(sd_bus_message *message, uint16_t port) {
 		sd_bus_error_free(&error);
 		return r;
 	}
-	r = sd_bus_message_append_array(message, 'y', ARCH, sizeof(ARCH));
+	r = sd_bus_message_append_array(message, 'y', ARCH, sizeof(ARCH) - 1);
 	if (r < 0) {
 		fprintf(stderr, "Failed to append array to bus message: %s (%s)\n", error.message, strerror(errno));
 		sd_bus_error_free(&error);
