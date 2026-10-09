@@ -841,10 +841,11 @@ static char * status_page(void) {
 	while (interfaces_ptr->interface != NULL) {
 		if (interfaces_ptr->ifindex > 0)
 			page = append_string(page, STATUS_INT_ONE,
-				interfaces_ptr->interface, interfaces_ptr->ifindex);
+				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no",
+				interfaces_ptr->ifindex);
 		else
 			page = append_string(page, STATUS_INT_ONE_NA,
-				interfaces_ptr->interface);
+				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no");
 
 		interfaces_ptr = interfaces_ptr->next;
 	}
@@ -1026,15 +1027,17 @@ static void dump_state(void) {
 	/* initialize struct timeval */
 	gettimeofday(&tv, NULL);
 
-	write_log(1, LOG_INFO, "Ignored interfaces:");
+	write_log(1, LOG_INFO, "Interfaces:");
 	if (interfaces_ptr->interface == NULL)
 		write_log(1, LOG_INFO, " (none)");
 	while (interfaces_ptr->interface != NULL) {
 		if (interfaces_ptr->ifindex > 0)
-			write_log(1, LOG_INFO, " -> %s (link %d)",
-				interfaces_ptr->interface,  interfaces_ptr->ifindex);
+			write_log(1, LOG_INFO, " -> %s (ignore: %s, link: %d)",
+				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no",
+				interfaces_ptr->ifindex);
 		else
-			write_log(1, LOG_INFO, " -> %s (N/A)", interfaces_ptr->interface);
+			write_log(1, LOG_INFO, " -> %s (ignore: %s, N/A)",
+				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no");
 
 		interfaces_ptr = interfaces_ptr->next;
 	}
