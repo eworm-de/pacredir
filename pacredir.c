@@ -1173,11 +1173,11 @@ int main(int argc, char ** argv) {
 		int ini_verbose;
 
 		/* extra verbosity from config */
-		ini_verbose = iniparser_getint(ini, "general:verbose", 0);
+		ini_verbose = iniparser_getint(ini, ":verbose", 0);
 		verbose += ini_verbose;
 
 		/* store interfaces to ignore */
-		if ((inistring = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
+		if ((inistring = iniparser_getstring(ini, ":ignore interfaces", NULL)) != NULL) {
 			values = strdup(inistring);
 			interfaces_ptr = interfaces;
 
@@ -1191,7 +1191,7 @@ int main(int argc, char ** argv) {
 		}
 
 		/* add static pacserve hosts */
-		if ((inistring = iniparser_getstring(ini, "general:pacserve hosts", NULL)) != NULL) {
+		if ((inistring = iniparser_getstring(ini, ":pacserve hosts", NULL)) != NULL) {
 			values = strdup(inistring);
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
