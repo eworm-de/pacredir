@@ -30,7 +30,7 @@ const static struct option options_long[] = {
 
 /* global variables */
 struct hosts * hosts = NULL;
-struct ignore_interfaces * ignore_interfaces = NULL;
+struct interfaces * interfaces = NULL;
 uint8_t quit = 0, systemd = 0, update = 0, verbose = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
@@ -100,11 +100,11 @@ static char * get_url(const char * hostname, const uint16_t port, const uint8_t 
 
 /*** update_interfaces ***/
 static void update_interfaces(void) {
-	struct ignore_interfaces *ignore_interfaces_ptr = ignore_interfaces;
+	struct interfaces *interfaces_ptr = interfaces;
 
-	while (ignore_interfaces_ptr->interface != NULL) {
-		ignore_interfaces_ptr->ifindex = if_nametoindex(ignore_interfaces_ptr->interface);
-		ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+	while (interfaces_ptr->interface != NULL) {
+		interfaces_ptr->ifindex = if_nametoindex(interfaces_ptr->interface);
+		interfaces_ptr = interfaces_ptr->next;
 	}
 }
 
@@ -205,7 +205,7 @@ static void update_hosts(void) {
 
 	for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
 		struct ifreq ifr;
-		struct ignore_interfaces *ignore_interfaces_ptr = ignore_interfaces;
+		struct interfaces *interfaces_ptr = interfaces;
 		uint8_t ignore = 0;
 
 		memset(&ifr, 0, sizeof(struct ifreq));
@@ -226,13 +226,13 @@ static void update_hosts(void) {
 		if ((ifr.ifr_flags & IFF_RUNNING) == 0)
 			continue;
 
-		while (ignore_interfaces_ptr->interface != NULL) {
-			if (ignore_interfaces_ptr->ifindex == intf->if_index) {
+		while (interfaces_ptr->interface != NULL) {
+			if (interfaces_ptr->ifindex == intf->if_index) {
 				ignore++;
 				break;
 			}
 
-			ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+			interfaces_ptr = interfaces_ptr->next;
 		}
 
 		if (!ignore)
@@ -524,15 +524,15 @@ update:
 
 /*** add_interface ***/
 static int add_interface(const char * interface) {
-	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces, * previous = NULL;
+	struct interfaces * interfaces_ptr = interfaces, * previous = NULL;
 
-	while (ignore_interfaces_ptr->interface != NULL) {
-		int cmp = strcmp(ignore_interfaces_ptr->interface, interface);
+	while (interfaces_ptr->interface != NULL) {
+		int cmp = strcmp(interfaces_ptr->interface, interface);
 
 		/* skip to next */
 		if (cmp < 0) {
-			previous = ignore_interfaces_ptr;
-			ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+			previous = interfaces_ptr;
+			interfaces_ptr = interfaces_ptr->next;
 			continue;
 		}
 
@@ -542,34 +542,34 @@ static int add_interface(const char * interface) {
 
 		/* insert before, or first */
 		if (cmp > 0) {
-			struct ignore_interfaces * new = malloc(sizeof(struct ignore_interfaces));
-			new->next = ignore_interfaces_ptr;
+			struct interfaces * new = malloc(sizeof(struct interfaces));
+			new->next = interfaces_ptr;
 
 			/* first! */
-			if (ignore_interfaces_ptr == ignore_interfaces) {
-				ignore_interfaces_ptr = ignore_interfaces = new;
+			if (interfaces_ptr == interfaces) {
+				interfaces_ptr = interfaces = new;
 				goto new;
 			}
 
 			/* before, but not first */
-			ignore_interfaces_ptr = previous->next = new;
+			interfaces_ptr = previous->next = new;
 			goto new;
 		}
 	}
 
 	/* append at the end */
-	ignore_interfaces_ptr->next = malloc(sizeof(struct ignore_interfaces));
-	ignore_interfaces_ptr->next->interface = NULL;
-	ignore_interfaces_ptr->next->next = NULL;
+	interfaces_ptr->next = malloc(sizeof(struct interfaces));
+	interfaces_ptr->next->interface = NULL;
+	interfaces_ptr->next->next = NULL;
 
 new:
 	/* interface not found, adding a new one */
 	write_log(verbose, LOG_INFO, "Adding ignored interface %s", interface);
 
-	ignore_interfaces_ptr->interface = strdup(interface);
+	interfaces_ptr->interface = strdup(interface);
 
 update:
-	ignore_interfaces_ptr->ifindex = if_nametoindex(interface);
+	interfaces_ptr->ifindex = if_nametoindex(interface);
 
 	return EXIT_SUCCESS;
 }
@@ -817,7 +817,7 @@ static char * append_string(char * string, const char *format, ...) {
 
 /*** status_page ***/
 static char * status_page(void) {
-	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
+	struct interfaces * interfaces_ptr = interfaces;
 	struct hosts * hosts_ptr = hosts;
 	char *page = NULL, *overall = CIRCLE_BLUE;
 	char hostname[HOST_NAME_MAX];
@@ -846,17 +846,17 @@ static char * status_page(void) {
 	page = append_string(page, STATUS_HEAD, hostname, count_redirect, count_not_found, overall);
 
 	page = append_string(page, STATUS_INT_HEAD);
-	if (ignore_interfaces_ptr->interface == NULL)
+	if (interfaces_ptr->interface == NULL)
 		page = append_string(page, STATUS_INT_NONE);
-	while (ignore_interfaces_ptr->interface != NULL) {
-		if (ignore_interfaces_ptr->ifindex > 0)
+	while (interfaces_ptr->interface != NULL) {
+		if (interfaces_ptr->ifindex > 0)
 			page = append_string(page, STATUS_INT_ONE,
-				ignore_interfaces_ptr->interface, ignore_interfaces_ptr->ifindex);
+				interfaces_ptr->interface, interfaces_ptr->ifindex);
 		else
 			page = append_string(page, STATUS_INT_ONE_NA,
-				ignore_interfaces_ptr->interface);
+				interfaces_ptr->interface);
 
-		ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+		interfaces_ptr = interfaces_ptr->next;
 	}
 	page = append_string(page, STATUS_INT_FOOT);
 
@@ -1029,7 +1029,7 @@ response:
 
 /*** dump_state ***/
 static void dump_state(void) {
-	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
+	struct interfaces * interfaces_ptr = interfaces;
 	struct hosts * hosts_ptr = hosts;
 	struct timeval tv;
 
@@ -1037,16 +1037,16 @@ static void dump_state(void) {
 	gettimeofday(&tv, NULL);
 
 	write_log(1, LOG_INFO, "Ignored interfaces:");
-	if (ignore_interfaces_ptr->interface == NULL)
+	if (interfaces_ptr->interface == NULL)
 		write_log(1, LOG_INFO, " (none)");
-	while (ignore_interfaces_ptr->interface != NULL) {
-		if (ignore_interfaces_ptr->ifindex > 0)
+	while (interfaces_ptr->interface != NULL) {
+		if (interfaces_ptr->ifindex > 0)
 			write_log(1, LOG_INFO, " -> %s (link %d)",
-				ignore_interfaces_ptr->interface,  ignore_interfaces_ptr->ifindex);
+				interfaces_ptr->interface,  interfaces_ptr->ifindex);
 		else
-			write_log(1, LOG_INFO, " -> %s (N/A)", ignore_interfaces_ptr->interface);
+			write_log(1, LOG_INFO, " -> %s (N/A)", interfaces_ptr->interface);
 
-		ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+		interfaces_ptr = interfaces_ptr->next;
 	}
 
 	write_log(1, LOG_INFO, "Known hosts:");
@@ -1104,7 +1104,7 @@ int main(int argc, char ** argv) {
 	const char * inistring;
 	char * values, * value;
 	uint16_t port;
-	struct ignore_interfaces * ignore_interfaces_ptr;
+	struct interfaces * interfaces_ptr;
 	int i, ret = 1, sleepsec = 0;
 	struct MHD_Daemon * mhd;
 	struct hosts * hosts_ptr;
@@ -1155,10 +1155,10 @@ int main(int argc, char ** argv) {
 	hosts->badtime = 0;
 	hosts->next = NULL;
 
-	ignore_interfaces = malloc(sizeof(struct ignore_interfaces));
-	ignore_interfaces->interface = NULL;
-	ignore_interfaces->ifindex = 0;
-	ignore_interfaces->next = NULL;
+	interfaces = malloc(sizeof(struct interfaces));
+	interfaces->interface = NULL;
+	interfaces->ifindex = 0;
+	interfaces->next = NULL;
 
 	/* Probing for static pacserve hosts takes some time.
 	 * Receiving a SIGHUP at this time could kill us. So register signal
@@ -1181,7 +1181,7 @@ int main(int argc, char ** argv) {
 		/* store interfaces to ignore */
 		if ((inistring = iniparser_getstring(ini, "general:ignore interfaces", NULL)) != NULL) {
 			values = strdup(inistring);
-			ignore_interfaces_ptr = ignore_interfaces;
+			interfaces_ptr = interfaces;
 
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
@@ -1281,13 +1281,13 @@ fail:
 	}
 	free(hosts);
 
-	while (ignore_interfaces->interface != NULL) {
-		free(ignore_interfaces->interface);
-		ignore_interfaces_ptr = ignore_interfaces->next;
-		free(ignore_interfaces);
-		ignore_interfaces = ignore_interfaces_ptr;
+	while (interfaces->interface != NULL) {
+		free(interfaces->interface);
+		interfaces_ptr = interfaces->next;
+		free(interfaces);
+		interfaces = interfaces_ptr;
 	}
-	free(ignore_interfaces);
+	free(interfaces);
 
 	sd_notify(0, "STATUS=Stopped. Bye!");
 

@@ -98,13 +98,13 @@ struct hosts {
 };
 
 /* ignore interfaces */
-struct ignore_interfaces {
+struct interfaces {
 	/* interface name */
 	char * interface;
 	/* interface index */
 	unsigned int ifindex;
 	/* pointer to next struct element */
-	struct ignore_interfaces * next;
+	struct interfaces * next;
 };
 
 /* request */
