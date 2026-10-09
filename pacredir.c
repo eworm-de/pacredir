@@ -522,6 +522,58 @@ update:
 	return EXIT_SUCCESS;
 }
 
+/*** add_interface ***/
+static int add_interface(const char * interface) {
+	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces, * previous = NULL;
+
+	while (ignore_interfaces_ptr->interface != NULL) {
+		int cmp = strcmp(ignore_interfaces_ptr->interface, interface);
+
+		/* skip to next */
+		if (cmp < 0) {
+			previous = ignore_interfaces_ptr;
+			ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+			continue;
+		}
+
+		/* interface already exists */
+		if (cmp == 0)
+			goto update;
+
+		/* insert before, or first */
+		if (cmp > 0) {
+			struct ignore_interfaces * new = malloc(sizeof(struct ignore_interfaces));
+			new->next = ignore_interfaces_ptr;
+
+			/* first! */
+			if (ignore_interfaces_ptr == ignore_interfaces) {
+				ignore_interfaces_ptr = ignore_interfaces = new;
+				goto new;
+			}
+
+			/* before, but not first */
+			ignore_interfaces_ptr = previous->next = new;
+			goto new;
+		}
+	}
+
+	/* append at the end */
+	ignore_interfaces_ptr->next = malloc(sizeof(struct ignore_interfaces));
+	ignore_interfaces_ptr->next->interface = NULL;
+	ignore_interfaces_ptr->next->next = NULL;
+
+new:
+	/* interface not found, adding a new one */
+	write_log(verbose, LOG_INFO, "Adding ignored interface %s", interface);
+
+	ignore_interfaces_ptr->interface = strdup(interface);
+
+update:
+	ignore_interfaces_ptr->ifindex = if_nametoindex(interface);
+
+	return EXIT_SUCCESS;
+}
+
 /*** find_best_redirect ***/
 static struct request * find_best_redirect(const char * basename, uint8_t dbfile, time_t last_modified) {
 	struct hosts * hosts_ptr = hosts;
@@ -1134,13 +1186,9 @@ int main(int argc, char ** argv) {
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				write_log(verbose, LOG_INFO, "Ignoring interface: %s", value);
-				ignore_interfaces_ptr->interface = strdup(value);
-				ignore_interfaces_ptr->next = malloc(sizeof(struct ignore_interfaces));
-				ignore_interfaces_ptr = ignore_interfaces_ptr->next;
+				add_interface(value);
 				value = strtok(NULL, DELIMITER);
 			}
-			ignore_interfaces_ptr->interface = NULL;
-			ignore_interfaces_ptr->next = NULL;
 			free(values);
 		}
 
