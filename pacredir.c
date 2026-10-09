@@ -205,6 +205,7 @@ static void update_hosts(void) {
 
 	for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
 		struct ifreq ifr;
+		uint8_t up, running, ignore;
 
 		memset(&ifr, 0, sizeof(struct ifreq));
 		strncpy(ifr.ifr_name, intf->if_name, IFNAMSIZ);
@@ -215,16 +216,14 @@ static void update_hosts(void) {
 			continue;
 		}
 
-		if ((ifr.ifr_flags & IFF_UP) == 0)
-			continue;
-
 		if ((ifr.ifr_flags & IFF_LOOPBACK) > 0)
 			continue;
 
-		if ((ifr.ifr_flags & IFF_RUNNING) == 0)
-			continue;
+		up = ifr.ifr_flags & IFF_UP;
+		running = ifr.ifr_flags & IFF_RUNNING;
+		ignore = add_interface(intf->if_name, up, running, 0);
 
-		if (add_interface(intf->if_name, 0) == 0)
+		if (up && running && !ignore)
 			update_hosts_on_interface(bus, intf->if_index, intf->if_name);
 
 		if (quit)
@@ -512,7 +511,7 @@ update:
 }
 
 /*** add_interface ***/
-static int add_interface(const char * interface, const uint8_t ignore) {
+static int add_interface(const char * interface, const uint8_t up, const uint8_t running, const uint8_t ignore) {
 	struct interfaces * interfaces_ptr = interfaces, * previous = NULL;
 
 	while (interfaces_ptr->interface != NULL) {
@@ -560,6 +559,8 @@ new:
 
 update:
 	interfaces_ptr->ifindex = if_nametoindex(interface);
+	interfaces_ptr->up = up;
+	interfaces_ptr->running = running;
 
 	return interfaces_ptr->ignore;
 }
@@ -1179,7 +1180,7 @@ int main(int argc, char ** argv) {
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				write_log(verbose, LOG_INFO, "Ignoring interface: %s", value);
-				add_interface(value, 1);
+				add_interface(value, 0, 0, 1);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);

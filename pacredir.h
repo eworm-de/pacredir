@@ -103,6 +103,10 @@ struct interfaces {
 	char * interface;
 	/* interface index */
 	unsigned int ifindex;
+	/* administrative state */
+	uint8_t up;
+	/* operational state */
+	uint8_t running;
 	/* ignore */
 	uint8_t ignore;
 	/* pointer to next struct element */
@@ -146,7 +150,7 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, 
 /* add_host */
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns);
 /* add_interface */
-static int add_interface(const char * interface, const uint8_t ignore);
+static int add_interface(const char * interface, const uint8_t up, const uint8_t running, const uint8_t ignore);
 
 /* find_best_redirect */
 static struct request * find_best_redirect(const char * basename, uint8_t dbfile, time_t last_modified);
