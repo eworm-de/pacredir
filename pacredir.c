@@ -205,8 +205,6 @@ static void update_hosts(void) {
 
 	for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
 		struct ifreq ifr;
-		struct interfaces *interfaces_ptr = interfaces;
-		uint8_t ignore = 0;
 
 		memset(&ifr, 0, sizeof(struct ifreq));
 		strncpy(ifr.ifr_name, intf->if_name, IFNAMSIZ);
@@ -226,16 +224,7 @@ static void update_hosts(void) {
 		if ((ifr.ifr_flags & IFF_RUNNING) == 0)
 			continue;
 
-		while (interfaces_ptr->interface != NULL) {
-			if (interfaces_ptr->ifindex == intf->if_index) {
-				ignore++;
-				break;
-			}
-
-			interfaces_ptr = interfaces_ptr->next;
-		}
-
-		if (!ignore)
+		if (add_interface(intf->if_name, 0) == 0)
 			update_hosts_on_interface(bus, intf->if_index, intf->if_name);
 
 		if (quit)
@@ -572,7 +561,7 @@ new:
 update:
 	interfaces_ptr->ifindex = if_nametoindex(interface);
 
-	return EXIT_SUCCESS;
+	return interfaces_ptr->ignore;
 }
 
 /*** find_best_redirect ***/
