@@ -135,8 +135,6 @@ struct request {
 static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
 /* get_url */
 static char * get_url(const char * hostname, const uint16_t port, const uint8_t dbfile, const char * uri);
-/* update_interfaces */
-static void update_interfaces(void);
 
 /* get_name */
 static size_t get_name(const uint8_t* rr_ptr, char* name);

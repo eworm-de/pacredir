@@ -98,16 +98,6 @@ static char * get_url(const char * hostname, const uint16_t port, const uint8_t 
 	return url;
 }
 
-/*** update_interfaces ***/
-static void update_interfaces(void) {
-	struct interfaces *interfaces_ptr = interfaces;
-
-	while (interfaces_ptr->interface != NULL) {
-		interfaces_ptr->ifindex = if_nametoindex(interfaces_ptr->interface);
-		interfaces_ptr = interfaces_ptr->next;
-	}
-}
-
 /*** get_name ***/
 static size_t get_name(const uint8_t* rr_ptr, char* name) {
 	uint8_t dot = 0;
@@ -1251,7 +1241,6 @@ int main(int argc, char ** argv) {
 		if (sleepsec > 0 && update == 0)
 			continue;
 
-		update_interfaces();
 		update_hosts();
 		update = 0;
 		sleepsec = 60;
