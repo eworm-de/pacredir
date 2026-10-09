@@ -160,6 +160,8 @@ static enum MHD_Result ahc_echo(void * cls,
 		size_t * upload_data_size,
 		void ** ptr);
 
+/* dump state */
+static void dump_state(void);
 /* sig_callback */
 static void sig_callback(int signal);
 /* sighup_callback */

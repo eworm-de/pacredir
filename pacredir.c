@@ -762,6 +762,7 @@ static char * append_string(char * string, const char *format, ...) {
 
 	return string;
 }
+
 /*** status_page ***/
 static char * status_page(void) {
 	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
@@ -974,39 +975,14 @@ response:
 	return ret;
 }
 
-/*** sig_callback ***/
-static void sig_callback(int signal) {
-	write_log(1, LOG_NOTICE, "Received signal '%s', quitting.", strsignal(signal));
-
-	quit++;
-}
-
-/*** sighup_callback ***/
-static void sighup_callback(int signal) {
-	struct hosts * hosts_ptr = hosts;
-
-	write_log(1, LOG_NOTICE, "Received signal '%s', resetting bad counts, updating interfaces and hosts.",
-		strsignal(signal));
-
-	while (hosts_ptr->host != NULL) {
-		hosts_ptr->badtime = 0;
-		hosts_ptr->badcount = 0;
-		hosts_ptr = hosts_ptr->next;
-	}
-
-	update++;
-}
-
-/*** sigusr_callback ***/
-static void sigusr_callback(int signal) {
+/*** dump_state ***/
+static void dump_state(void) {
 	struct ignore_interfaces * ignore_interfaces_ptr = ignore_interfaces;
 	struct hosts * hosts_ptr = hosts;
 	struct timeval tv;
 
 	/* initialize struct timeval */
 	gettimeofday(&tv, NULL);
-
-	write_log(1, LOG_NOTICE, "Received signal '%s', dumping state.", strsignal(signal));
 
 	write_log(1, LOG_INFO, "Ignored interfaces:");
 	if (ignore_interfaces_ptr->interface == NULL)
@@ -1038,6 +1014,36 @@ static void sigusr_callback(int signal) {
 
 	write_log(1, LOG_NOTICE, "%d redirects, %d not found.",
 		count_redirect, count_not_found);
+}
+
+/*** sig_callback ***/
+static void sig_callback(int signal) {
+	write_log(1, LOG_NOTICE, "Received signal '%s', quitting.", strsignal(signal));
+
+	quit++;
+}
+
+/*** sighup_callback ***/
+static void sighup_callback(int signal) {
+	struct hosts * hosts_ptr = hosts;
+
+	write_log(1, LOG_NOTICE, "Received signal '%s', resetting bad counts, updating interfaces and hosts.",
+		strsignal(signal));
+
+	while (hosts_ptr->host != NULL) {
+		hosts_ptr->badtime = 0;
+		hosts_ptr->badcount = 0;
+		hosts_ptr = hosts_ptr->next;
+	}
+
+	update++;
+}
+
+/*** sigusr_callback ***/
+static void sigusr_callback(int signal) {
+	write_log(1, LOG_NOTICE, "Received signal '%s', dumping state.", strsignal(signal));
+
+	dump_state();
 }
 
 /*** main ***/
