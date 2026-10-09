@@ -523,7 +523,7 @@ update:
 }
 
 /*** add_interface ***/
-static int add_interface(const char * interface) {
+static int add_interface(const char * interface, const uint8_t ignore) {
 	struct interfaces * interfaces_ptr = interfaces, * previous = NULL;
 
 	while (interfaces_ptr->interface != NULL) {
@@ -564,9 +564,10 @@ static int add_interface(const char * interface) {
 
 new:
 	/* interface not found, adding a new one */
-	write_log(verbose, LOG_INFO, "Adding ignored interface %s", interface);
+	write_log(verbose, LOG_INFO, "Adding interface %s", interface);
 
 	interfaces_ptr->interface = strdup(interface);
+	interfaces_ptr->ignore = ignore;
 
 update:
 	interfaces_ptr->ifindex = if_nametoindex(interface);
@@ -1186,7 +1187,7 @@ int main(int argc, char ** argv) {
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				write_log(verbose, LOG_INFO, "Ignoring interface: %s", value);
-				add_interface(value);
+				add_interface(value, 1);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
