@@ -34,6 +34,7 @@
 #define CIRCLE_ORANGE	"&#x1F7E0;"
 #define CIRCLE_RED	"&#x1F534;"
 #define CIRCLE_BLUE	"&#x1F535;"
+#define CIRCLE_PURPLE	"&#x1F7E3;"
 
 #define STATUS_HEAD \
 	"<!DOCTYPE html><html lang=\"en\">" \
@@ -57,23 +58,22 @@
 	"<h2 id=\"interfaces\"><a href=\"#interfaces\">Interfaces</a></h2>" \
 	"<table><tr>" \
 	"<th>interface</th>" \
-	"<th>ignore</th>" \
-	"<th>state</th>" \
+	"<th colspan=2>ignore</th>" \
+	"<th colspan=2>state</th>" \
 	"<th>link</th></tr>"
 #define STATUS_INT_ONE \
 	"<tr class=\"%s\">" \
 	"<td>%s</td>" \
-	"<td>%s</td>" \
-	"<td>%s</td>" \
+	"<td>%s</td><td>%s</td>" \
+	"<td>%s</td><td>%s</td>" \
 	"<td>%d</td></tr>"
 #define STATUS_INT_ONE_NA \
 	"<tr class=\"offline\">" \
 	"<td>%s</td>" \
-	"<td>%s</td>" \
-	"<td>%s</td>" \
-	"<td>-</td></tr>"
+	"<td>%s</td><td>%s</td>" \
+	"<td>" CIRCLE_BLUE "</td><td colspan=2>not available</td></tr>"
 #define STATUS_INT_NONE \
-	"<tr class=\"none\"><td colspan=4>(none)</td></tr>"
+	"<tr class=\"none\"><td colspan=6>(none)</td></tr>"
 #define STATUS_INT_FOOT \
 	"</table>"
 

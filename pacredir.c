@@ -836,12 +836,15 @@ static char * status_page(void) {
 		const char * state = (interfaces_ptr->up ? (interfaces_ptr->running ? "running" : "up") : "down");
 
 		if (interfaces_ptr->ifindex > 0)
-			page = append_string(page, STATUS_INT_ONE, not_avail ? "offline" : "online",
-				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state,
-				interfaces_ptr->ifindex);
+			page = append_string(page, STATUS_INT_ONE,
+				not_avail ? "offline" : "online", interfaces_ptr->interface,
+				interfaces_ptr->ignore ? CIRCLE_PURPLE : CIRCLE_GREEN, interfaces_ptr->ignore ? "yes" : "no",
+				interfaces_ptr->up ? (interfaces_ptr->running ? CIRCLE_GREEN : CIRCLE_ORANGE) : CIRCLE_RED,
+				state, interfaces_ptr->ifindex);
 		else
 			page = append_string(page, STATUS_INT_ONE_NA,
-				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state);
+				interfaces_ptr->interface,
+				interfaces_ptr->ignore ? CIRCLE_PURPLE : CIRCLE_GREEN, interfaces_ptr->ignore ? "yes" : "no");
 
 		interfaces_ptr = interfaces_ptr->next;
 	}
