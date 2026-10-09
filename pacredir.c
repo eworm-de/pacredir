@@ -840,13 +840,15 @@ static char * status_page(void) {
 	if (interfaces_ptr->interface == NULL)
 		page = append_string(page, STATUS_INT_NONE);
 	while (interfaces_ptr->interface != NULL) {
+		const char * state = (interfaces_ptr->up ? (interfaces_ptr->running ? "running" : "up") : "down");
+
 		if (interfaces_ptr->ifindex > 0)
 			page = append_string(page, STATUS_INT_ONE,
-				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no",
+				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state,
 				interfaces_ptr->ifindex);
 		else
 			page = append_string(page, STATUS_INT_ONE_NA,
-				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no");
+				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state);
 
 		interfaces_ptr = interfaces_ptr->next;
 	}
@@ -1032,13 +1034,15 @@ static void dump_state(void) {
 	if (interfaces_ptr->interface == NULL)
 		write_log(1, LOG_INFO, " (none)");
 	while (interfaces_ptr->interface != NULL) {
+		const char * state = (interfaces_ptr->up ? (interfaces_ptr->running ? "running" : "up") : "down");
+
 		if (interfaces_ptr->ifindex > 0)
-			write_log(1, LOG_INFO, " -> %s (ignore: %s, link: %d)",
-				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no",
+			write_log(1, LOG_INFO, " -> %s (ignore: %s, state: %s, link: %d)",
+				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state,
 				interfaces_ptr->ifindex);
 		else
-			write_log(1, LOG_INFO, " -> %s (ignore: %s, N/A)",
-				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no");
+			write_log(1, LOG_INFO, " -> %s (ignore: %s, state: %s, N/A)",
+				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state);
 
 		interfaces_ptr = interfaces_ptr->next;
 	}

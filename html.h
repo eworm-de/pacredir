@@ -55,13 +55,13 @@
 
 #define STATUS_INT_HEAD \
 	"<h2 id=\"interfaces\"><a href=\"#interfaces\">Interfaces</a></h2>" \
-	"<table><tr><th>interface</th><th>ignore</th><th>link</th></tr>"
+	"<table><tr><th>interface</th><th>ignore</th><th>state</th><th>link</th></tr>"
 #define STATUS_INT_ONE \
-	"<tr class=\"online\"><td>%s</td><td>%s</td><td>%d</td></tr>"
+	"<tr class=\"online\"><td>%s</td><td>%s</td><td>%s</td><td>%d</td></tr>"
 #define STATUS_INT_ONE_NA \
-	"<tr class=\"offline\"><td>%s</td><td>%s</td><td>-</td></tr>"
+	"<tr class=\"offline\"><td>%s</td><td>%s</td><td>%s</td><td>-</td></tr>"
 #define STATUS_INT_NONE \
-	"<tr class=\"none\"><td colspan=3>(none)</td></tr>"
+	"<tr class=\"none\"><td colspan=4>(none)</td></tr>"
 #define STATUS_INT_FOOT \
 	"</table>"
 
