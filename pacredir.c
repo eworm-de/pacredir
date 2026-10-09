@@ -832,10 +832,11 @@ static char * status_page(void) {
 	while (interfaces_ptr->interface != NULL) {
 		interfaces_ptr->ifindex = if_nametoindex(interfaces_ptr->interface);
 
+		uint8_t not_avail = !interfaces_ptr->up || !interfaces_ptr->running || interfaces_ptr->ignore;
 		const char * state = (interfaces_ptr->up ? (interfaces_ptr->running ? "running" : "up") : "down");
 
 		if (interfaces_ptr->ifindex > 0)
-			page = append_string(page, STATUS_INT_ONE,
+			page = append_string(page, STATUS_INT_ONE, not_avail ? "offline" : "online",
 				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state,
 				interfaces_ptr->ifindex);
 		else
@@ -1028,15 +1029,17 @@ static void dump_state(void) {
 	while (interfaces_ptr->interface != NULL) {
 		interfaces_ptr->ifindex = if_nametoindex(interfaces_ptr->interface);
 
+		uint8_t not_avail = !interfaces_ptr->up || !interfaces_ptr->running || interfaces_ptr->ignore;
 		const char * state = (interfaces_ptr->up ? (interfaces_ptr->running ? "running" : "up") : "down");
 
 		if (interfaces_ptr->ifindex > 0)
-			write_log(1, LOG_INFO, " -> %s (ignore: %s, state: %s, link: %d)",
-				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state,
-				interfaces_ptr->ifindex);
+			write_log(1, LOG_INFO, " -> %s%s%s (ignore: %s, state: %s, link: %d)",
+				not_avail ? "[" : "", interfaces_ptr->interface, not_avail ? "]" : "",
+				interfaces_ptr->ignore ? "yes" : "no", state, interfaces_ptr->ifindex);
 		else
-			write_log(1, LOG_INFO, " -> %s (ignore: %s, state: %s, N/A)",
-				interfaces_ptr->interface, interfaces_ptr->ignore ? "yes" : "no", state);
+			write_log(1, LOG_INFO, " -> %s%s%s (ignore: %s, state: %s, N/A)",
+				not_avail ? "[" : "", interfaces_ptr->interface, not_avail ? "]" : "",
+				interfaces_ptr->ignore ? "yes" : "no", state);
 
 		interfaces_ptr = interfaces_ptr->next;
 	}
