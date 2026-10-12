@@ -150,6 +150,7 @@ static void update_hosts(void) {
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *reply = NULL;
 	sd_bus *bus = NULL;
+	uint8_t found = 1;
 	int r, sock;
 
 	/* set 'present' to 0, so we later know which hosts were available, and which were not */
@@ -174,7 +175,7 @@ static void update_hosts(void) {
 			"Failed to trigger caching record: %s (%s)",
 			error.message, strerror(errno));
 		sd_bus_error_free(&error);
-		goto finish;
+		found = 0;
 	}
 
 	/* On empty cache systemd-resolved returns just one record on first query,
@@ -213,7 +214,7 @@ static void update_hosts(void) {
 		running = ifr.ifr_flags & IFF_RUNNING;
 		ignore = add_interface(intf->if_name, up, running, 0);
 
-		if (up && running && !ignore)
+		if (found && up && running && !ignore)
 			update_hosts_on_interface(bus, intf->if_index, intf->if_name);
 
 		if (quit)
