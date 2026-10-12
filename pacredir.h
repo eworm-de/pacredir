@@ -142,6 +142,8 @@ static void update_hosts(void);
 static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, const char *if_name);
 /* add_host */
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns);
+/* reset_hosts */
+static void reset_hosts(void);
 
 /* from pacredir-interfaces.c */
 /* add_interface */

@@ -390,3 +390,14 @@ update:
 
 	return EXIT_SUCCESS;
 }
+
+/*** reset_hosts ***/
+static void reset_hosts(void) {
+	struct hosts * hosts_ptr = hosts;
+
+	while (hosts_ptr->host != NULL) {
+		hosts_ptr->badtime = 0;
+		hosts_ptr->badcount = 0;
+		hosts_ptr = hosts_ptr->next;
+	}
+}

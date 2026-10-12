@@ -143,17 +143,10 @@ static void sig_callback(int signal) {
 
 /*** sighup_callback ***/
 static void sighup_callback(int signal) {
-	struct hosts * hosts_ptr = hosts;
-
 	write_log(1, LOG_NOTICE, "Received signal '%s', resetting bad counts, updating interfaces and hosts.",
 		strsignal(signal));
 
-	while (hosts_ptr->host != NULL) {
-		hosts_ptr->badtime = 0;
-		hosts_ptr->badcount = 0;
-		hosts_ptr = hosts_ptr->next;
-	}
-
+	reset_hosts();
 	update++;
 }
 
