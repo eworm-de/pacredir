@@ -37,7 +37,7 @@ HTML		= $(MARKDOWN:.md=.html)
 
 all: pacredir $(HELPERS) $(HTML)
 
-pacredir: pacredir.c pacredir.h config.h favicon.h html.h style.h version.h
+pacredir: pacredir.c pacredir-hosts.c pacredir.h config.h favicon.h html.h style.h version.h
 	$(CC) $< $(CFLAGS) $(CFLAGS_EXTRA) $(LDFLAGS) -o $@
 
 pacserve-announce: pacserve-announce.c pacserve-announce.h config.h version.h

@@ -131,11 +131,7 @@ struct request {
 	char errbuf[CURL_ERROR_SIZE];
 };
 
-/* write_log */
-static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
-/* get_url */
-static char * get_url(const char * hostname, const uint16_t port, const uint8_t dbfile, const char * uri);
-
+/* from pacredir-hosts.c */
 /* get_name */
 static size_t get_name(const uint8_t* rr_ptr, char* name);
 /* process_reply_record */
@@ -144,9 +140,14 @@ static char* process_reply_record(const void *rr, size_t sz);
 static void update_hosts(void);
 /* update_hosts_on_interface */
 static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, const char *if_name);
-
 /* add_host */
 static int add_host(const char * host, const uint16_t port, const uint8_t mdns);
+
+/* write_log */
+static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
+/* get_url */
+static char * get_url(const char * hostname, const uint16_t port, const uint8_t dbfile, const char * uri);
+
 /* add_interface */
 static int add_interface(const char * interface, const uint8_t up, const uint8_t running, const uint8_t ignore);
 /* update_interfaces */
