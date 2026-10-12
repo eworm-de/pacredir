@@ -149,13 +149,15 @@ static int add_interface(const char * interface, const uint8_t up, const uint8_t
 /* update_interfaces */
 static void update_interfaces(void);
 
-/* write_log */
-static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
+/* from pacredir-request.c */
 /* get_url */
 static char * get_url(const char * hostname, const uint16_t port, const uint8_t dbfile, const char * uri);
-
 /* find_best_redirect */
 static struct request * find_best_redirect(const char * basename, uint8_t dbfile, time_t last_modified);
+
+/* write_log */
+static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
+
 /* append_string */
 static char * append_string(char * string, const char *format, ...);
 /* status_page */
