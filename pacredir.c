@@ -145,13 +145,12 @@ static char* process_reply_record(const void *rr, size_t sz) {
 
 /*** update_hosts ***/
 static void update_hosts(void) {
-	struct if_nameindex *if_nidxs, *intf;
 	struct hosts *hosts_ptr = hosts;
+	struct interfaces *interfaces_ptr = interfaces;
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message *reply = NULL;
 	sd_bus *bus = NULL;
-	uint8_t found = 1;
-	int r, sock;
+	int r;
 
 	/* set 'present' to 0, so we later know which hosts were available, and which were not */
 	while (hosts_ptr->host != NULL) {
@@ -175,7 +174,7 @@ static void update_hosts(void) {
 			"Failed to trigger caching record: %s (%s)",
 			error.message, strerror(errno));
 		sd_bus_error_free(&error);
-		found = 0;
+		goto finish;
 	}
 
 	/* On empty cache systemd-resolved returns just one record on first query,
@@ -184,45 +183,15 @@ static void update_hosts(void) {
 	   TODO: Drop when continuous mDNS querying becomes available! */
 	usleep(250000);
 
-	if ((if_nidxs = if_nameindex()) == NULL) {
-		write_log(1, LOG_ERR, "Failed to get list of interfaces.");
-		goto finish;
-	}
-
-	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		write_log(1, LOG_ERR, "Failed to open control socket.");
-		goto finish;
-	}
-
-	for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
-		struct ifreq ifr;
-		uint8_t up, running, ignore;
-
-		memset(&ifr, 0, sizeof(struct ifreq));
-		strncpy(ifr.ifr_name, intf->if_name, IFNAMSIZ);
-		ifr.ifr_name[IFNAMSIZ-1] = 0;
-
-		if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0) {
-			write_log(1, LOG_ERR, "Failed to get flags for interface %s.", intf->if_name);
-			continue;
-		}
-
-		if ((ifr.ifr_flags & IFF_LOOPBACK) > 0)
-			continue;
-
-		up = ifr.ifr_flags & IFF_UP;
-		running = ifr.ifr_flags & IFF_RUNNING;
-		ignore = add_interface(intf->if_name, up, running, 0);
-
-		if (found && up && running && !ignore)
-			update_hosts_on_interface(bus, intf->if_index, intf->if_name);
+	while (interfaces_ptr->interface != NULL) {
+		if (interfaces_ptr->up && interfaces_ptr->running && !interfaces_ptr->ignore)
+			update_hosts_on_interface(bus, interfaces_ptr->ifindex, interfaces_ptr->interface);
 
 		if (quit)
 			break;
-	}
 
-	close(sock);
-	if_freenameindex(if_nidxs);
+		interfaces_ptr = interfaces_ptr->next;
+	}
 
 finish:
 	/* mark hosts offline that did not show up in query */
@@ -553,7 +522,44 @@ update:
 	interfaces_ptr->up = up;
 	interfaces_ptr->running = running;
 
-	return interfaces_ptr->ignore;
+	return EXIT_SUCCESS;
+}
+
+/*** update_interfaces ***/
+static void update_interfaces(void) {
+	struct if_nameindex *if_nidxs, *intf;
+	int sock;
+
+	if ((if_nidxs = if_nameindex()) == NULL) {
+		write_log(1, LOG_ERR, "Failed to get list of interfaces.");
+		return;
+	}
+
+	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		write_log(1, LOG_ERR, "Failed to open control socket.");
+		return;
+	}
+
+	for (intf = if_nidxs; intf->if_index != 0 || intf->if_name != NULL; intf++) {
+		struct ifreq ifr;
+
+		memset(&ifr, 0, sizeof(struct ifreq));
+		strncpy(ifr.ifr_name, intf->if_name, IFNAMSIZ);
+		ifr.ifr_name[IFNAMSIZ-1] = 0;
+
+		if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0) {
+			write_log(1, LOG_ERR, "Failed to get flags for interface %s.", intf->if_name);
+			continue;
+		}
+
+		if ((ifr.ifr_flags & IFF_LOOPBACK) > 0)
+			continue;
+
+		add_interface(intf->if_name, ifr.ifr_flags & IFF_UP, ifr.ifr_flags & IFF_RUNNING, 0);
+	}
+
+	close(sock);
+	if_freenameindex(if_nidxs);
 }
 
 /*** find_best_redirect ***/
@@ -1252,6 +1258,7 @@ int main(int argc, char ** argv) {
 		if (sleepsec > 0 && update == 0)
 			continue;
 
+		update_interfaces();
 		update_hosts();
 		update = 0;
 		sleepsec = 60;
