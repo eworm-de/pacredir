@@ -837,8 +837,6 @@ static char * status_page(void) {
 	if (interfaces_ptr->interface == NULL)
 		page = append_string(page, STATUS_INT_NONE);
 	while (interfaces_ptr->interface != NULL) {
-		interfaces_ptr->ifindex = if_nametoindex(interfaces_ptr->interface);
-
 		uint8_t not_avail = !interfaces_ptr->up || !interfaces_ptr->running || interfaces_ptr->ignore;
 		const char * state = (interfaces_ptr->up ? (interfaces_ptr->running ? "running" : "up") : "down");
 
@@ -1037,8 +1035,6 @@ static void dump_state(void) {
 	if (interfaces_ptr->interface == NULL)
 		write_log(1, LOG_INFO, " (none)");
 	while (interfaces_ptr->interface != NULL) {
-		interfaces_ptr->ifindex = if_nametoindex(interfaces_ptr->interface);
-
 		uint8_t not_avail = !interfaces_ptr->up || !interfaces_ptr->running || interfaces_ptr->ignore;
 		const char * state = (interfaces_ptr->up ? (interfaces_ptr->running ? "running" : "up") : "down");
 
