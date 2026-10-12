@@ -155,9 +155,7 @@ static char * get_url(const char * hostname, const uint16_t port, const uint8_t 
 /* find_best_redirect */
 static struct request * find_best_redirect(const char * basename, uint8_t dbfile, time_t last_modified);
 
-/* write_log */
-static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
-
+/* from pacredir-server.c */
 /* append_string */
 static char * append_string(char * string, const char *format, ...);
 /* status_page */
@@ -172,6 +170,8 @@ static enum MHD_Result ahc_echo(void * cls,
 		size_t * upload_data_size,
 		void ** ptr);
 
+/* write_log */
+static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
 /* dump state */
 static void dump_state(void);
 /* sig_callback */
