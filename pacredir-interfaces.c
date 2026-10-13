@@ -182,3 +182,17 @@ static void free_interfaces(void) {
 	free(interfaces);
 	interfaces = NULL;
 }
+
+/*** free_ignore_patterns ***/
+static void free_ignore_patterns(void) {
+	struct patterns * previous;
+
+	while (ignore_patterns->pattern != NULL) {
+		previous = ignore_patterns;
+		ignore_patterns = ignore_patterns->next;
+		free(previous->pattern);
+		free(previous);
+	}
+	free(ignore_patterns);
+	ignore_patterns = NULL;
+}

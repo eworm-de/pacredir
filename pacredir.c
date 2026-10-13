@@ -164,7 +164,6 @@ int main(int argc, char ** argv) {
 	const char * inistring;
 	char * values, * value;
 	uint16_t port;
-	struct patterns * ignore_patterns_ptr;
 	int i, ret = 1, sleepsec = 0;
 	struct MHD_Daemon * mhd;
 	struct sockaddr_in address;
@@ -348,14 +347,7 @@ fail:
 	/* Cleanup things */
 	free_hosts();
 	free_interfaces();
-
-	while (ignore_patterns->pattern != NULL) {
-		free(ignore_patterns->pattern);
-		ignore_patterns_ptr = ignore_patterns->next;
-		free(ignore_patterns);
-		ignore_patterns = ignore_patterns_ptr;
-	}
-	free(ignore_patterns);
+	free_ignore_patterns();
 
 	sd_notify(0, "STATUS=Stopped. Bye!");
 

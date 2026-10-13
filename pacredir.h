@@ -169,6 +169,8 @@ static struct patterns * add_ignore_pattern(const char * pattern);
 static void update_interfaces(void);
 /* free_interfaces */
 static void free_interfaces(void);
+/* free_ignore_patterns */
+static void free_ignore_patterns(void);
 
 /* from pacredir-request.c */
 /* get_url */
