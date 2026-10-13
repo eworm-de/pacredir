@@ -237,8 +237,6 @@ int main(int argc, char ** argv) {
 		/* store interfaces to ignore */
 		if ((inistring = iniparser_getstring(ini, ":ignore interfaces", NULL)) != NULL) {
 			values = strdup(inistring);
-			interfaces_ptr = interfaces;
-
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				write_log(verbose, LOG_INFO, "Ignoring interface: %s", value);
