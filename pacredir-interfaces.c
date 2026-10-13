@@ -21,7 +21,7 @@
 
 /*** add_interface ***/
 static struct interfaces * add_interface(const char * interface) {
-	struct interfaces * interfaces_ptr = interfaces, * previous = NULL;
+	struct interfaces * interfaces_ptr = interfaces, * previous = NULL, * new;
 
 	while (interfaces_ptr->interface != NULL) {
 		int cmp = strcmp(interfaces_ptr->interface, interface);
@@ -39,8 +39,6 @@ static struct interfaces * add_interface(const char * interface) {
 
 		/* insert before, or first */
 		if (cmp > 0) {
-			struct interfaces * new;
-
 			if ((new = malloc(sizeof(struct interfaces))) == NULL)
 				return NULL;
 
@@ -59,11 +57,12 @@ static struct interfaces * add_interface(const char * interface) {
 	}
 
 	/* append at the end */
-	if ((interfaces_ptr->next = malloc(sizeof(struct interfaces))) == NULL)
+	if ((new = malloc(sizeof(struct interfaces))) == NULL)
 		return NULL;
 
-	interfaces_ptr->next->interface = NULL;
-	interfaces_ptr->next->next = NULL;
+	new->interface = NULL;
+	new->next = NULL;
+	interfaces_ptr->next = new;
 
 new:
 	/* interface not found, adding a new one */
