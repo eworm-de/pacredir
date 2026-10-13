@@ -20,7 +20,7 @@
 #include "pacredir.h"
 
 /*** add_interface ***/
-static int add_interface(const char * interface, const uint8_t up, const uint8_t running, const uint8_t ignore) {
+static struct interfaces * add_interface(const char * interface, const uint8_t up, const uint8_t running) {
 	struct interfaces * interfaces_ptr = interfaces, * previous = NULL;
 
 	while (interfaces_ptr->interface != NULL) {
@@ -64,14 +64,26 @@ new:
 	write_log(verbose, LOG_INFO, "Adding interface %s", interface);
 
 	interfaces_ptr->interface = strdup(interface);
-	interfaces_ptr->ignore = ignore;
+	interfaces_ptr->ignore = 0;
 
 update:
 	interfaces_ptr->ifindex = if_nametoindex(interface);
 	interfaces_ptr->up = up;
 	interfaces_ptr->running = running;
 
-	return EXIT_SUCCESS;
+	return interfaces_ptr;
+}
+
+/*** ignore_interface ***/
+static struct interfaces * ignore_interface(const char * interface) {
+	struct interfaces * interfaces_ptr;
+
+	if ((interfaces_ptr = add_interface(interface, 0, 0)) == NULL)
+		return NULL;
+
+	interfaces_ptr->ignore = 1;
+
+	return interfaces_ptr;
 }
 
 /*** update_interfaces ***/
@@ -104,7 +116,7 @@ static void update_interfaces(void) {
 		if ((ifr.ifr_flags & IFF_LOOPBACK) > 0)
 			continue;
 
-		add_interface(intf->if_name, ifr.ifr_flags & IFF_UP, ifr.ifr_flags & IFF_RUNNING, 0);
+		add_interface(intf->if_name, ifr.ifr_flags & IFF_UP, ifr.ifr_flags & IFF_RUNNING);
 	}
 
 	close(sock);
