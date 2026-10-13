@@ -39,7 +39,11 @@ static struct interfaces * add_interface(const char * interface) {
 
 		/* insert before, or first */
 		if (cmp > 0) {
-			struct interfaces * new = malloc(sizeof(struct interfaces));
+			struct interfaces * new;
+
+			if ((new = malloc(sizeof(struct interfaces))) == NULL)
+				return NULL;
+
 			new->next = interfaces_ptr;
 
 			/* first! */
@@ -55,7 +59,9 @@ static struct interfaces * add_interface(const char * interface) {
 	}
 
 	/* append at the end */
-	interfaces_ptr->next = malloc(sizeof(struct interfaces));
+	if ((interfaces_ptr->next = malloc(sizeof(struct interfaces))) == NULL)
+		return NULL;
+
 	interfaces_ptr->next->interface = NULL;
 	interfaces_ptr->next->next = NULL;
 
@@ -128,7 +134,8 @@ static void update_interfaces(void) {
 		if ((ifr.ifr_flags & IFF_LOOPBACK) > 0)
 			continue;
 
-		update_interface(intf->if_name, ifr.ifr_flags & IFF_UP, ifr.ifr_flags & IFF_RUNNING);
+		if (update_interface(intf->if_name, ifr.ifr_flags & IFF_UP, ifr.ifr_flags & IFF_RUNNING) == NULL)
+			write_log(1, LOG_ERR, "Updating interface %s failed!", intf->if_name);
 	}
 
 	close(sock);

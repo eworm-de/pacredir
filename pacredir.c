@@ -242,7 +242,8 @@ int main(int argc, char ** argv) {
 			value = strtok(values, DELIMITER);
 			while (value != NULL) {
 				write_log(verbose, LOG_INFO, "Ignoring interface: %s", value);
-				ignore_interface(value);
+				if (ignore_interface(value) == NULL)
+					write_log(1, LOG_ERR, "Adding interface %s failed!", value);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
