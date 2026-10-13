@@ -31,6 +31,7 @@ const static struct option options_long[] = {
 /* global variables */
 struct hosts * hosts = NULL;
 struct interfaces * interfaces = NULL;
+struct patterns * ignore_patterns = NULL;
 uint8_t quit = 0, systemd = 0, update = 0, verbose = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
 
@@ -164,6 +165,7 @@ int main(int argc, char ** argv) {
 	char * values, * value;
 	uint16_t port;
 	struct interfaces * interfaces_ptr;
+	struct patterns * ignore_patterns_ptr;
 	int i, ret = 1, sleepsec = 0;
 	struct MHD_Daemon * mhd;
 	struct hosts * hosts_ptr;
@@ -216,6 +218,10 @@ int main(int argc, char ** argv) {
 	interfaces->interface = NULL;
 	interfaces->next = NULL;
 
+	ignore_patterns = malloc(sizeof(struct patterns));
+	ignore_patterns->pattern = NULL;
+	ignore_patterns->next = NULL;
+
 	/* Probing for static pacserve hosts takes some time.
 	 * Receiving a SIGHUP at this time could kill us. So register signal
 	 * SIGHUP here before probing. */
@@ -242,6 +248,19 @@ int main(int argc, char ** argv) {
 				write_log(verbose, LOG_INFO, "Ignoring interface: %s", value);
 				if (ignore_interface(value) == NULL)
 					write_log(1, LOG_ERR, "Adding interface %s failed!", value);
+				value = strtok(NULL, DELIMITER);
+			}
+			free(values);
+		}
+
+		/* store patterns for interfaces to ignore */
+		if ((inistring = iniparser_getstring(ini, ":ignore patterns", NULL)) != NULL) {
+			values = strdup(inistring);
+			value = strtok(values, DELIMITER);
+			while (value != NULL) {
+				write_log(verbose, LOG_INFO, "Adding ignore pattern: %s", value);
+				if (add_ignore_pattern(value) == NULL)
+					write_log(1, LOG_ERR, "Adding ignore pattern %s failed!", value);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
@@ -344,6 +363,14 @@ fail:
 		interfaces = interfaces_ptr;
 	}
 	free(interfaces);
+
+	while (ignore_patterns->pattern != NULL) {
+		free(ignore_patterns->pattern);
+		ignore_patterns_ptr = ignore_patterns->next;
+		free(ignore_patterns);
+		ignore_patterns = ignore_patterns_ptr;
+	}
+	free(ignore_patterns);
 
 	sd_notify(0, "STATUS=Stopped. Bye!");
 

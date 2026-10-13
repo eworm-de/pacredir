@@ -22,6 +22,7 @@
 /*** add_interface ***/
 static struct interfaces * add_interface(const char * interface) {
 	struct interfaces * interfaces_ptr = interfaces, * previous = NULL, * new;
+	struct patterns * ignore_patterns_ptr = ignore_patterns;
 
 	while (interfaces_ptr->interface != NULL) {
 		int cmp = strcmp(interfaces_ptr->interface, interface);
@@ -74,6 +75,15 @@ new:
 	interfaces_ptr->running = 0;
 	interfaces_ptr->ignore = 0;
 
+	while (ignore_patterns_ptr->pattern != NULL) {
+		if (fnmatch(ignore_patterns_ptr->pattern, interface, 0) == 0) {
+			write_log(verbose, LOG_INFO, "Ignoring interface %s by pattern", interface);
+			interfaces_ptr->ignore = 1;
+			break;
+		}
+		ignore_patterns_ptr = ignore_patterns_ptr->next;
+	}
+
 	return interfaces_ptr;
 }
 
@@ -101,6 +111,24 @@ static struct interfaces * update_interface(const char * interface, const uint8_
 	interfaces_ptr->running = running;
 
 	return interfaces_ptr;
+}
+
+/*** add_ignore_pattern ***/
+static struct patterns * add_ignore_pattern(const char * pattern) {
+	struct patterns * patterns_ptr = ignore_patterns, * new;
+
+	while (patterns_ptr->pattern != NULL)
+		patterns_ptr = patterns_ptr->next;
+
+	if ((new = malloc(sizeof(struct patterns))) == NULL)
+		return NULL;
+
+	new->pattern = NULL;
+	new->next = NULL;
+	patterns_ptr->next = new;
+	patterns_ptr->pattern = strdup(pattern);
+
+	return patterns_ptr;
 }
 
 /*** update_interfaces ***/

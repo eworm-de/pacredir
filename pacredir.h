@@ -24,6 +24,7 @@
 /* glibc headers */
 #include <arpa/inet.h>
 #include <assert.h>
+#include <fnmatch.h>
 #include <getopt.h>
 #include <math.h>
 #include <net/if.h>
@@ -113,6 +114,14 @@ struct interfaces {
 	struct interfaces * next;
 };
 
+/* ignore patterns for interfaces */
+struct patterns {
+	/* pattern */
+	char * pattern;
+	/* pointer to next struct element */
+	struct patterns * next;
+};
+
 /* request */
 struct request {
 	/* host infos */
@@ -152,6 +161,8 @@ static struct interfaces * add_interface(const char * interface);
 static struct interfaces * ignore_interface(const char * interface);
 /* update_interface */
 static struct interfaces * update_interface(const char * interface, const uint8_t up, const uint8_t running);
+/* add_ignore_pattern */
+static struct patterns * add_ignore_pattern(const char * pattern);
 /* update_interfaces */
 static void update_interfaces(void);
 
