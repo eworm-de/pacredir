@@ -210,13 +210,10 @@ int main(int argc, char ** argv) {
 	/* allocate first struct element as dummy */
 	hosts = malloc(sizeof(struct hosts));
 	hosts->host = NULL;
-	hosts->online = 0;
-	hosts->badtime = 0;
 	hosts->next = NULL;
 
 	interfaces = malloc(sizeof(struct interfaces));
 	interfaces->interface = NULL;
-	interfaces->ifindex = 0;
 	interfaces->next = NULL;
 
 	/* Probing for static pacserve hosts takes some time.
