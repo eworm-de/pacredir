@@ -164,7 +164,6 @@ int main(int argc, char ** argv) {
 	const char * inistring;
 	char * values, * value;
 	uint16_t port;
-	struct interfaces * interfaces_ptr;
 	struct patterns * ignore_patterns_ptr;
 	int i, ret = 1, sleepsec = 0;
 	struct MHD_Daemon * mhd;
@@ -348,14 +347,7 @@ fail:
 
 	/* Cleanup things */
 	free_hosts();
-
-	while (interfaces->interface != NULL) {
-		free(interfaces->interface);
-		interfaces_ptr = interfaces->next;
-		free(interfaces);
-		interfaces = interfaces_ptr;
-	}
-	free(interfaces);
+	free_interfaces();
 
 	while (ignore_patterns->pattern != NULL) {
 		free(ignore_patterns->pattern);

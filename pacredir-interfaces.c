@@ -168,3 +168,17 @@ static void update_interfaces(void) {
 	close(sock);
 	if_freenameindex(if_nidxs);
 }
+
+/*** free_interfaces ***/
+static void free_interfaces(void) {
+	struct interfaces * previous;
+
+	while (interfaces->interface != NULL) {
+		previous = interfaces;
+		interfaces = interfaces->next;
+		free(previous->interface);
+		free(previous);
+	}
+	free(interfaces);
+	interfaces = NULL;
+}

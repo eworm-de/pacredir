@@ -167,6 +167,8 @@ static struct interfaces * update_interface(const char * interface, const uint8_
 static struct patterns * add_ignore_pattern(const char * pattern);
 /* update_interfaces */
 static void update_interfaces(void);
+/* free_interfaces */
+static void free_interfaces(void);
 
 /* from pacredir-request.c */
 /* get_url */
