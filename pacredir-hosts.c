@@ -325,7 +325,7 @@ finish:
 
 /*** add_host ***/
 static struct hosts * add_host(const char * host, const uint16_t port, const uint8_t mdns) {
-	struct hosts * hosts_ptr = hosts, * previous = NULL;
+	struct hosts * hosts_ptr = hosts, * previous = NULL, * new;
 
 	while (hosts_ptr->host != NULL) {
 		int cmp = strcmp(hosts_ptr->host, host);
@@ -353,8 +353,6 @@ static struct hosts * add_host(const char * host, const uint16_t port, const uin
 
 		/* insert before, or first */
 		if (cmp > 0) {
-			struct hosts * new;
-
 			if ((new = malloc(sizeof(struct hosts))) == NULL)
 				return NULL;
 
@@ -373,11 +371,12 @@ static struct hosts * add_host(const char * host, const uint16_t port, const uin
 	}
 
 	/* append at the end */
-	if ((hosts_ptr->next = malloc(sizeof(struct hosts))) == NULL)
+	if ((new = malloc(sizeof(struct hosts))) == NULL)
 		return NULL;
 
-	hosts_ptr->next->host = NULL;
-	hosts_ptr->next->next = NULL;
+	new->host = NULL;
+	new->next = NULL;
+	hosts_ptr->next = new;
 
 new:
 	/* host not found, adding a new one */
