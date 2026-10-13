@@ -168,7 +168,6 @@ int main(int argc, char ** argv) {
 	struct patterns * ignore_patterns_ptr;
 	int i, ret = 1, sleepsec = 0;
 	struct MHD_Daemon * mhd;
-	struct hosts * hosts_ptr;
 	struct sockaddr_in address;
 
 	unsigned int version = 0, help = 0;
@@ -348,13 +347,7 @@ int main(int argc, char ** argv) {
 fail:
 
 	/* Cleanup things */
-	while (hosts->host != NULL) {
-		free(hosts->host);
-		hosts_ptr = hosts->next;
-		free(hosts);
-		hosts = hosts_ptr;
-	}
-	free(hosts);
+	free_hosts();
 
 	while (interfaces->interface != NULL) {
 		free(interfaces->interface);

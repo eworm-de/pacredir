@@ -407,3 +407,17 @@ static void reset_hosts(void) {
 		hosts_ptr = hosts_ptr->next;
 	}
 }
+
+/*** free_hosts ***/
+static void free_hosts(void) {
+	struct hosts * previous;
+
+	while (hosts->host != NULL) {
+		previous = hosts;
+		hosts = hosts->next;
+		free(previous->host);
+		free(previous);
+	}
+	free(hosts);
+	hosts = NULL;
+}
