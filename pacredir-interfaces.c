@@ -20,7 +20,7 @@
 #include "pacredir.h"
 
 /*** add_interface ***/
-static struct interfaces * add_interface(const char * interface, const uint8_t up, const uint8_t running) {
+static struct interfaces * add_interface(const char * interface) {
 	struct interfaces * interfaces_ptr = interfaces, * previous = NULL;
 
 	while (interfaces_ptr->interface != NULL) {
@@ -35,7 +35,7 @@ static struct interfaces * add_interface(const char * interface, const uint8_t u
 
 		/* interface already exists */
 		if (cmp == 0)
-			goto update;
+			return interfaces_ptr;
 
 		/* insert before, or first */
 		if (cmp > 0) {
@@ -64,12 +64,10 @@ new:
 	write_log(verbose, LOG_INFO, "Adding interface %s", interface);
 
 	interfaces_ptr->interface = strdup(interface);
+	interfaces_ptr->ifindex = 0;
+	interfaces_ptr->up = 0;
+	interfaces_ptr->running = 0;
 	interfaces_ptr->ignore = 0;
-
-update:
-	interfaces_ptr->ifindex = if_nametoindex(interface);
-	interfaces_ptr->up = up;
-	interfaces_ptr->running = running;
 
 	return interfaces_ptr;
 }
@@ -78,10 +76,24 @@ update:
 static struct interfaces * ignore_interface(const char * interface) {
 	struct interfaces * interfaces_ptr;
 
-	if ((interfaces_ptr = add_interface(interface, 0, 0)) == NULL)
+	if ((interfaces_ptr = add_interface(interface)) == NULL)
 		return NULL;
 
 	interfaces_ptr->ignore = 1;
+
+	return interfaces_ptr;
+}
+
+/*** update_interface ***/
+static struct interfaces * update_interface(const char * interface, const uint8_t up, const uint8_t running) {
+	struct interfaces * interfaces_ptr;
+
+	if ((interfaces_ptr = add_interface(interface)) == NULL)
+		return NULL;
+
+	interfaces_ptr->ifindex = if_nametoindex(interface);
+	interfaces_ptr->up = up;
+	interfaces_ptr->running = running;
 
 	return interfaces_ptr;
 }
@@ -116,7 +128,7 @@ static void update_interfaces(void) {
 		if ((ifr.ifr_flags & IFF_LOOPBACK) > 0)
 			continue;
 
-		add_interface(intf->if_name, ifr.ifr_flags & IFF_UP, ifr.ifr_flags & IFF_RUNNING);
+		update_interface(intf->if_name, ifr.ifr_flags & IFF_UP, ifr.ifr_flags & IFF_RUNNING);
 	}
 
 	close(sock);

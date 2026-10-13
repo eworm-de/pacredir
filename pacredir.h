@@ -147,9 +147,11 @@ static void reset_hosts(void);
 
 /* from pacredir-interfaces.c */
 /* add_interface */
-static struct interfaces * add_interface(const char * interface, const uint8_t up, const uint8_t running);
+static struct interfaces * add_interface(const char * interface);
 /* ignore_interface */
 static struct interfaces * ignore_interface(const char * interface);
+/* update_interface */
+static struct interfaces * update_interface(const char * interface, const uint8_t up, const uint8_t running);
 /* update_interfaces */
 static void update_interfaces(void);
 
