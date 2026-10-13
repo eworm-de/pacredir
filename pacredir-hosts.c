@@ -294,7 +294,8 @@ static void update_hosts_on_interface(sd_bus *bus, const unsigned int if_index, 
 		}
 
 		/* add the peer to our struct */
-		add_host(canonical, port, 1);
+		if (add_host(canonical, port, 1) == NULL)
+			write_log(1, LOG_ERR, "Adding host %s failed!", canonical);
 
 		goto finish_service;
 
@@ -323,7 +324,7 @@ finish:
 }
 
 /*** add_host ***/
-static int add_host(const char * host, const uint16_t port, const uint8_t mdns) {
+static struct hosts * add_host(const char * host, const uint16_t port, const uint8_t mdns) {
 	struct hosts * hosts_ptr = hosts, * previous = NULL;
 
 	while (hosts_ptr->host != NULL) {
@@ -352,7 +353,11 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 
 		/* insert before, or first */
 		if (cmp > 0) {
-			struct hosts * new = malloc(sizeof(struct hosts));
+			struct hosts * new;
+
+			if ((new = malloc(sizeof(struct hosts))) == NULL)
+				return NULL;
+
 			new->next = hosts_ptr;
 
 			/* first! */
@@ -368,7 +373,9 @@ static int add_host(const char * host, const uint16_t port, const uint8_t mdns) 
 	}
 
 	/* append at the end */
-	hosts_ptr->next = malloc(sizeof(struct hosts));
+	if ((hosts_ptr->next = malloc(sizeof(struct hosts))) == NULL)
+		return NULL;
+
 	hosts_ptr->next->host = NULL;
 	hosts_ptr->next->next = NULL;
 
@@ -388,7 +395,7 @@ update:
 	hosts_ptr->online = 1;
 	hosts_ptr->present = 1;
 
-	return EXIT_SUCCESS;
+	return hosts_ptr;
 }
 
 /*** reset_hosts ***/

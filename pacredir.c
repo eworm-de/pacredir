@@ -260,7 +260,8 @@ int main(int argc, char ** argv) {
 					*strchr(value, ':') = 0;
 				} else
 					port = PORT_PACSERVE;
-				add_host(value, port, 0);
+				if (add_host(value, port, 0) == NULL)
+					write_log(1, LOG_ERR, "Adding host %s failed!", value);
 				value = strtok(NULL, DELIMITER);
 			}
 			free(values);
