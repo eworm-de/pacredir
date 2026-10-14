@@ -134,6 +134,8 @@ struct request {
 	double time_total;
 	/* last modified timestamp */
 	long last_modified;
+	/* content length */
+	long content_length;
 	/* curl handle */
 	CURL *curl;
 	/* curl error buffer */

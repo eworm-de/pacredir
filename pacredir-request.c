@@ -186,9 +186,14 @@ static struct request * find_best_redirect(const char * basename, uint8_t dbfile
 			goto request_free;
 		}
 
-		/* get last modified time */
+		/* get last modified time and content length */
 		if (request->http_code == MHD_HTTP_OK) {
 			if ((res = curl_easy_getinfo(curl, CURLINFO_FILETIME, &(request->last_modified))) != CURLE_OK) {
+				write_log(1, LOG_ERR, "curl_easy_getinfo() failed: %s", curl_easy_strerror(res));
+				goto request_free;
+			}
+
+			if ((res = curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &(request->content_length))) != CURLE_OK) {
 				write_log(1, LOG_ERR, "curl_easy_getinfo() failed: %s", curl_easy_strerror(res));
 				goto request_free;
 			}
