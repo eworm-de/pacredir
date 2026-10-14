@@ -50,6 +50,7 @@
 	"<tr><td>Distribution:</td><td><b>" ID "</b></td></tr>" \
 	"<tr><td>Architecture:</td><td><b>" ARCH "</b></td></tr>" \
 	"<tr><td>Redirects:</td><td><b>%d</b></td></tr>" \
+	"<tr><td>Savings:</td><td><b>%ldB</b></td></tr>" \
 	"<tr><td>Not found:</td><td><b>%d</b></td></tr>" \
 	"<tr><td>Over all:</td><td>%s</td></tr>" \
 	"</table>"

@@ -68,7 +68,7 @@ static char * status_page(void) {
 		}
 
 	gethostname(hostname, HOST_NAME_MAX);
-	page = append_string(page, STATUS_HEAD, hostname, count_redirect, count_not_found, overall);
+	page = append_string(page, STATUS_HEAD, hostname, count_redirect, content_length, count_not_found, overall);
 
 	page = append_string(page, STATUS_INT_HEAD);
 	if (interfaces_ptr->interface == NULL)
