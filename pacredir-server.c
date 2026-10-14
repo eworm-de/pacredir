@@ -214,6 +214,7 @@ static enum MHD_Result ahc_echo(void * cls,
 	if ((request = find_best_redirect(basename, dbfile, last_modified)) != NULL) {
 		http_code = MHD_HTTP_TEMPORARY_REDIRECT;
 		count_redirect++;
+		content_length += request->content_length;
 	} else {
 		count_not_found++;
 	}

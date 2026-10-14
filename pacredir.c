@@ -34,6 +34,7 @@ struct interfaces * interfaces = NULL;
 struct patterns * ignore_patterns = NULL;
 uint8_t quit = 0, systemd = 0, update = 0, verbose = 0;
 unsigned int count_redirect = 0, count_not_found = 0;
+long content_length = 0;
 
 /* include more code */
 #include "pacredir-hosts.c"
