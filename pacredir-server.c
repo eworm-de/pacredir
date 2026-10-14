@@ -254,8 +254,8 @@ response:
 	MHD_destroy_response(response);
 
 	/* report counts to systemd */
-	sd_notifyf(0, "STATUS=%d redirects, %d not found, waiting...",
-			count_redirect, count_not_found);
+	sd_notifyf(0, "STATUS=%d redirects (%ldB savings), %d not found, waiting...",
+			count_redirect, content_length, count_not_found);
 
 	return ret;
 }
