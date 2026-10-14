@@ -46,6 +46,7 @@ static char * status_page(void) {
 	struct hosts * hosts_ptr = hosts;
 	char *page = NULL, *overall = CIRCLE_BLUE;
 	char hostname[HOST_NAME_MAX];
+	char savings[HUMAN_REABLE_MAX];
 	struct timeval tv;
 
 	/* initialize struct timeval */
@@ -68,7 +69,9 @@ static char * status_page(void) {
 		}
 
 	gethostname(hostname, HOST_NAME_MAX);
-	page = append_string(page, STATUS_HEAD, hostname, count_redirect, content_length, count_not_found, overall);
+	human_readable_num(savings, sizeof(savings), content_length);
+	page = append_string(page, STATUS_HEAD, hostname, count_redirect,
+		savings, count_not_found, overall);
 
 	page = append_string(page, STATUS_INT_HEAD);
 	if (interfaces_ptr->interface == NULL)
@@ -135,6 +138,7 @@ static enum MHD_Result ahc_echo(void * cls,
 	static_file * file = NULL;
 	const char * basename;
 	struct timeval tv;
+	char savings[HUMAN_REABLE_MAX];
 
 	struct tm tm;
 	const char * if_modified_since = NULL;
@@ -254,8 +258,9 @@ response:
 	MHD_destroy_response(response);
 
 	/* report counts to systemd */
-	sd_notifyf(0, "STATUS=%d redirects (%ldB savings), %d not found, waiting...",
-			count_redirect, content_length, count_not_found);
+	human_readable_num(savings, sizeof(savings), content_length);
+	sd_notifyf(0, "STATUS=%d redirects (%sB savings), %d not found, waiting...",
+			count_redirect, savings, count_not_found);
 
 	return ret;
 }

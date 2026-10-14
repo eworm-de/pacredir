@@ -67,6 +67,8 @@
 #define SD_RESOLVED_NO_SYNTHESIZE	(UINT64_C(1) << 11)
 #define SD_RESOLVED_NO_ZONE		(UINT64_C(1) << 13)
 
+#define	HUMAN_REABLE_MAX	32
+
 #define PROGNAME	"pacredir"
 
 /* hosts */
@@ -197,6 +199,8 @@ static enum MHD_Result ahc_echo(void * cls,
 
 /* write_log */
 static int write_log(uint8_t show, uint8_t priority, const char *format, ...);
+/* human_readable_num */
+static void human_readable_num(char * buffer, size_t len, const long number);
 /* dump state */
 static void dump_state(void);
 /* sig_callback */

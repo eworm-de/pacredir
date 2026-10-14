@@ -89,11 +89,52 @@ free_return:
 	return EXIT_SUCCESS;
 }
 
+/*** human_readable_num ***/
+static void human_readable_num(char * buffer, size_t len, const long number) {
+	char units[] = "KMGTPE";
+	char * unit = units;
+	uint64_t powi = 1024;
+	unsigned int precision = 2;
+
+
+	if (number < 1024) {
+		snprintf(buffer, len, "%ld", number);
+		return;
+	}
+
+	for (;;) {
+		if (number / 1024 < powi)
+			break;
+
+		if (unit[1] == '\0')
+			break;
+
+		powi *= 1024;
+		++unit;
+	}
+	unit[1] = '\0';
+
+	if (powi > 1) {
+		unsigned int powj = 1;
+
+		for (; precision > 0; precision--) {
+			powj *= 10;
+			if (number / powi < powj)
+				break;
+		} 
+	}
+
+	snprintf(buffer, len, "%.*f%s%s", precision,
+		(double) number / powi, unit, *unit ? "i" : "");
+        return;
+}
+
 /*** dump_state ***/
 static void dump_state(void) {
 	struct interfaces * interfaces_ptr = interfaces;
 	struct hosts * hosts_ptr = hosts;
 	struct timeval tv;
+	char savings[HUMAN_REABLE_MAX];
 
 	/* initialize struct timeval */
 	gettimeofday(&tv, NULL);
@@ -132,8 +173,9 @@ static void dump_state(void) {
 		hosts_ptr = hosts_ptr->next;
 	}
 
-	write_log(1, LOG_NOTICE, "%d redirects (%ldB savings), %d not found.",
-		count_redirect, content_length, count_not_found);
+	human_readable_num(savings, sizeof(savings), content_length);
+	write_log(1, LOG_NOTICE, "%d redirects (%sB savings), %d not found.",
+		count_redirect, savings, count_not_found);
 }
 
 /*** sig_callback ***/
