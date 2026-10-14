@@ -132,8 +132,8 @@ static void dump_state(void) {
 		hosts_ptr = hosts_ptr->next;
 	}
 
-	write_log(1, LOG_NOTICE, "%d redirects, %d not found.",
-		count_redirect, count_not_found);
+	write_log(1, LOG_NOTICE, "%d redirects (%ldB savings), %d not found.",
+		count_redirect, content_length, count_not_found);
 }
 
 /*** sig_callback ***/
